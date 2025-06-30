@@ -1,0 +1,24 @@
+{
+    "name": "agentts",
+    "version": "0.0.1",
+    "dependencies": {
+        "@asteasolutions/zod-to-openapi": "^8.0.0-beta.4",
+        "agentlang2": "^0.0.2",
+        "c12": "^3.0.4",
+        "chalk": "^5.4.1",
+        "commander": "^14.0.0",
+        "esbuild": "^0.25.5",
+        "langium": "^3.5.0",
+        "sqlite": "^5.1.1",
+        "zod": "^3.25.67"
+    },
+    "type": "module",
+    "scripts": {
+        "build": "tsc -b tsconfig.src.json && node esbuild.mjs",
+        "start": "ts-node src/index.ts",
+        "dev": "ts-node src/index.ts"
+    },
+    "bin": {
+        "agentts": "./bin/cli.js"
+    }
+}
