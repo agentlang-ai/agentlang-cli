@@ -68,40 +68,60 @@ function findRelationshipPaths(moduleName: string, entityName: string): string[]
     return findPathsRecursive(entityName, visited, [entityName]);
 }
 
+function getOneOfValues(properties: Map<string, any>): string[] {
+  const oneOf = properties.get('one-of') || new Set<string>();
+  return Array.from(oneOf);
+}
+
 function createZodSchemaFromEntitySchema(schema: Map<string, any>) {
   return z.object(
     Object.fromEntries(
-      Array.from(schema.entries()).map(([key, value]) => [
-        key,
-        value.type === 'UUID' ? z.uuid() :
+      Array.from(schema.entries()).map(([key, value]) => {
+        const k = key
+        let v : any = value.properties && value.properties.get('one-of') ? z.enum(getOneOfValues(value.properties)) :
         value.type === 'String' ? z.string() :
         value.type === 'Int' ? z.number() :
-        value.type === 'Float' ? z.number() :
-        value.type === 'Boolean' ? z.boolean() :
+        value.type === 'Number' ? z.boolean() :
+        value.type === 'Email' ? z.string() :
         value.type === 'Date' ? z.string() :
+        value.type === 'Time' ? z.string() :
         value.type === 'DateTime' ? z.string() :
+        value.type === 'Boolean' ? z.boolean() :
+        value.type === 'UUID' ? z.uuid() :
+        value.type === 'URL' ? z.string() :
+        value.type === 'Path' ? z.string() :
+        value.type === 'Map' ? z.object() :
+        value.type === 'Any' ? z.any() :
         z.any()
-      ])
+
+        if (value.properties && value.properties.get('optional')) {
+          v = v.optional()
+        }
+        if (value.properties && value.properties.get('default')) {
+          const deflt = value.properties.get('default')
+          switch (deflt) {
+            case 'uuid()':
+              z.uuid().optional()
+              break
+            case 'now()':
+              v = z.date().optional()
+              break
+            default:
+              v = v.default(deflt)
+          }
+        }
+        return [k, v]
+      })
     )
   );
-}
-
-function createResponseSchemas(entitySchema: any, entityPath: string) {
-  const requestSchema = z.object({
-    [entityPath]: entitySchema
-  });
-  const responseSchema = z.array(entitySchema);
-  
-  return { requestSchema, responseSchema };
 }
 
 function registerEntityEndpoint(
   method: 'get' | 'post' | 'put' | 'delete',
   path: string,
   tags: string[],
-  entityPath: string,
-  entitySchema: any,
-  requestSchema?: any
+  filterPaths: string[],
+  entitySchema: any
 ) {
   const endpointConfig: any = {
     method,
@@ -131,21 +151,21 @@ function registerEntityEndpoint(
       body: {
         content: {
           'application/json': {
-            schema: requestSchema
+            schema: entitySchema
           }
         }
       }
     };
   }
 
-  if (method === 'put' || method === 'delete') {
-    endpointConfig.parameters = [{
-      name: 'id',
+  endpointConfig.parameters = filterPaths.map((path) => { 
+    return {
+      name: path,
       in: 'path',
       required: true,
       schema: { type: 'string' }
-    }];
-  }
+    }
+  });
 
   if (method === 'post') {
     delete endpointConfig.responses[404];
@@ -168,21 +188,20 @@ function generateEntitiesEntries() {
       
       const entitySchema = createZodSchemaFromEntitySchema(entity.schema)
         .openapi(`${entity.name}Schema`);
-      
-      const { requestSchema } = createResponseSchemas(entitySchema, entityPath);
-      
-      registerEntityEndpoint('post', `/api/${entityPath}`, [entityPath], entityPath, entitySchema, requestSchema);
-      registerEntityEndpoint('get', `/api/${entityPath}`, [entityPath], entityPath, entitySchema);
-      registerEntityEndpoint('put', `/api/${entityPath}/{id}`, [entityPath], entityPath, entitySchema, requestSchema);
-      registerEntityEndpoint('delete', `/api/${entityPath}/{id}`, [entityPath], entityPath, entitySchema);
+            
+      registerEntityEndpoint('post', `/${entityPath}`, [entity.name], [], entitySchema);
+      registerEntityEndpoint('get', `/${entityPath}`, [entity.name], [], entitySchema);
+      registerEntityEndpoint('put', `/${entityPath}/{id}`, [entity.name], ["id"], entitySchema);
+      registerEntityEndpoint('delete', `/${entityPath}/{id}`, [entity.name], ["id"], entitySchema);
 
       if (relatinotionshipPaths.length > 1) {
         relatinotionshipPaths.forEach((path) => {
           const relationshipPath = path.reverse().join('/');
-          registerEntityEndpoint('post', `/api/${relationshipPath}`, [entityPath + " (" + path[path.length - 2] + ")"], relationshipPath, entitySchema, requestSchema);
-          registerEntityEndpoint('get', `/api/${relationshipPath}`, [entityPath + " (" + path[path.length - 2] + ")"], relationshipPath, entitySchema);
-          registerEntityEndpoint('put', `/api/${relationshipPath}/{id}`, [entityPath + " (" + path[path.length - 2] + ")"], relationshipPath, entitySchema, requestSchema);
-          registerEntityEndpoint('delete', `/api/${relationshipPath}/{id}`, [entityPath + " (" + path[path.length - 2] + ")"], relationshipPath, entitySchema);
+          const filterPaths = path.filter(segment => segment.startsWith('{') && segment.endsWith('}')).map(segment => segment.slice(1, -1))
+          registerEntityEndpoint('post', `/${relationshipPath}`, [entity.name + " (" + path[path.length - 2] + ")"], filterPaths, entitySchema);
+          registerEntityEndpoint('get', `/${relationshipPath}`, [entity.name + " (" + path[path.length - 2] + ")"], filterPaths, entitySchema);
+          registerEntityEndpoint('put', `/${relationshipPath}/{id}`, [entity.name + " (" + path[path.length - 2] + ")"], filterPaths.concat(["id"]), entitySchema);
+          registerEntityEndpoint('delete', `/${relationshipPath}/{id}`, [entity.name + " (" + path[path.length - 2] + ")"], filterPaths.concat(["id"]), entitySchema);
         });
       }
     });
@@ -197,17 +216,7 @@ function generateEventsEntries() {
     return events.map((event: Event) => {
       const eventPath = `${moduleName}/${event.name}`;
       
-      const eventSchema = z.object(Object.fromEntries(Array.from(event.schema.entries()).map(([key, value]) => [
-        key,
-        value.type === 'UUID' ? z.uuid() :
-            value.type === 'String' ? z.string() :
-            value.type === 'Int' ? z.number() :
-            value.type === 'Float' ? z.number() :
-            value.type === 'Boolean' ? z.boolean() :
-            value.type === 'Date' ? z.string() :
-            value.type === 'DateTime' ? z.string() :
-            z.any()
-      ]))).openapi(`${event.name}Schema`);
+      const eventSchema = createZodSchemaFromEntitySchema(event.schema).openapi(`${event.name}Schema`);
 
       const sc = z.object({
         [eventPath]: eventSchema
@@ -215,7 +224,7 @@ function generateEventsEntries() {
 
       registry.registerPath({
         method: 'post',
-        path: `/api/${eventPath}`,
+        path: `/${eventPath}`,
         security: [{ [bearerAuth.name]: [] }],
         tags: ['Events'],
         request: {
