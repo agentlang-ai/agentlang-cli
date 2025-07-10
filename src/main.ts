@@ -1,25 +1,25 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { AgentlangLanguageMetaData } from 'agentlang2/out/language/generated/module.js';
-import { createAgentlangServices } from 'agentlang2/out/language/agentlang-module.js';
+import { AgentlangLanguageMetaData } from 'agentlang/out/language/generated/module.js';
+import { createAgentlangServices } from 'agentlang/out/language/agentlang-module.js';
 import {
   ApplicationSpec,
   internModule,
   load,
   loadCoreModules,
   runStandaloneStatements,
-} from 'agentlang2/out/runtime/loader.js';
+} from 'agentlang/out/runtime/loader.js';
 import { NodeFileSystem } from 'langium/node';
-import { extractDocument } from 'agentlang2/out/runtime/loader.js';
+import { extractDocument } from 'agentlang/out/runtime/loader.js';
 import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { startServer } from 'agentlang2/out/api/http.js';
-import { initDefaultDatabase } from 'agentlang2/out/runtime/resolvers/sqldb/database.js';
-import { logger } from 'agentlang2/out/runtime/logger.js';
-import { runInitFunctions } from 'agentlang2/out/runtime/util.js';
-import { Module } from 'agentlang2/out/runtime/module.js';
-import { ModuleDefinition } from 'agentlang2/out/language/generated/ast.js';
+import { startServer } from 'agentlang/out/api/http.js';
+import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js';
+import { logger } from 'agentlang/out/runtime/logger.js';
+import { runInitFunctions } from 'agentlang/out/runtime/util.js';
+import { Module } from 'agentlang/out/runtime/module.js';
+import { ModuleDefinition } from 'agentlang/out/language/generated/ast.js';
 import { loadConfig } from 'c12';
 import { generateSwaggerDoc } from './docs.js';
 import { z } from 'zod';
@@ -176,9 +176,8 @@ export async function runPreInitTasks(): Promise<boolean> {
 }
 
 export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Config) {
-    console.log("asdf")
 
-    await initDefaultDatabase();
+  await initDatabase(config?.store);
 
   await runInitFunctions();
   await runStandaloneStatements();
@@ -186,11 +185,11 @@ export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Confi
 }
 
 export const runModule = async (fileName: string, options?: { config?: string }): Promise<void> => {
+
   const configDir =
     path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
 
   let config: Config | undefined;
-
   try {
     const { config: rawConfig } = await loadConfig({
       cwd: configDir,
@@ -210,7 +209,6 @@ export const runModule = async (fileName: string, options?: { config?: string })
       console.log(`Config loading failed: ${err}`);
     }
   }
-
   const r: boolean = await runPreInitTasks();
   if (!r) {
     throw new Error('Failed to initialize runtime');
