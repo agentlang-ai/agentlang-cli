@@ -4,6 +4,8 @@ import { OpenApiGeneratorV3, OpenAPIRegistry, extendZodWithOpenApi } from '@aste
 import { getUserModuleNames, fetchModule, Entity, Event } from 'agentlang/out/runtime/module.js';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import Converter from 'openapi-to-postmanv2';
+import { execSync } from 'child_process';
 
 extendZodWithOpenApi(z);
 
@@ -33,7 +35,7 @@ function writeDocumentation(registry: OpenAPIRegistry, docDir: string, name: str
   const docs = getOpenApiDocumentation(registry, name, version);
   const fileContent = yaml.stringify(docs);
   fs.mkdir(path.join(docDir, 'docs'), { recursive: true });
-  fs.writeFile(`${docDir}/docs/openapi-docs.yml`, fileContent, {
+  fs.writeFile(`${docDir}/docs/openapi.yml`, fileContent, {
     encoding: 'utf-8'});
 }
 
@@ -258,7 +260,7 @@ function generateEventsEntries() {
   });
 }
 
-export const generateSwaggerDoc = async (fileName: string): Promise<void> => {
+export const generateSwaggerDoc = async (fileName: string, options?: { outputHtml?: boolean; outputPostman?: boolean }): Promise<void> => {
   console.log('Generating documentation...');
   const docDir =
     path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
@@ -273,4 +275,45 @@ export const generateSwaggerDoc = async (fileName: string): Promise<void> => {
   generateEventsEntries();
 
   writeDocumentation(registry, docDir, name, version);
-}; 
+
+  if (options?.outputHtml) {
+    await generateHtmlDocumentation(registry, docDir, name, version);
+  }
+
+  if (options?.outputPostman) {
+    await generatePostmanCollection(registry, docDir, name, version);
+  }
+};
+
+async function generateHtmlDocumentation(registry: OpenAPIRegistry, docDir: string, name: string, version: string): Promise<void> {
+  const outputPath = `${docDir}/docs/index.html`;
+
+  const yamlContent = await fs.readFile(`${docDir}/docs/openapi.yml`, 'utf8');
+  const jsonContent = JSON.stringify(yaml.parse(yamlContent), null, 2);
+  await fs.writeFile(`${docDir}/docs/openapi.json`, jsonContent, { encoding: 'utf-8' });
+  console.log('OpenAPI JSON generated: docs/openapi.json');
+
+  try {
+    execSync(`redocly build-docs ${docDir}/docs/openapi.json -o ${outputPath}`);
+    console.log('HTML documentation generated: docs/index.html');
+  } catch (error) {
+    console.error('Failed to generate HTML documentation:', error);
+  }
+}
+
+async function generatePostmanCollection(registry: OpenAPIRegistry, docDir: string, name: string, version: string): Promise<void> {
+  const openapiData = await fs.readFile(`${docDir}/docs/openapi.yml`, 'utf8');
+
+  Converter.convert({ type: 'string', data: openapiData },
+    {}, (err: any, conversionResult: any) => {
+      if (!conversionResult.result) {
+        console.log('Could not convert', conversionResult.reason);
+      }
+      else {
+        const collection = conversionResult.output[0].data;
+        fs.writeFile(`${docDir}/docs/postman.json`, JSON.stringify(collection, null, 2), { encoding: 'utf-8' });
+        console.log('Postman collection generated: docs/postman.json');
+      }
+  }
+  );
+}
