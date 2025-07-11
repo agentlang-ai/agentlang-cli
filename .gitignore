@@ -6,3 +6,4 @@ logs/
 *.al
 db-*
 tsconfig.src.tsbuildinfo
+.DS_Store

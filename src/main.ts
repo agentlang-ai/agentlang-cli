@@ -136,6 +136,8 @@ export default function (): void {
   program
     .command('doc')
     .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+    .option('-h, --outputHtml <outputHtml>', 'Generate HTML documentation')
+    .option('-p, --outputPostman <outputPostman>', 'Generate Postman collection')
     .description('Generate swagger documentation')
     .action(generateDoc);
   
@@ -218,13 +220,13 @@ export const runModule = async (fileName: string, options?: { config?: string })
   });
 };
 
-export const generateDoc = async (fileName: string): Promise<void> => {
+export const generateDoc = async (fileName: string, options?: { outputHtml?: boolean; outputPostman?: boolean }): Promise<void> => {
   const r: boolean = await runPreInitTasks();
   if (!r) {
     throw new Error('Failed to initialize runtime');
   }
   await load(fileName, undefined, async (appSpec?: ApplicationSpec) => {
-    await generateSwaggerDoc(fileName);
+    await generateSwaggerDoc(fileName, options);
   });
 };
 

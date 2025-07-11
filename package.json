@@ -3,12 +3,14 @@
     "version": "0.0.1",
     "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.0.0-beta.4",
+        "@redocly/cli": "^1.34.4",
         "agentlang": "^0.0.3",
         "c12": "^3.0.4",
         "chalk": "^5.4.1",
         "commander": "^14.0.0",
         "esbuild": "^0.25.5",
         "langium": "^3.5.0",
+        "openapi-to-postmanv2": "^5.0.0",
         "sqlite": "^5.1.1",
         "zod": "^3.25.67"
     },
@@ -20,5 +22,8 @@
     },
     "bin": {
         "agentts": "./bin/cli.js"
+    },
+    "devDependencies": {
+        "@types/openapi-to-postmanv2": "^5.0.0"
     }
 }
