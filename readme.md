@@ -22,14 +22,16 @@ A command-line interface tool for running, validating, and generating documentat
 ### Install the CLI
 
 ```bash
-npm install -g agentcli
+npm install -g agentlangcli
 ```
 
 Or install locally:
 
 ```bash
-npm install agentcli
+npm install agentlangcli
 ```
+
+After installation, you can use the `agent` command:
 
 ## Usage
 
@@ -40,7 +42,7 @@ The AgentLang CLI provides three main commands:
 Execute an AgentLang module with full runtime support:
 
 ```bash
-agentts run <file>
+agent run <file>
 ```
 
 **Options:**
@@ -48,7 +50,7 @@ agentts run <file>
 
 **Example:**
 ```bash
-agentts run myapp.al
+agent run myapp.al
 ```
 
 ### 2. Parse and Validate
@@ -56,7 +58,7 @@ agentts run myapp.al
 Check the syntax and semantic correctness of your AgentLang code:
 
 ```bash
-agentts parseAndValidate <file>
+agent parseAndValidate <file>
 ```
 
 **Options:**
@@ -64,7 +66,7 @@ agentts parseAndValidate <file>
 
 **Example:**
 ```bash
-agentts parseAndValidate myapp.al
+agent parseAndValidate myapp.al
 ```
 
 ### 3. Generate API Documentation
@@ -72,12 +74,12 @@ agentts parseAndValidate myapp.al
 Generate OpenAPI/Swagger documentation from your AgentLang modules:
 
 ```bash
-agentts doc <file>
+agent doc <file>
 ```
 
 **Example:**
 ```bash
-agentts doc myapp.al
+agent doc myapp.al
 ```
 
 This will generate a `docs/openapi-docs.yml` file in your project directory.
@@ -238,11 +240,11 @@ module UserManagement {
 
 ```bash
 # Validate the module
-agentts parseAndValidate UserManagement.al
+agent parseAndValidate UserManagement.al
 
 # Generate documentation
-agentts doc example/usermanagement
+agent doc example/usermanagement
 
 # Run the module
-agentts run example/usermanagement
+agent run example/usermanagement
 ```

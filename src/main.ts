@@ -11,8 +11,6 @@ import {
 } from 'agentlang/out/runtime/loader.js';
 import { NodeFileSystem } from 'langium/node';
 import { extractDocument } from 'agentlang/out/runtime/loader.js';
-import * as url from 'node:url';
-import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { startServer } from 'agentlang/out/api/http.js';
 import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js';
@@ -23,11 +21,6 @@ import { ModuleDefinition } from 'agentlang/out/language/generated/ast.js';
 import { loadConfig } from 'c12';
 import { generateSwaggerDoc } from './docs.js';
 import { z } from 'zod';
-
-const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
-
-const packagePath = path.resolve(__dirname, '..', '..', 'package.json');
-const packageContent = await fs.readFile(packagePath, 'utf-8');
 
 export type GenerateOptions = {
   destination?: string;
@@ -115,13 +108,11 @@ type Config = z.infer<typeof ConfigSchema>;
 export default function (): void {
   const program = new Command();
 
-  program.version(JSON.parse(packageContent).version);
-
   const fileExtensions = AgentlangLanguageMetaData.fileExtensions.join(', ');
 
   program
     .command('run')
-    .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+    .argument('[file]', `source file (possible file extensions: ${fileExtensions})`, '.')
     .option('-c, --config <config>', 'configuration file')
     .description('Loads and runs an agentlang module')
     .action(runModule);
@@ -135,7 +126,7 @@ export default function (): void {
 
   program
     .command('doc')
-    .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+    .argument('[file]', `source file (possible file extensions: ${fileExtensions})`, '.')
     .option('-h, --outputHtml <outputHtml>', 'Generate HTML documentation')
     .option('-p, --outputPostman <outputPostman>', 'Generate Postman collection')
     .description('Generate swagger documentation')
@@ -187,9 +178,7 @@ export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Confi
 }
 
 export const runModule = async (fileName: string, options?: { config?: string }): Promise<void> => {
-
-  const configDir =
-    path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
+  const configDir = fileName === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
 
   let config: Config | undefined;
   try {
@@ -238,7 +227,7 @@ export async function internAndRunModule(
   if (!r) {
     throw new Error('Failed to initialize runtime');
   }
-  const rm: Module = internModule(module);
+  const rm: Module = await internModule(module);
   await runPostInitTasks(appSpec);
   return rm;
 }

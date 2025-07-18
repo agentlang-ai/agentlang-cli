@@ -1,0 +1,44 @@
+# Source files
+src/
+*.ts
+*.tsx
+tsconfig*.json
+
+# Build configuration
+esbuild.mjs
+cli.js
+
+# Development files
+.git/
+.gitignore
+node_modules/
+*.log
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Documentation
+docs/
+
+# Resource files (not needed in package)
+resource/
+
+# Development scripts
+.dev/ 
