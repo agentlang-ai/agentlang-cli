@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-WORKDIR /app
+WORKDIR /
 
 RUN npm install -g pnpm
 
@@ -10,4 +10,6 @@ RUN pnpm install -g agentlangcli
 
 COPY run.sh .
 
-CMD ["/app/run.sh"]
+RUN apk add --no-cache git
+
+CMD ["sh", "run.sh"]
