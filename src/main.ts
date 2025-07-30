@@ -99,12 +99,19 @@ export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Confi
 
 export const runModule = async (fileName: string): Promise<void> => {
   const configDir =
-    path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
+    fileName === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
 
   let config: Config | undefined;
 
   try {
-    const cfg = await loadRawConfig(`${configDir}/app.config.json`);
+    let cfg = await loadRawConfig(`${configDir}/app.config.json`);
+
+    const envAppConfig = process.env.APP_CONFIG;
+    if (envAppConfig) {
+      const envConfig = JSON.parse(envAppConfig)
+      cfg = { ...cfg, ...envConfig };
+    }
+    
     config = setAppConfig(cfg);
   } catch (err) {
     if (err instanceof z.ZodError) {
