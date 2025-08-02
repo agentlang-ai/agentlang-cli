@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import yaml from 'yaml';
 import { OpenApiGeneratorV3, OpenAPIRegistry, extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { getUserModuleNames, fetchModule, Entity, Event } from 'agentlang/out/runtime/module.js';
@@ -80,7 +80,7 @@ function createZodSchemaFromEntitySchema(schema: Map<string, any>) {
     Object.fromEntries(
       Array.from(schema.entries()).map(([key, value]) => {
         const k = key
-        let v : any = value.properties && value.properties.get('one-of') ? z.enum(getOneOfValues(value.properties)) :
+        let v : any = value.properties && value.properties.get('one-of') ? z.enum(getOneOfValues(value.properties) as [string, ...string[]]) :
         value.type === 'String' ? z.string() :
         value.type === 'Int' ? z.number() :
         value.type === 'Number' ? z.boolean() :
@@ -89,10 +89,10 @@ function createZodSchemaFromEntitySchema(schema: Map<string, any>) {
         value.type === 'Time' ? z.string() :
         value.type === 'DateTime' ? z.string() :
         value.type === 'Boolean' ? z.boolean() :
-        value.type === 'UUID' ? z.uuid() :
+        value.type === 'UUID' ? z.string().uuid() :
         value.type === 'URL' ? z.string() :
         value.type === 'Path' ? z.string() :
-        value.type === 'Map' ? z.object() :
+        value.type === 'Map' ? z.object({}) :
         value.type === 'Any' ? z.any() :
         z.any()
 
@@ -103,7 +103,7 @@ function createZodSchemaFromEntitySchema(schema: Map<string, any>) {
           const deflt = value.properties.get('default')
           switch (deflt) {
             case 'uuid()':
-              z.uuid().optional()
+              z.string().uuid().optional()
               break
             case 'now()':
               v = z.date().optional()

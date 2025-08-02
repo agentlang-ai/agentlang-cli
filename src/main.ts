@@ -20,6 +20,7 @@ import { runInitFunctions } from 'agentlang/out/runtime/util.js';
 import { Module } from 'agentlang/out/runtime/module.js';
 import { ModuleDefinition } from 'agentlang/out/language/generated/ast.js';
 import { generateSwaggerDoc } from './docs.js';
+import { startRepl } from './repl.js';
 import { z } from 'zod';
 import { Config, setAppConfig } from 'agentlang/out/runtime/state.js';
 
@@ -53,6 +54,21 @@ export default function (): void {
     .option('-p, --outputPostman <outputPostman>', 'Generate Postman collection')
     .description('Generate swagger documentation')
     .action(generateDoc);
+
+  program
+    .command('repl')
+    .argument('[directory]', 'AgentLang application directory (defaults to current directory)')
+    .option('-w, --watch', 'Watch for file changes and reload automatically')
+    .option('-q, --quiet', 'Suppress startup messages')
+    .description('Start an interactive AgentLang REPL (Read-Eval-Print Loop)')
+    .addHelpText('after', `
+Examples:
+  $ agent repl                           Start REPL in current directory
+  $ agent repl ./my-app                  Start REPL and load app from ./my-app directory
+  $ agent repl ~/Developer/fractl/erp    Start REPL and load app from directory
+  $ agent repl . --watch                 Start REPL with file watching
+  $ agent repl --quiet                   Start REPL in quiet mode`)
+    .action(replCommand);
   
   program.parse(process.argv);
 }
@@ -94,7 +110,11 @@ export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Confi
   await initDatabase(config?.store);
   await runInitFunctions();
   await runStandaloneStatements();
-  if (appSpec) startServer(appSpec, config?.service?.port || 8080);
+  if (appSpec) {
+    startServer(appSpec, config?.service?.port || 8080);
+    // Give server a moment to start and print its messages
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 }
 
 export const runModule = async (fileName: string): Promise<void> => {
@@ -141,6 +161,19 @@ export const generateDoc = async (fileName: string, options?: { outputHtml?: boo
   await load(fileName, undefined, async (appSpec?: ApplicationSpec) => {
     await generateSwaggerDoc(fileName, options);
   });
+};
+
+export const replCommand = async (directory?: string, options?: { watch?: boolean; quiet?: boolean }): Promise<void> => {
+  try {
+    await startRepl(directory || '.', {
+      watch: options?.watch,
+      quiet: options?.quiet,
+      verbose: !options?.quiet
+    });
+  } catch (error) {
+    console.log(chalk.red(`Failed to start REPL: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(1);
+  }
 };
 
 export async function internAndRunModule(
