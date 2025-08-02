@@ -7,3 +7,4 @@ logs/
 db-*
 tsconfig.src.tsbuildinfo
 .DS_Store
+db
