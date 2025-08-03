@@ -58,6 +58,7 @@ interface ReplState {
   rl: readline.Interface;
   watcher?: chokidar.FSWatcher;
   isRestarting: boolean;
+  isInitializing: boolean;
   appSpec?: ApplicationSpec;
   config?: Config;
 }
@@ -471,11 +472,15 @@ function createReplHelpers() {
 function setupFileWatcher(appDir: string, options: ReplOptions): chokidar.FSWatcher {
   const debounceMs = options.debounceMs || 1000;
   let restartTimeout: NodeJS.Timeout;
+  let isWatcherReady = false;
 
   const debouncedRestart = () => {
+    // Only restart if watcher is ready and not in initial startup phase
+    if (!isWatcherReady || !replState || replState.isRestarting || replState.isInitializing) return;
+
     if (restartTimeout) clearTimeout(restartTimeout);
     restartTimeout = setTimeout(() => {
-      if (!replState?.isRestarting) {
+      if (!replState?.isRestarting && !replState?.isInitializing) {
         void restartRepl();
       }
     }, debounceMs);
@@ -486,26 +491,31 @@ function setupFileWatcher(appDir: string, options: ReplOptions): chokidar.FSWatc
     {
       ignored: ['**/node_modules/**', '**/.git/**', '**/out/**', '**/dist/**'],
       persistent: true,
+      ignoreInitial: true, // Ignore initial add events for existing files
     },
   );
 
   watcher
+    .on('ready', () => {
+      // Mark watcher as ready after initial scan is complete
+      isWatcherReady = true;
+    })
     .on('change', filePath => {
-      if (!options.quiet) {
+      if (!options.quiet && isWatcherReady) {
         // eslint-disable-next-line no-console
         console.log(chalk.blue(`\n📁 File changed: ${path.relative(appDir, filePath)}`));
       }
       debouncedRestart();
     })
     .on('add', filePath => {
-      if (!options.quiet) {
+      if (!options.quiet && isWatcherReady) {
         // eslint-disable-next-line no-console
         console.log(chalk.green(`\n📁 File added: ${path.relative(appDir, filePath)}`));
       }
       debouncedRestart();
     })
     .on('unlink', filePath => {
-      if (!options.quiet) {
+      if (!options.quiet && isWatcherReady) {
         // eslint-disable-next-line no-console
         console.log(chalk.red(`\n📁 File removed: ${path.relative(appDir, filePath)}`));
       }
@@ -662,30 +672,28 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
           'addRecord(',
           'removeRecord(',
           'getRecord(',
-          'addEvent(',
-          'removeEvent(',
-          'getEvent(',
-          'addRelationship(',
-          'removeRelationship(',
-          'getRelationship(',
-          'addWorkflow(',
-          'removeWorkflow(',
-          'getWorkflow(',
+          'updateRecord(',
+          'queryRecords(',
+          'deleteRecord(',
+          'listRecords(',
+          'countRecords(',
+          'existsRecord(',
+          'findRecord(',
+          'findRecords(',
+          'createRecord(',
+          'upsertRecord(',
+          'bulkInsert(',
+          'bulkUpdate(',
+          'bulkDelete(',
+          'transaction(',
         ];
-
         const hits = completions.filter(c => c.startsWith(line));
         return [hits.length ? hits : completions, line];
       },
     }),
     isRestarting: false,
+    isInitializing: true,
   };
-
-  // Setup file watcher if enabled and app directory exists
-  if (options.watch && appDir !== '') {
-    replState.watcher = setupFileWatcher(resolvedAppDir, options);
-    // eslint-disable-next-line no-console
-    console.log(chalk.green('👀 File watching enabled'));
-  }
 
   try {
     // Initialize AgentLang runtime
@@ -710,6 +718,18 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
 
     // eslint-disable-next-line no-console
     console.log(chalk.green('✅ AgentLang runtime initialized'));
+
+    // Setup file watcher AFTER initial load to prevent immediate restart
+    if (options.watch && appDir !== '') {
+      // Give the initial load time to complete before starting watcher
+      await new Promise<void>(resolve => setTimeout(resolve, 100));
+      replState.watcher = setupFileWatcher(resolvedAppDir, options);
+      // eslint-disable-next-line no-console
+      console.log(chalk.green('👀 File watching enabled'));
+    }
+
+    // Mark initialization as complete
+    replState.isInitializing = false;
 
     // Give any async startup messages time to complete
     await new Promise<void>(resolve => setTimeout(resolve, 50));
