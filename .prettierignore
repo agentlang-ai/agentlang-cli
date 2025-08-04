@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+dist/
+build/
+*.min.js
+*.bundle.js
+
+# Coverage reports
+coverage/
+
+# Logs
+*.log
+
+# Package manager lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Temporary folders
+.tmp/
+.temp/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+*.generated.*

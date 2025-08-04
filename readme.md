@@ -1,14 +1,21 @@
 # AgentLang CLI
 
-A command-line interface tool for running, validating, and generating documentation for AgentLang programs. AgentLang is a programming language designed for building agent-based applications with built-in support for entities, events, and relationships.
+A command-line interface tool for running, validating, and generating
+documentation for AgentLang programs. AgentLang is a programming language
+designed for building agent-based applications with built-in support for
+entities, events, and relationships.
 
 ## Features
 
-- **Run AgentLang Programs**: Execute AgentLang modules with full runtime support
-- **Parse and Validate**: Check syntax and semantic correctness of AgentLang code
-- **Generate API Documentation**: Automatically generate OpenAPI/Swagger documentation from your AgentLang modules
+- **Run AgentLang Programs**: Execute AgentLang modules with full runtime
+  support
+- **Parse and Validate**: Check syntax and semantic correctness of AgentLang
+  code
+- **Generate API Documentation**: Automatically generate OpenAPI/Swagger
+  documentation from your AgentLang modules
 - **Database Support**: Built-in support for PostgreSQL, MySQL, and SQLite
-- **Authentication**: Integration with Okta and AWS Cognito authentication services
+- **Authentication**: Integration with Okta and AWS Cognito authentication
+  services
 - **RBAC**: Role-based access control capabilities
 - **Audit Trail**: Comprehensive audit logging
 
@@ -16,7 +23,7 @@ A command-line interface tool for running, validating, and generating documentat
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 
 ### Install the CLI
@@ -46,9 +53,12 @@ agent run <file>
 ```
 
 **Options:**
-- `-c, --config <config>`: Specify a custom configuration file (default: `app.config`)
+
+- `-c, --config <config>`: Specify a custom configuration file (default:
+  `app.config`)
 
 **Example:**
+
 ```bash
 agent run myapp.al
 ```
@@ -62,9 +72,11 @@ agent parseAndValidate <file>
 ```
 
 **Options:**
+
 - `-d, --destination <dir>`: Specify destination directory for generated files
 
 **Example:**
+
 ```bash
 agent parseAndValidate myapp.al
 ```
@@ -78,6 +90,7 @@ agent doc <file>
 ```
 
 **Example:**
+
 ```bash
 agent doc myapp.al
 ```
@@ -86,7 +99,8 @@ This will generate a `docs/openapi-docs.yml` file in your project directory.
 
 ## Configuration
 
-The CLI supports configuration through an `app.config` file (or custom config file). The configuration supports various options:
+The CLI supports configuration through an `app.config` file (or custom config
+file). The configuration supports various options:
 
 ### Basic Configuration
 
@@ -94,18 +108,19 @@ The CLI supports configuration through an `app.config` file (or custom config fi
 // app.config.js
 export default {
   service: {
-    port: 8080
+    port: 8080,
   },
   store: {
     type: 'sqlite',
-    dbname: 'myapp.db'
-  }
-}
+    dbname: 'myapp.db',
+  },
+};
 ```
 
 ### Database Configuration
 
 #### SQLite (Default)
+
 ```javascript
 {
   store: {
@@ -116,6 +131,7 @@ export default {
 ```
 
 #### PostgreSQL
+
 ```javascript
 {
   store: {
@@ -128,7 +144,6 @@ export default {
   }
 }
 ```
-
 
 ### Advanced Configuration
 
@@ -160,7 +175,8 @@ export default {
 
 ## API Documentation Generation
 
-The `doc` command automatically generates OpenAPI documentation for your AgentLang modules. It includes:
+The `doc` command automatically generates OpenAPI documentation for your
+AgentLang modules. It includes:
 
 - **Entity Endpoints**: Full CRUD operations for all entities
 - **Relationship Endpoints**: Nested API endpoints for entity relationships
@@ -179,14 +195,19 @@ For each entity in your AgentLang module, the following endpoints are generated:
 
 For relationships, additional nested endpoints are generated:
 
-- `POST /api/{module}/{entity}/{relationship}/{relatedEntity}` - Create related entity
-- `GET /api/{module}/{entity}/{relationship}/{relatedEntity}` - List related entities
-- `PUT /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Update related entity
-- `DELETE /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Delete related entity
+- `POST /api/{module}/{entity}/{relationship}/{relatedEntity}` - Create related
+  entity
+- `GET /api/{module}/{entity}/{relationship}/{relatedEntity}` - List related
+  entities
+- `PUT /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Update
+  related entity
+- `DELETE /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Delete
+  related entity
 
 ## File Extensions
 
 The CLI supports AgentLang files with the following extensions:
+
 - `.al` (default)
 - `.agentlang`
 
@@ -211,7 +232,8 @@ npm run dev
 
 The CLI provides clear error messages for:
 
-- **Configuration Errors**: Invalid configuration files or missing required fields
+- **Configuration Errors**: Invalid configuration files or missing required
+  fields
 - **Parse Errors**: Syntax errors in AgentLang code
 - **Validation Errors**: Semantic errors in AgentLang modules
 - **Runtime Errors**: Errors during program execution
@@ -228,7 +250,7 @@ module UserManagement {
     email: String
     createdAt: DateTime
   }
-  
+
   event UserCreated {
     userId: UUID
     timestamp: DateTime

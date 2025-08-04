@@ -6,7 +6,8 @@ This guide explains how to publish the AgentLang CLI package to npm.
 
 1. **npm account**: You need an npm account to publish packages
 2. **npm login**: Make sure you're logged in to npm (`npm login`)
-3. **Package ownership**: Ensure you have the right to publish the `agentlangcli` package name
+3. **Package ownership**: Ensure you have the right to publish the
+   `agentlangcli` package name
 
 ## Pre-publishing Checklist
 
@@ -101,4 +102,4 @@ npm install ../agentlang-cli
 
 - Never commit API keys or secrets
 - Use `.npmignore` to exclude sensitive files
-- Review dependencies for security vulnerabilities: `npm audit` 
+- Review dependencies for security vulnerabilities: `npm audit`
