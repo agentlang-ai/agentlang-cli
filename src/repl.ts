@@ -66,6 +66,12 @@ interface ReplState {
 // Global REPL state
 let replState: ReplState | null = null;
 
+// Global instance tracking
+const createdInstances: Map<
+  string,
+  { instance: Instance; entityName: string; attributes: Record<string, unknown>; createdAt: Date }
+> = new Map();
+
 // Core AgentLang processing function
 async function processAgentlang(code: string): Promise<string> {
   let currentModule = getActiveModuleName();
@@ -247,7 +253,18 @@ function createReplHelpers() {
     Object.entries(attributes).forEach(([key, value]) => {
       attrs.set(key, value);
     });
-    return makeInstance(currentModule, entityName, attrs);
+    const instance = makeInstance(currentModule, entityName, attrs);
+
+    // Track the created instance
+    const instanceId = `${entityName}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    createdInstances.set(instanceId, {
+      instance,
+      entityName,
+      attributes,
+      createdAt: new Date(),
+    });
+
+    return instance;
   };
 
   // Module management object
@@ -295,6 +312,24 @@ function createReplHelpers() {
       // eslint-disable-next-line no-console
       rels.forEach(rel => console.log(`  • ${rel}`));
       return rels;
+    },
+    instances: () => {
+      const instances = Array.from(createdInstances.entries());
+      // eslint-disable-next-line no-console
+      console.log(chalk.cyan(`🏭 Created Instances (${instances.length}):`));
+      if (instances.length === 0) {
+        // eslint-disable-next-line no-console
+        console.log(chalk.gray('  No instances created yet'));
+        return [];
+      }
+      // eslint-disable-next-line no-console
+      instances.forEach(([id, data]) => {
+        const timeAgo = new Date().getTime() - data.createdAt.getTime();
+        const timeStr = timeAgo < 60000 ? `${Math.floor(timeAgo / 1000)}s ago` : `${Math.floor(timeAgo / 60000)}m ago`;
+        console.log(`  • ${chalk.bold(data.entityName)} (${id.split('_')[2]}) - ${timeStr}`);
+        console.log(`    ${chalk.gray(JSON.stringify(data.attributes))}`);
+      });
+      return instances.map(([id, data]) => ({ id, ...data }));
     },
   };
 
@@ -364,6 +399,7 @@ function createReplHelpers() {
       console.log('  inspect.events("MyApp")        // List events in specific module');
       console.log('  inspect.relationships()        // List relationships in active module');
       console.log('  inspect.relationships("MyApp") // List relationships in specific module');
+      console.log('  inspect.instances()            // List all created instances');
 
       console.log(chalk.red.bold('\n🛠️  Direct Runtime Functions:'));
       console.log(chalk.white('  Entity Management:'));
@@ -394,17 +430,26 @@ function createReplHelpers() {
       console.log(chalk.white('  Core Processing:'));
       console.log('    processAgentlang(code)         // Process raw AgentLang code');
 
+      console.log(chalk.gray.bold('\n🛠️  Utility Commands (utils.*):'));
+      console.log('  utils.help()         // Show this help');
+      console.log('  utils.clear()        // Clear screen');
+      console.log('  utils.restart()      // Restart REPL');
+      console.log('  utils.exit()         // Exit REPL');
+      console.log('  utils.clearInstances() // Clear all tracked instances');
+
       console.log(chalk.gray.bold('\n💡 Tips:'));
       console.log('  • Use tab completion for commands');
       console.log('  • Template literals support multi-line code');
       console.log('  • All functions return promises - use await if needed');
       console.log('  • File watching auto-restarts on changes (if enabled)');
       console.log('  • Use inspect.* commands to explore your application');
+      console.log('  • Created instances are tracked until REPL restart or cleared');
 
       console.log(chalk.blue('\n📚 Examples:'));
       console.log('  al`entity User { id String @id, name String }`');
       console.log('  inst("User", {id: "123", name: "Alice"})');
       console.log('  inspect.entities()');
+      console.log('  inspect.instances()');
       console.log('  m.active()');
       /* eslint-enable no-console */
 
@@ -426,6 +471,13 @@ function createReplHelpers() {
       console.log(chalk.yellow('\n👋 Goodbye!'));
       cleanup();
       process.exit(0);
+    },
+    clearInstances: () => {
+      const count = createdInstances.size;
+      createdInstances.clear();
+      // eslint-disable-next-line no-console
+      console.log(chalk.yellow(`🗑️  Cleared ${count} instances`));
+      return `Cleared ${count} instances`;
     },
   };
 
@@ -538,6 +590,14 @@ async function restartRepl(): Promise<void> {
   try {
     // eslint-disable-next-line no-console
     console.log(chalk.yellow('\n🔄 Restarting AgentLang REPL...'));
+
+    // Clear tracked instances on restart
+    const instanceCount = createdInstances.size;
+    createdInstances.clear();
+    if (instanceCount > 0) {
+      // eslint-disable-next-line no-console
+      console.log(chalk.gray(`🗑️  Cleared ${instanceCount} tracked instances`));
+    }
 
     // Reload the application
     if (replState.appDir) {
@@ -662,10 +722,12 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
           'inspect.entities()',
           'inspect.events()',
           'inspect.relationships(',
+          'inspect.instances()',
           'utils.help()',
           'utils.clear()',
           'utils.restart()',
           'utils.exit()',
+          'utils.clearInstances()',
           'addEntity(',
           'removeEntity(',
           'getEntity(',
