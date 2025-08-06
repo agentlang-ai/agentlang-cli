@@ -15,8 +15,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2(@opentelemetry/api@1.9.0)(ajv@8.11.0)(core-js@3.44.0)(encoding@0.1.13)
       agentlang:
-        specifier: ^0.0.15
-        version: 0.0.15(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
+        specifier: ^0.0.16
+        version: 0.0.16(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
       agentlangcli:
         specifier: ^0.0.11
         version: 0.0.11(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(ajv@8.11.0)(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
@@ -1947,8 +1947,8 @@ packages:
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
-  agentlang@0.0.15:
-    resolution: {integrity: sha512-K9Y69v3onFvRGV4182N6q7p7JVyQ0rTqW8oeDKvzU1G7CxBavoTHu0BffD8GtdbKvrdm9npc5+Maq3o3oxjsUA==}
+  agentlang@0.0.16:
+    resolution: {integrity: sha512-9ldtf0hlPmrDAKVtDHqtNK/cHyEL/5ysQNSzExVqDIqr4ZAMAiTjUEDg0KJyUTTCJkQ9rwwGhog3bz5HBrCKag==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -8089,7 +8089,7 @@ snapshots:
       - ws
       - yeoman-environment
 
-  agentlang@0.0.15(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
+  agentlang@0.0.16(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.859.0
       '@aws-sdk/client-cognito-identity-provider': 3.859.0
