@@ -51,7 +51,7 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.1.0",
     "@redocly/cli": "^2.0.2",
-    "agentlang": "^0.0.11",
+    "agentlang": "^0.0.16",
     "agentlangcli": "^0.0.11",
     "chalk": "^5.4.1",
     "chokidar": "^4.0.3",

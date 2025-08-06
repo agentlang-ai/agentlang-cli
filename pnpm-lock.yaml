@@ -15,11 +15,11 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2(@opentelemetry/api@1.9.0)(ajv@8.11.0)(core-js@3.44.0)(encoding@0.1.13)
       agentlang:
-        specifier: ^0.0.11
-        version: 0.0.11(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
+        specifier: ^0.0.16
+        version: 0.0.16(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
       agentlangcli:
         specifier: ^0.0.11
-        version: 0.0.11(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(ajv@8.11.0)(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
+        version: 0.0.11(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(ajv@8.11.0)(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
       chalk:
         specifier: ^5.4.1
         version: 5.4.1
@@ -83,6 +83,10 @@ importers:
         version: 8.38.0(eslint@9.32.0)(typescript@5.8.3)
 
 packages:
+
+  '@anthropic-ai/sdk@0.56.0':
+    resolution: {integrity: sha512-SLCB8M8+VMg1cpCucnA1XWHGWqVSZtIWzmOdDOEu3eTFZMB+A0sGZ1ESO5MHDnqrNTXz3safMrWx9x4rMZSOqA==}
+    hasBin: true
 
   '@asteasolutions/zod-to-openapi@8.1.0':
     resolution: {integrity: sha512-tQFxVs05J/6QXXqIzj6rTRk3nj1HFs4pe+uThwE95jL5II2JfpVXkK+CqkO7aT0Do5AYqO6LDrKpleLUFXgY+g==}
@@ -1200,6 +1204,12 @@ packages:
   '@kwsites/promise-deferred@1.1.1':
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
 
+  '@langchain/anthropic@0.3.26':
+    resolution: {integrity: sha512-IRCjkxsMx6MZUZmv/aYX5A9RdIduzdR0eeOc4rX8waBcYP7qmtA/CUTNmTtMSoXfOfJY4s3414bkVNBkmS0+5g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@langchain/core': '>=0.3.58 <0.4.0'
+
   '@langchain/core@0.3.66':
     resolution: {integrity: sha512-d3SgSDOlgOjdIbReIXVQl9HaQzKqO/5+E+o3kJwoKXLGP9dxi7+lMyaII7yv7G8/aUxMWLwFES9zc1jFoeJEZw==}
     engines: {node: '>=18'}
@@ -1934,6 +1944,11 @@ packages:
 
   agentlang@0.0.11:
     resolution: {integrity: sha512-eFfGQ577az+cbE0vaa1jmxa3Z926G/02Pi/zB4x90DfVpAMIRPxSp4yiJXbxVxT9GurACE2as93qc1gNISZC/w==}
+    engines: {node: '>=20.0.0', vscode: ^1.67.0}
+    hasBin: true
+
+  agentlang@0.0.16:
+    resolution: {integrity: sha512-9ldtf0hlPmrDAKVtDHqtNK/cHyEL/5ysQNSzExVqDIqr4ZAMAiTjUEDg0KJyUTTCJkQ9rwwGhog3bz5HBrCKag==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -4784,6 +4799,8 @@ packages:
 
 snapshots:
 
+  '@anthropic-ai/sdk@0.56.0': {}
+
   '@asteasolutions/zod-to-openapi@8.1.0(zod@3.25.76)':
     dependencies:
       openapi3-ts: 4.5.0
@@ -6947,6 +6964,12 @@ snapshots:
 
   '@kwsites/promise-deferred@1.1.1': {}
 
+  '@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))':
+    dependencies:
+      '@anthropic-ai/sdk': 0.56.0
+      '@langchain/core': 0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))
+      fast-xml-parser: 4.5.3
+
   '@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))':
     dependencies:
       '@cfworker/json-schema': 4.1.1
@@ -7983,7 +8006,7 @@ snapshots:
       humanize-ms: 1.2.1
     optional: true
 
-  agentlang@0.0.11(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
+  agentlang@0.0.11(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.859.0
       '@aws-sdk/client-cognito-identity-provider': 3.859.0
@@ -8005,7 +8028,7 @@ snapshots:
       generator-langium: 3.5.0(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(mem-fs@4.1.2)
       jsonwebtoken: 9.0.2
       jwk-to-pem: 2.0.7
-      langchain: 0.3.30(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(handlebars@4.7.8)(openai@5.11.0(zod@4.0.14))(typeorm@0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)))
+      langchain: 0.3.30(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(handlebars@4.7.8)(openai@5.11.0(zod@4.0.14))(typeorm@0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)))
       langium: 3.5.0
       monaco-editor: 0.52.2
       monaco-editor-wrapper: 6.9.0
@@ -8066,11 +8089,94 @@ snapshots:
       - ws
       - yeoman-environment
 
-  agentlangcli@0.0.11(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(ajv@8.11.0)(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
+  agentlang@0.0.16(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
+    dependencies:
+      '@aws-sdk/client-cognito-identity': 3.859.0
+      '@aws-sdk/client-cognito-identity-provider': 3.859.0
+      '@aws-sdk/credential-providers': 3.859.0
+      '@codingame/monaco-vscode-editor-service-override': 17.2.1
+      '@codingame/monaco-vscode-keybindings-service-override': 17.2.1
+      '@isomorphic-git/lightning-fs': 4.6.2
+      '@langchain/anthropic': 0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))
+      '@langchain/core': 0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))
+      '@langchain/openai': 0.5.18(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))
+      '@types/express': 5.0.3
+      amazon-cognito-identity-js: 6.3.15(encoding@0.1.13)
+      aws-jwt-verify: 5.1.0
+      buffer: 6.0.3
+      chalk: 5.3.0
+      commander: 11.0.0
+      dotenv: 16.6.1
+      express: 5.1.0
+      fs-extra: 11.3.0
+      generator-langium: 3.5.0(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(mem-fs@4.1.2)
+      jsonwebtoken: 9.0.2
+      jwk-to-pem: 2.0.7
+      langchain: 0.3.30(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(handlebars@4.7.8)(openai@5.11.0(zod@4.0.14))(typeorm@0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)))
+      langium: 3.5.0
+      monaco-editor: 0.52.2
+      monaco-editor-wrapper: 6.9.0
+      node-fetch: 2.7.0(encoding@0.1.13)
+      pg: 8.16.3
+      pgvector: 0.2.1
+      sqlite3: 5.1.7
+      typeorm: 0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
+      vscode-languageclient: 9.0.1
+      vscode-languageserver: 9.0.1
+      winston: 3.17.0
+      winston-daily-rotate-file: 5.0.0(winston@3.17.0)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@google-cloud/spanner'
+      - '@langchain/aws'
+      - '@langchain/cerebras'
+      - '@langchain/cohere'
+      - '@langchain/deepseek'
+      - '@langchain/google-genai'
+      - '@langchain/google-vertexai'
+      - '@langchain/google-vertexai-web'
+      - '@langchain/groq'
+      - '@langchain/mistralai'
+      - '@langchain/ollama'
+      - '@langchain/xai'
+      - '@opentelemetry/api'
+      - '@opentelemetry/exporter-trace-otlp-proto'
+      - '@opentelemetry/sdk-trace-base'
+      - '@sap/hana-client'
+      - '@yeoman/types'
+      - aws-crt
+      - axios
+      - babel-plugin-macros
+      - better-sqlite3
+      - bluebird
+      - cheerio
+      - encoding
+      - handlebars
+      - hdb-pool
+      - ioredis
+      - mem-fs
+      - mongodb
+      - mssql
+      - mysql2
+      - openai
+      - oracledb
+      - peggy
+      - pg-native
+      - pg-query-stream
+      - redis
+      - reflect-metadata
+      - sql.js
+      - supports-color
+      - ts-node
+      - typeorm-aurora-data-api-driver
+      - ws
+      - yeoman-environment
+
+  agentlangcli@0.0.11(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(ajv@8.11.0)(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.1.0(zod@3.25.76)
       '@redocly/cli': 1.34.5(ajv@8.11.0)(encoding@0.1.13)
-      agentlang: 0.0.11(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
+      agentlang: 0.0.11(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(handlebars@4.7.8)(mem-fs@4.1.2)(openai@5.11.0(zod@4.0.14))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
       chalk: 5.4.1
       commander: 14.0.0
       esbuild: 0.25.8
@@ -9446,7 +9552,7 @@ snapshots:
 
   kuler@2.0.0: {}
 
-  langchain@0.3.30(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(handlebars@4.7.8)(openai@5.11.0(zod@4.0.14))(typeorm@0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))):
+  langchain@0.3.30(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))))(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(handlebars@4.7.8)(openai@5.11.0(zod@4.0.14))(typeorm@0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))):
     dependencies:
       '@langchain/core': 0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14))
       '@langchain/openai': 0.5.18(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))
@@ -9461,6 +9567,7 @@ snapshots:
       yaml: 2.8.0
       zod: 3.25.76
     optionalDependencies:
+      '@langchain/anthropic': 0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@4.0.14)))
       handlebars: 4.7.8
       typeorm: 0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
     transitivePeerDependencies:
