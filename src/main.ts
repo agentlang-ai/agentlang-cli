@@ -6,23 +6,23 @@ import {
   ApplicationSpec,
   internModule,
   load,
-  loadCoreModules,
-  loadRawConfig,
-  runStandaloneStatements,
+  loadAppConfig,
+  runPostInitTasks,
+  runPreInitTasks,
 } from 'agentlang/out/runtime/loader.js';
 import { NodeFileSystem } from 'langium/node';
 import { extractDocument } from 'agentlang/out/runtime/loader.js';
 import * as path from 'node:path';
-import { startServer } from 'agentlang/out/api/http.js';
-import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js';
 import { logger } from 'agentlang/out/runtime/logger.js';
-import { runInitFunctions } from 'agentlang/out/runtime/util.js';
 import { Module } from 'agentlang/out/runtime/module.js';
 import { ModuleDefinition } from 'agentlang/out/language/generated/ast.js';
 import { generateSwaggerDoc } from './docs.js';
 import { startRepl } from './repl.js';
-import { z } from 'zod';
-import { Config, setAppConfig } from 'agentlang/out/runtime/state.js';
+import { Config } from 'agentlang/out/runtime/state.js';
+import { prepareIntegrations } from 'agentlang/out/runtime/integrations.js';
+import { isNodeEnv } from 'agentlang/out/utils/runtime.js';
+import { OpenAPIClientAxios } from 'openapi-client-axios';
+import { registerOpenApiModule } from 'agentlang/out/runtime/openapi.js';
 
 export interface GenerateOptions {
   destination?: string;
@@ -100,68 +100,32 @@ export const parseAndValidate = async (fileName: string): Promise<void> => {
   }
 };
 
-export async function runPreInitTasks(): Promise<boolean> {
-  let result = true;
-  await loadCoreModules().catch((reason: unknown) => {
-    const msg = `Failed to load core modules - ${String(reason)}`;
-    if (logger && 'error' in logger && typeof (logger as { error: unknown }).error === 'function') {
-      (logger as { error: (msg: string) => void }).error(msg);
-    }
-    // eslint-disable-next-line no-console
-    console.log(chalk.red(msg));
-    result = false;
-  });
-  return result;
-}
-
-export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Config) {
-  await initDatabase(config?.store);
-  await runInitFunctions();
-  await runStandaloneStatements();
-  if (appSpec) {
-    startServer(appSpec, config?.service?.port || 8080);
-    // Give server a moment to start and print its messages
-    await new Promise(resolve => setTimeout(resolve, 100));
-  }
-}
-
 export const runModule = async (fileName: string): Promise<void> => {
-  const configDir = fileName === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
-
-  let config: Config | undefined;
-
+  const configDir =
+    path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
+  const config: Config = await loadAppConfig(configDir);
+  if (config.integrations) {
+    await prepareIntegrations(
+      config.integrations.host,
+      config.integrations.username,
+      config.integrations.password,
+      config.integrations.connections
+    );
+  }
+  if (config.openapi) {
+    await loadOpenApiSpec(config.openapi);
+  }
   try {
-    let cfg = (await loadRawConfig(`${configDir}/app.config.json`)) as Record<string, unknown>;
-
-    const envAppConfig = process.env.APP_CONFIG;
-    if (envAppConfig) {
-      const envConfig = JSON.parse(envAppConfig) as Record<string, unknown>;
-      cfg = { ...cfg, ...envConfig };
-    }
-
-    config = setAppConfig(cfg as Parameters<typeof setAppConfig>[0]);
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      // eslint-disable-next-line no-console
-      console.log(chalk.red('Config validation failed:'));
-      const zodError = err;
-      zodError.issues.forEach((error: z.ZodIssue, index: number) => {
-        // eslint-disable-next-line no-console
-        console.log(chalk.red(`  ${index + 1}. ${error.path.join('.')}: ${error.message}`));
-      });
+    await load(fileName, undefined, async (appSpec?: ApplicationSpec) => {
+      await runPostInitTasks(appSpec, config);
+    });
+  } catch (err: any) {
+    if (isNodeEnv && chalk) {
+      console.error(chalk.red(err));
     } else {
-      // eslint-disable-next-line no-console
-      console.log(`Config loading failed: ${String(err)}`);
+      console.error(err);
     }
   }
-
-  const r: boolean = await runPreInitTasks();
-  if (!r) {
-    throw new Error('Failed to initialize runtime');
-  }
-  await load(fileName, undefined, async (_appSpec?: ApplicationSpec) => {
-    await runPostInitTasks(_appSpec, config);
-  });
 };
 
 export const generateDoc = async (
@@ -202,4 +166,19 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   const rm: Module = await internModule(module);
   await runPostInitTasks(appSpec);
   return rm;
+}
+
+
+async function loadOpenApiSpec(openApiConfig: any[]) {
+  for (let i = 0; i < openApiConfig.length; ++i) {
+    const cfg: any = openApiConfig[i];
+    const api = new OpenAPIClientAxios({ definition: cfg.specUrl });
+    await api.init();
+    const client = await api.getClient();
+    client.defaults.baseURL = cfg.baseUrl
+      ? cfg.baseUrl
+      : cfg.specUrl.substring(0, cfg.specUrl.lastIndexOf('/'));
+    const n = await registerOpenApiModule(cfg.name, { api: api, client: client });
+    logger.info(`OpenAPI module '${n}' registered`);
+  }
 }
