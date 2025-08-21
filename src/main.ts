@@ -7,8 +7,8 @@ import {
   internModule,
   load,
   loadAppConfig,
-  runPostInitTasks,
-  runPreInitTasks,
+  loadCoreModules,
+  runStandaloneStatements,
 } from 'agentlang/out/runtime/loader.js';
 import { NodeFileSystem } from 'langium/node';
 import { extractDocument } from 'agentlang/out/runtime/loader.js';
@@ -23,6 +23,10 @@ import { prepareIntegrations } from 'agentlang/out/runtime/integrations.js';
 import { isNodeEnv } from 'agentlang/out/utils/runtime.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
 import { registerOpenApiModule } from 'agentlang/out/runtime/openapi.js';
+import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js';
+import { runInitFunctions } from 'agentlang/out/runtime/util.js';
+import { startServer } from 'agentlang/out/api/http.js';
+
 
 export interface GenerateOptions {
   destination?: string;
@@ -76,6 +80,24 @@ Examples:
   program.parse(process.argv);
 }
 
+export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Config) {
+  await initDatabase(config?.store);
+  await runInitFunctions();
+  await runStandaloneStatements();
+  if (appSpec) startServer(appSpec, config?.service?.port || 8080);
+}
+
+export async function runPreInitTasks(): Promise<boolean> {
+  let result: boolean = true;
+  await loadCoreModules().catch((reason: any) => {
+    const msg = `Failed to load core modules - ${reason.toString()}`;
+    logger.error(msg);
+    console.log(chalk.red(msg));
+    result = false;
+  });
+  return result;
+}
+
 /**
  * Parse and validate a program written in our language.
  * Verifies that no lexer or parser errors occur.
@@ -101,6 +123,10 @@ export const parseAndValidate = async (fileName: string): Promise<void> => {
 };
 
 export const runModule = async (fileName: string): Promise<void> => {
+  const r: boolean = await runPreInitTasks();
+  if (!r) {
+    throw new Error('Failed to initialize runtime');
+  }
   const configDir =
     path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
   const config: Config = await loadAppConfig(configDir);
@@ -109,7 +135,7 @@ export const runModule = async (fileName: string): Promise<void> => {
       config.integrations.host,
       config.integrations.username,
       config.integrations.password,
-      config.integrations.connections
+      config.integrations.connections,
     );
   }
   if (config.openapi) {
