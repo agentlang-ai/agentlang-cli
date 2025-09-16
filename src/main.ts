@@ -27,7 +27,6 @@ import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js'
 import { runInitFunctions } from 'agentlang/out/runtime/util.js';
 import { startServer } from 'agentlang/out/api/http.js';
 
-
 export interface GenerateOptions {
   destination?: string;
 }
@@ -88,7 +87,7 @@ export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Confi
 }
 
 export async function runPreInitTasks(): Promise<boolean> {
-  let result: boolean = true;
+  let result = true;
   await loadCoreModules().catch((reason: any) => {
     const msg = `Failed to load core modules - ${reason.toString()}`;
     logger.error(msg);
@@ -127,8 +126,7 @@ export const runModule = async (fileName: string): Promise<void> => {
   if (!r) {
     throw new Error('Failed to initialize runtime');
   }
-  const configDir =
-    path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
+  const configDir = path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
   const config: Config = await loadAppConfig(configDir);
   if (config.integrations) {
     await prepareIntegrations(
@@ -194,17 +192,14 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   return rm;
 }
 
-
 async function loadOpenApiSpec(openApiConfig: any[]) {
   for (let i = 0; i < openApiConfig.length; ++i) {
     const cfg: any = openApiConfig[i];
     const api = new OpenAPIClientAxios({ definition: cfg.specUrl });
     await api.init();
     const client = await api.getClient();
-    client.defaults.baseURL = cfg.baseUrl
-      ? cfg.baseUrl
-      : cfg.specUrl.substring(0, cfg.specUrl.lastIndexOf('/'));
-    const n = await registerOpenApiModule(cfg.name, { api: api, client: client });
+    client.defaults.baseURL = cfg.baseUrl ? cfg.baseUrl : cfg.specUrl.substring(0, cfg.specUrl.lastIndexOf('/'));
+    const n = await registerOpenApiModule(cfg.name, { api, client });
     logger.info(`OpenAPI module '${n}' registered`);
   }
 }

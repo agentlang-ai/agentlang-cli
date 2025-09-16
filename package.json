@@ -1,6 +1,6 @@
 {
   "name": "agentlangcli",
-  "version": "0.0.26",
+  "version": "0.0.62",
   "description": "A command-line interface tool for AgentLang",
   "main": "out/main.js",
   "type": "module",
@@ -51,8 +51,7 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.1.0",
     "@redocly/cli": "^2.0.2",
-    "agentlang": "^0.0.26",
-    "agentlangcli": "^0.0.11",
+    "agentlang": "^0.0.62",
     "chalk": "^5.4.1",
     "chokidar": "^4.0.3",
     "commander": "^14.0.0",
