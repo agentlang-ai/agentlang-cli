@@ -326,7 +326,9 @@ function createReplHelpers() {
       instances.forEach(([id, data]) => {
         const timeAgo = new Date().getTime() - data.createdAt.getTime();
         const timeStr = timeAgo < 60000 ? `${Math.floor(timeAgo / 1000)}s ago` : `${Math.floor(timeAgo / 60000)}m ago`;
+        // eslint-disable-next-line no-console
         console.log(`  • ${chalk.bold(data.entityName)} (${id.split('_')[2]}) - ${timeStr}`);
+        // eslint-disable-next-line no-console
         console.log(`    ${chalk.gray(JSON.stringify(data.attributes))}`);
       });
       return instances.map(([id, data]) => ({ id, ...data }));

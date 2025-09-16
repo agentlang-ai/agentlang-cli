@@ -59,6 +59,7 @@
     "esbuild": "^0.25.8",
     "fs-extra": "^11.3.0",
     "langium": "^4.0.0",
+    "openapi-client-axios": "^7.7.0",
     "openapi-to-postmanv2": "^5.0.1",
     "tmp": "^0.2.3",
     "zod": "^4.0.14"

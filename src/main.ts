@@ -88,9 +88,11 @@ export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Confi
 
 export async function runPreInitTasks(): Promise<boolean> {
   let result = true;
-  await loadCoreModules().catch((reason: any) => {
-    const msg = `Failed to load core modules - ${reason.toString()}`;
+  await loadCoreModules().catch((reason: unknown) => {
+    const msg = `Failed to load core modules - ${String(reason)}`;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     logger.error(msg);
+    // eslint-disable-next-line no-console
     console.log(chalk.red(msg));
     result = false;
   });
@@ -143,11 +145,13 @@ export const runModule = async (fileName: string): Promise<void> => {
     await load(fileName, undefined, async (appSpec?: ApplicationSpec) => {
       await runPostInitTasks(appSpec, config);
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isNodeEnv && chalk) {
-      console.error(chalk.red(err));
+      // eslint-disable-next-line no-console
+      console.error(chalk.red(String(err)));
     } else {
-      console.error(err);
+      // eslint-disable-next-line no-console
+      console.error(String(err));
     }
   }
 };
@@ -192,14 +196,20 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   return rm;
 }
 
-async function loadOpenApiSpec(openApiConfig: any[]) {
-  for (let i = 0; i < openApiConfig.length; ++i) {
-    const cfg: any = openApiConfig[i];
+interface OpenApiConfigItem {
+  name: string;
+  specUrl: string;
+  baseUrl?: string;
+}
+
+async function loadOpenApiSpec(openApiConfig: OpenApiConfigItem[]) {
+  for (const cfg of openApiConfig) {
     const api = new OpenAPIClientAxios({ definition: cfg.specUrl });
     await api.init();
     const client = await api.getClient();
-    client.defaults.baseURL = cfg.baseUrl ? cfg.baseUrl : cfg.specUrl.substring(0, cfg.specUrl.lastIndexOf('/'));
+    client.defaults.baseURL = cfg.baseUrl ?? cfg.specUrl.substring(0, cfg.specUrl.lastIndexOf('/'));
     const n = await registerOpenApiModule(cfg.name, { api, client });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     logger.info(`OpenAPI module '${n}' registered`);
   }
 }
