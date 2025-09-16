@@ -67,10 +67,10 @@ interface ReplState {
 let replState: ReplState | null = null;
 
 // Global instance tracking
-const createdInstances: Map<
+const createdInstances = new Map<
   string,
   { instance: Instance; entityName: string; attributes: Record<string, unknown>; createdAt: Date }
-> = new Map();
+>();
 
 // Core AgentLang processing function
 async function processAgentlang(code: string): Promise<string> {
@@ -322,11 +322,13 @@ function createReplHelpers() {
         console.log(chalk.gray('  No instances created yet'));
         return [];
       }
-      // eslint-disable-next-line no-console
+
       instances.forEach(([id, data]) => {
         const timeAgo = new Date().getTime() - data.createdAt.getTime();
         const timeStr = timeAgo < 60000 ? `${Math.floor(timeAgo / 1000)}s ago` : `${Math.floor(timeAgo / 60000)}m ago`;
+        // eslint-disable-next-line no-console
         console.log(`  • ${chalk.bold(data.entityName)} (${id.split('_')[2]}) - ${timeStr}`);
+        // eslint-disable-next-line no-console
         console.log(`    ${chalk.gray(JSON.stringify(data.attributes))}`);
       });
       return instances.map(([id, data]) => ({ id, ...data }));

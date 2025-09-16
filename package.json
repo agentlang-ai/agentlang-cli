@@ -1,6 +1,6 @@
 {
   "name": "agentlangcli",
-  "version": "0.0.26",
+  "version": "0.0.62",
   "description": "A command-line interface tool for AgentLang",
   "main": "out/main.js",
   "type": "module",
@@ -49,10 +49,9 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@asteasolutions/zod-to-openapi": "^8.1.0",
+    "@asteasolutions/zod-to-openapi": "7.3.4",
     "@redocly/cli": "^2.0.2",
-    "agentlang": "^0.0.26",
-    "agentlangcli": "^0.0.11",
+    "agentlang": "^0.0.62",
     "chalk": "^5.4.1",
     "chokidar": "^4.0.3",
     "commander": "^14.0.0",
@@ -60,9 +59,11 @@
     "esbuild": "^0.25.8",
     "fs-extra": "^11.3.0",
     "langium": "^4.0.0",
+    "openapi-client-axios": "^7.7.0",
     "openapi-to-postmanv2": "^5.0.1",
     "tmp": "^0.2.3",
-    "zod": "^4.0.14"
+    "yaml": "^2.8.1",
+    "zod": "3.23.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
