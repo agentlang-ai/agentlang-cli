@@ -171,7 +171,7 @@ export async function generateUI(
 
     // Git operations if requested
     if (shouldPush) {
-      await performGitOperations(projectDir, outputBaseDir);
+      await performGitOperations(projectDir, outputBaseDir, uiSpec.appInfo.title);
     }
 
     console.log(chalk.cyan('\n📝 Next steps:'));
@@ -186,7 +186,7 @@ export async function generateUI(
 /* eslint-enable no-console */
 
 /* eslint-disable no-console */
-async function performGitOperations(projectDir: string, repoRoot: string): Promise<void> {
+async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
@@ -202,7 +202,7 @@ async function performGitOperations(projectDir: string, repoRoot: string): Promi
     console.log(chalk.green('  ✓ Added ui/ to git'));
 
     // Commit changes
-    const commitMessage = 'Add generated UI application';
+    const commitMessage = `Add generated UI for ${appTitle}`;
     await execAsync(`git commit -m "${commitMessage}"`);
     console.log(chalk.green('  ✓ Committed changes'));
 
@@ -411,7 +411,7 @@ The UI spec contains a **\`workflows\`** array defining events/workflows. These 
 Generate a COMPLETE, production-ready web application with ALL the following:
 
 ## 1. Configuration Files
-   - **package.json** - All dependencies
+   - **package.json** - All dependencies (IMPORTANT: use "agentlang-ui" as the package name, not the app-specific name)
    - **tsconfig.json** and **tsconfig.node.json**
    - **vite.config.ts**
    - **index.html**
@@ -509,6 +509,8 @@ IMPORTANT:
 
 1. Create the project directory structure
 2. Generate configuration files (.env, .env.example, package.json, tsconfig, vite.config, etc.)
+   - IMPORTANT: In package.json, use "agentlang-ui" as the package name
+   - In index.html, use "${uiSpec.appInfo.title}" as the title
 3. Generate API layer (client.ts, endpoints.ts) with Agentlang integration
 4. Generate types and data files
 5. Generate hooks (useBackend, useEntityData, useRelationships)
