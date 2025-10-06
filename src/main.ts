@@ -18,6 +18,9 @@ import { Module } from 'agentlang/out/runtime/module.js';
 import { ModuleDefinition } from 'agentlang/out/language/generated/ast.js';
 import { generateSwaggerDoc } from './docs.js';
 import { startRepl } from './repl.js';
+import { generateUI } from './ui-generator/uiGenerator.js';
+import { loadUISpec } from './ui-generator/specLoader.js';
+import { findSpecFile } from './ui-generator/specFinder.js';
 import { Config } from 'agentlang/out/runtime/state.js';
 import { prepareIntegrations } from 'agentlang/out/runtime/integrations.js';
 import { isNodeEnv } from 'agentlang/out/utils/runtime.js';
@@ -75,6 +78,38 @@ Examples:
   $ agent repl --quiet                   Start REPL in quiet mode`,
     )
     .action(replCommand);
+
+  program
+    .command('ui-gen')
+    .description('Generate a UI application from a ui-spec.json file (requires Anthropic API key)')
+    .argument('[spec-file]', 'Path to the ui-spec.json file (auto-detects if not provided)')
+    .option('-d, --directory <dir>', 'Target directory (default: current directory)', '.')
+    .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY env var)')
+    .option('-p, --push', 'Commit and push changes to git repository', false)
+    .addHelpText(
+      'after',
+      `
+API Key Requirement:
+  This command requires an Anthropic API key to function. You can provide it in two ways:
+  1. Set the ANTHROPIC_API_KEY environment variable:
+     $ export ANTHROPIC_API_KEY=sk-ant-...
+  2. Use the --api-key flag:
+     $ agent ui-gen --api-key sk-ant-...
+
+Spec File Auto-Detection:
+  If no spec file path is provided, the command will search for spec files in this order:
+  - ui-spec.json
+  - spec.json
+  - *.ui-spec.json (any file ending with .ui-spec.json)
+
+Examples:
+  $ agent ui-gen                                 Auto-detect spec and generate UI
+  $ agent ui-gen -p                              Auto-detect spec, generate UI, and push to git
+  $ agent ui-gen ui-spec.json                    Generate UI from specific spec file
+  $ agent ui-gen -d ./my-app                     Generate UI in ./my-app/ui directory
+  $ agent ui-gen ui-spec.json -k sk-ant-...      Generate UI with specified API key`,
+    )
+    .action(generateUICommand);
 
   program.parse(process.argv);
 }
@@ -195,6 +230,58 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   await runPostInitTasks(appSpec);
   return rm;
 }
+
+/* eslint-disable no-console */
+export const generateUICommand = async (
+  specFile?: string,
+  options?: { directory?: string; apiKey?: string; push?: boolean },
+): Promise<void> => {
+  try {
+    console.log(chalk.blue('🚀 AgentLang UI Generator\n'));
+
+    // Get API key from options or environment
+    const apiKey = options?.apiKey || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.error(chalk.red('❌ Error: Anthropic API key is required.'));
+      console.log(chalk.yellow('   Set ANTHROPIC_API_KEY environment variable or use --api-key flag.'));
+      console.log(chalk.gray('\n   Example:'));
+      console.log(chalk.gray('   $ export ANTHROPIC_API_KEY=sk-ant-...'));
+      console.log(chalk.gray('   $ agent ui-gen'));
+      console.log(chalk.gray('\n   Or:'));
+      console.log(chalk.gray('   $ agent ui-gen --api-key sk-ant-...'));
+      process.exit(1);
+    }
+
+    // Set target directory
+    const targetDir = options?.directory || '.';
+    const absoluteTargetDir = path.resolve(process.cwd(), targetDir);
+
+    // Auto-detect spec file if not provided
+    let specFilePath: string;
+    if (!specFile) {
+      console.log(chalk.cyan('📄 Searching for UI spec file...'));
+      specFilePath = await findSpecFile(absoluteTargetDir);
+    } else {
+      specFilePath = path.resolve(process.cwd(), specFile);
+    }
+
+    // Load the UI spec
+    console.log(chalk.cyan(`📄 Loading UI spec from: ${specFilePath}`));
+    const uiSpec = await loadUISpec(specFilePath);
+
+    console.log(chalk.cyan(`📂 Target directory: ${absoluteTargetDir}`));
+    console.log(chalk.cyan(`📦 Output will be created in: ${path.join(absoluteTargetDir, 'ui')}`));
+
+    // Generate the UI
+    await generateUI(uiSpec, absoluteTargetDir, apiKey, options?.push || false);
+
+    console.log(chalk.green('\n✅ UI generation completed successfully!'));
+  } catch (error) {
+    console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+};
+/* eslint-enable no-console */
 
 interface OpenApiConfigItem {
   name: string;

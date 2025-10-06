@@ -49,6 +49,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.1",
+    "@anthropic-ai/sdk": "^0.65.0",
     "@asteasolutions/zod-to-openapi": "7.3.4",
     "@redocly/cli": "^2.0.2",
     "agentlang": "^0.0.62",
@@ -61,6 +63,7 @@
     "langium": "^4.0.0",
     "openapi-client-axios": "^7.7.0",
     "openapi-to-postmanv2": "^5.0.1",
+    "ora": "^8.0.1",
     "tmp": "^0.2.3",
     "yaml": "^2.8.1",
     "zod": "3.23.8"
