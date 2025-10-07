@@ -629,10 +629,11 @@ project-root/
 Create a **.env** file for backend configuration:
 \`\`\`env
 VITE_BACKEND_URL=http://localhost:8080/
-VITE_USE_MOCK_DATA=false
+VITE_USE_MOCK_DATA=true
 \`\`\`
 
-Also create **.env.example** as a template.
+**IMPORTANT**: Default to \`VITE_USE_MOCK_DATA=true\` so the app works immediately without backend.
+Also create **.env.example** with the same defaults.
 
 ## 2. API Client Structure
 
@@ -644,23 +645,32 @@ Also create **.env.example** as a template.
 ### src/api/endpoints.ts
 **Agentlang API Convention:**
 
-For entities (CRUD operations):
+For **authentication** (special endpoints):
+- **Login**: \`POST /agentlang_auth/login\` with body \`{ email: "...", password: "..." }\`
+- **Sign Up**: \`POST /agentlang_auth/signUp\` with body \`{ email: "...", password: "...", name: "..." }\`
+- **Forgot Password**: \`POST /agentlang_auth/forgotPassword\` with body \`{ email: "..." }\`
+
+For **entities** (CRUD operations):
 - **GET all**: \`GET /<ModelName>/<Entity>\`
 - **GET one**: \`GET /<ModelName>/<Entity>/:id\`
 - **POST (create)**: \`POST /<ModelName>/<Entity>\` with JSON body
 - **PUT (update)**: \`PUT /<ModelName>/<Entity>/:id\` with JSON body
 - **DELETE**: \`DELETE /<ModelName>/<Entity>/:id\`
 
-For workflows/events:
+For **workflows/events**:
 - **POST**: \`POST /<ModelName>/<WorkflowName>\` with input parameters
 
-**Example:**
-- Entity: \`CarDealership/Customer\`
+**Examples:**
+- **Authentication:**
+  - Login: \`POST /agentlang_auth/login\` → \`{ email: "user@example.com", password: "pass123" }\`
+  - Sign Up: \`POST /agentlang_auth/signUp\` → \`{ email: "...", password: "...", name: "..." }\`
+
+- **Entity:** \`CarDealership/Customer\`
   - Create: \`POST /CarDealership/Customer\` with body \`{ name: "...", contactDetails: "..." }\`
   - Get all: \`GET /CarDealership/Customer\`
   - Get one: \`GET /CarDealership/Customer/123\`
 
-- Workflow: \`ProcessSale\`
+- **Workflow:** \`ProcessSale\`
   - Execute: \`POST /CarDealership/ProcessSale\` with body \`{ customerId: "...", ... }\`
 
 ## 3. Routing Convention
@@ -743,14 +753,17 @@ Generate a COMPLETE, production-ready web application with ALL the following:
    - **tsconfig.json** and **tsconfig.node.json**
    - **vite.config.ts**
    - **index.html**
-   - **.env** - Backend URL configuration
-   - **.env.example** - Environment template
+   - **.env** - Backend URL configuration with \`VITE_USE_MOCK_DATA=true\` as default
+   - **.env.example** - Environment template (same as .env)
    - **.gitignore**
    - **README.md** - Setup instructions with backend config
 
 ## 2. API Layer
    - **src/api/client.ts** - Axios client with .env integration
-   - **src/api/endpoints.ts** - Agentlang endpoint functions following /<ModelName>/<Entity> pattern
+   - **src/api/endpoints.ts** - Agentlang endpoint functions:
+     * Auth: \`/agentlang_auth/login\`, \`/agentlang_auth/signUp\`, \`/agentlang_auth/forgotPassword\`
+     * Entities: \`/<ModelName>/<Entity>\` pattern
+     * Workflows: \`/<ModelName>/<WorkflowName>\` pattern
 
 ## 3. Core Application
    - **src/main.tsx** - Entry point
@@ -762,11 +775,12 @@ Generate a COMPLETE, production-ready web application with ALL the following:
 
 ## 5. Data
    - **src/data/uiSpec.ts** - Export UI spec
-   - **src/data/mockData.ts** - Mock data for when backend is unavailable
+   - **src/data/mockData.ts** - Mock data for when backend is unavailable (include mock user data for auth)
 
 ## 6. Authentication
-   - **src/components/auth/SignIn.tsx**
-   - **src/components/auth/SignUp.tsx**
+   - **src/components/auth/SignIn.tsx** - Uses \`POST /agentlang_auth/login\`
+   - **src/components/auth/SignUp.tsx** - Uses \`POST /agentlang_auth/signUp\`
+   - Add forgot password support using \`POST /agentlang_auth/forgotPassword\`
 
 ## 7. Navigation
    - **src/components/navigation/Sidebar.tsx** - With grouping from UI spec
@@ -803,13 +817,16 @@ Generate a COMPLETE, production-ready web application with ALL the following:
 
 ✅ **Agentlang Routing**: Use /:modelName/:entityName format everywhere
 ✅ **Backend Integration**: Read .env for backend URL, fallback to mock data
-✅ **API Pattern**: All requests follow /<ModelName>/<Entity> convention
+✅ **Mock Mode Default**: Set \`VITE_USE_MOCK_DATA=true\` in .env so app works immediately
+✅ **Auth Endpoints**: Use \`/agentlang_auth/login\`, \`/agentlang_auth/signUp\`, \`/agentlang_auth/forgotPassword\`
+✅ **API Pattern**: Entities follow \`/<ModelName>/<Entity>\`, workflows follow \`/<ModelName>/<WorkflowName>\`
 ✅ **Relationships**: Show embedded tables based on relationships array
 ✅ **Workflows**: Display and execute workflows as custom actions on entity pages
 ✅ **TypeScript**: Proper typing for all components
 ✅ **Error Handling**: Handle backend unavailable gracefully
 ✅ **Loading States**: Show spinners during API calls
 ✅ **Responsive**: Mobile-friendly design
+✅ **Mock Data**: Include mock user/auth data for testing authentication flow
 
 # Tools Available
 
