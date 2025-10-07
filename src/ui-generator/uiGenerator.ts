@@ -13,7 +13,8 @@ export async function generateUI(
   apiKey: string,
   shouldPush = false,
 ): Promise<void> {
-  const spinner = ora('Initializing UI generation with Claude Agent...').start();
+  const spinner = ora('Initializing UI generation...').start();
+  const startTime = Date.now();
 
   try {
     // Create output directory as 'ui' in the specified base directory
@@ -22,7 +23,7 @@ export async function generateUI(
     spinner.text = `Creating project directory: ${projectDir}`;
     await fs.ensureDir(projectDir);
 
-    // Track generated files
+    // Track generated files for MCP tool (though agent will likely use Write tool)
     const generatedFiles: string[] = [];
 
     // Define tools for the agent using the correct API
@@ -43,8 +44,8 @@ export async function generateUI(
         await fs.writeFile(fullPath, args.content, 'utf-8');
 
         generatedFiles.push(args.file_path);
-        console.log(chalk.green(`  ✓ Created: ${args.file_path}`));
-        spinner.text = `Generated: ${args.file_path}`;
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(chalk.green(`  ✓ [${elapsed}s] Created: ${args.file_path}`));
 
         return {
           content: [
@@ -66,7 +67,8 @@ export async function generateUI(
       async args => {
         const fullPath = path.join(projectDir, args.dir_path);
         await fs.ensureDir(fullPath);
-        console.log(chalk.blue(`  📁 Created directory: ${args.dir_path}`));
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(chalk.blue(`  📁 [${elapsed}s] Created directory: ${args.dir_path}`));
         return {
           content: [
             {
@@ -96,20 +98,24 @@ export async function generateUI(
       tools: [writeFile, createDirectory, listFiles],
     });
 
-    spinner.text = 'Starting Claude Agent...';
-    console.log(chalk.gray('\n  📋 Tool Access:'));
-    console.log(chalk.gray('    - Full permission mode enabled'));
-    console.log(chalk.gray('    - Agent can use: Write, Read, Edit, Bash, and MCP tools'));
-    console.log(chalk.green('  ✅ All tools available\n'));
+    console.log(chalk.gray('\n  📋 Agent Configuration:'));
+    console.log(chalk.gray('    • Working directory: ') + chalk.white(projectDir));
+    console.log(chalk.gray('    • Tool permissions: ') + chalk.green('Full access'));
+    console.log(chalk.gray('    • Available tools: Write, Read, Edit, Bash, MCP tools'));
 
     // Create the generation prompt
-    const prompt = createGenerationPrompt(uiSpec);
+    const prompt = createGenerationPrompt(uiSpec, projectDir);
 
     // Configure SDK with API key
     process.env.ANTHROPIC_API_KEY = apiKey;
 
-    spinner.text = 'Generating application with Claude Agent...';
-    console.log(chalk.cyan('\n📝 Agent is working...\n'));
+    // Change working directory to projectDir so Write tool creates files in the right place
+    const originalCwd = process.cwd();
+    process.chdir(projectDir);
+    console.log(chalk.gray(`    • Changed working directory to: ${projectDir}\n`));
+
+    spinner.text = 'Starting Claude Agent...';
+    console.log(chalk.cyan('🤖 Starting generation...\n'));
 
     // Query Claude with our MCP server
     const session = query({
@@ -129,48 +135,76 @@ export async function generateUI(
 
     // Process messages from the agent
     let lastTextMessage = '';
-    let lastLogTime = Date.now();
+    let toolCallCount = 0;
+    let messageCount = 0;
 
     for await (const message of session) {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
       if (message.type === 'assistant') {
+        messageCount++;
         // Extract text content from assistant message
         const content = message.message.content;
         if (Array.isArray(content)) {
           for (const block of content) {
             if (block.type === 'text') {
               lastTextMessage = block.text;
-              // Show progress every 3 seconds to avoid spam
-              const now = Date.now();
-              if (lastTextMessage.trim() && now - lastLogTime > 3000) {
-                console.log(chalk.gray(`  💭 ${lastTextMessage.slice(0, 60)}...`));
-                lastLogTime = now;
+              // Show thinking/progress messages
+              if (lastTextMessage.trim()) {
+                const preview = lastTextMessage.slice(0, 80).replace(/\n/g, ' ');
+                console.log(chalk.gray(`  💭 [${elapsed}s] ${preview}${lastTextMessage.length > 80 ? '...' : ''}`));
               }
+            } else if (block.type === 'tool_use') {
+              toolCallCount++;
+              const toolName = block.name;
+              console.log(chalk.blue(`  🔧 [${elapsed}s] Using tool: ${toolName}`));
+              spinner.text = `[${elapsed}s] Agent working... (${toolCallCount} tool calls)`;
             }
           }
         }
       } else if (message.type === 'result') {
         // Final result
+        spinner.stop();
+        const finalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
         if (message.subtype === 'success') {
-          console.log(chalk.green(`\n✓ Completed in ${message.num_turns} turns`));
+          console.log(chalk.green(`\n✅ Agent completed successfully`));
+          console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
+          console.log(chalk.gray(`  🔄 Turns: ${message.num_turns}`));
+          console.log(chalk.gray(`  🔧 Tool calls: ${toolCallCount}`));
           console.log(chalk.gray(`  💰 Cost: $${message.total_cost_usd.toFixed(4)}`));
         } else {
-          console.log(chalk.yellow(`\n⚠ ${message.subtype}`));
+          console.log(chalk.yellow(`\n⚠️  Agent finished with status: ${message.subtype}`));
+          console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
         }
       }
     }
 
-    spinner.succeed(chalk.green(`✅ Generated ${generatedFiles.length} files`));
+    // Restore original working directory
+    process.chdir(originalCwd);
 
-    // Output final message
+    // Count actual files generated in the ui/ directory
+    const actualFileCount = await countGeneratedFiles(projectDir);
+
+    spinner.succeed(chalk.green(`✅ UI generation completed!`));
+    console.log(chalk.green(`\n📊 Generation Summary:`));
+    console.log(chalk.gray(`  • Files created: `) + chalk.white(actualFileCount));
+    console.log(chalk.gray(`  • Time elapsed: `) + chalk.white(`${((Date.now() - startTime) / 1000).toFixed(1)}s`));
+    console.log(chalk.gray(`  • Output location: `) + chalk.white(projectDir));
+
+    // Output final message from agent
     if (lastTextMessage) {
-      console.log(chalk.cyan('\n🤖 Agent final message:'));
-      console.log(chalk.white(lastTextMessage));
+      console.log(chalk.cyan('\n💬 Agent message:'));
+      const messageLines = lastTextMessage.split('\n').slice(0, 5); // Show first 5 lines
+      messageLines.forEach(line => console.log(chalk.gray(`   ${line}`)));
+      if (lastTextMessage.split('\n').length > 5) {
+        console.log(chalk.gray('   ...'));
+      }
     }
-
-    console.log(chalk.cyan('\n📦 Project created at:'), chalk.white(projectDir));
 
     // Git operations if requested
     if (shouldPush) {
+      console.log(''); // Add newline
       await performGitOperations(projectDir, outputBaseDir, uiSpec.appInfo.title);
     }
 
@@ -186,40 +220,124 @@ export async function generateUI(
 /* eslint-enable no-console */
 
 /* eslint-disable no-console */
+/**
+ * Count all files (recursively) in the generated project directory
+ */
+async function countGeneratedFiles(projectDir: string): Promise<number> {
+  let count = 0;
+
+  async function countInDirectory(dir: string): Promise<void> {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          // Skip node_modules and other common directories
+          if (!['node_modules', '.git', 'dist', 'build', '.vscode'].includes(entry.name)) {
+            await countInDirectory(fullPath);
+          }
+        } else if (entry.isFile()) {
+          count++;
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
+
+  await countInDirectory(projectDir);
+  return count;
+}
+/* eslint-enable no-console */
+
+/* eslint-disable no-console */
 async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
   const execAsync = promisify(exec);
 
-  console.log(chalk.cyan('\n📤 Committing and pushing changes...'));
+  const gitSpinner = ora('Preparing git operations...').start();
 
   try {
+    // Save original directory
+    const originalCwd = process.cwd();
+
     // Change to repo root directory
     process.chdir(repoRoot);
+    gitSpinner.text = 'Checking git status...';
+
+    // Check if it's a git repository
+    try {
+      await execAsync('git rev-parse --git-dir');
+    } catch {
+      gitSpinner.fail('Not a git repository');
+      console.log(chalk.yellow('  ⚠️  Skipping git operations - not a git repository'));
+      process.chdir(originalCwd);
+      return;
+    }
+
+    // Check for uncommitted changes in ui/
+    gitSpinner.text = 'Checking for changes...';
+    const { stdout: statusOutput } = await execAsync('git status --porcelain ui/');
+
+    if (!statusOutput.trim()) {
+      gitSpinner.info('No changes to commit in ui/');
+      process.chdir(originalCwd);
+      return;
+    }
 
     // Add all files in the ui directory
+    gitSpinner.text = 'Adding files to git...';
     await execAsync('git add ui/');
-    console.log(chalk.green('  ✓ Added ui/ to git'));
+    gitSpinner.succeed('Added ui/ to git');
 
     // Commit changes
-    const commitMessage = `Add generated UI for ${appTitle}`;
+    gitSpinner.start('Committing changes...');
+    const commitMessage = `Add generated UI for ${appTitle}\n\n🤖 Generated with AgentLang CLI`;
     await execAsync(`git commit -m "${commitMessage}"`);
-    console.log(chalk.green('  ✓ Committed changes'));
+    gitSpinner.succeed('Committed changes');
+
+    // Check if remote exists
+    gitSpinner.start('Checking remote...');
+    try {
+      await execAsync('git remote get-url origin');
+    } catch {
+      gitSpinner.warn('No remote repository configured');
+      console.log(chalk.yellow('  ⚠️  Skipping push - no remote configured'));
+      process.chdir(originalCwd);
+      return;
+    }
+
+    // Get current branch
+    const { stdout: branchOutput } = await execAsync('git branch --show-current');
+    const currentBranch = branchOutput.trim();
 
     // Push to remote
-    await execAsync('git push');
-    console.log(chalk.green('  ✓ Pushed to remote repository'));
+    gitSpinner.text = `Pushing to remote (${currentBranch})...`;
+    await execAsync(`git push origin ${currentBranch}`);
+    gitSpinner.succeed(`Pushed to remote (${currentBranch})`);
 
-    console.log(chalk.green('\n✅ Successfully pushed UI changes to repository'));
+    console.log(chalk.green('\n✅ Successfully committed and pushed UI changes'));
+
+    // Restore original directory
+    process.chdir(originalCwd);
   } catch (error) {
-    console.log(chalk.yellow('\n⚠ Warning: Git operations failed'));
-    console.log(chalk.gray(`  ${error instanceof Error ? error.message : String(error)}`));
-    console.log(chalk.yellow('  You may need to commit and push manually.'));
+    gitSpinner.fail('Git operations failed');
+    console.log(chalk.yellow('\n⚠️  Warning: Git operations encountered an error'));
+    if (error instanceof Error) {
+      // Extract the meaningful part of the error message
+      const errorMessage = error.message.split('\n')[0];
+      console.log(chalk.gray(`  ${errorMessage}`));
+    }
+    console.log(chalk.yellow('  💡 You may need to commit and push manually:'));
+    console.log(chalk.gray('     git add ui/'));
+    console.log(chalk.gray(`     git commit -m "Add generated UI for ${appTitle}"`));
+    console.log(chalk.gray('     git push'));
   }
 }
 /* eslint-enable no-console */
 
-function createGenerationPrompt(uiSpec: UISpec): string {
+function createGenerationPrompt(uiSpec: UISpec, projectDir: string): string {
   const referenceAppPath =
     '/home/prertik/Developer/fractl/ui-generator-from-spec/generated-apps/modern-car-dealership-management';
 
@@ -227,11 +345,12 @@ function createGenerationPrompt(uiSpec: UISpec): string {
 
 ⚠️ CRITICAL INSTRUCTIONS:
 - You have FULL ACCESS to all tools: Write, Read, Edit, Bash, and MCP tools
-- Use whatever tools are most appropriate for the task
-- Prefer using Write tool for creating files
-- Use Bash for system operations (mkdir, etc.) if needed
+- Your CURRENT WORKING DIRECTORY is: ${projectDir}
+- When using Write tool, use RELATIVE paths (e.g., "src/App.tsx", "package.json")
+- All files will be created in the current working directory (${projectDir})
 - You have full permission - do not ask for approval
 - Generate a complete, working application
+- Use the Write tool for creating files (preferred) or the MCP write_file tool
 
 # UI Specification
 
@@ -487,21 +606,21 @@ Generate a COMPLETE, production-ready web application with ALL the following:
 
 You have FULL PERMISSION to use ALL tools without asking:
 
-**Standard Tools:**
-- **Write** - Create new files with content
+**Primary Tools (Use These):**
+- **Write** - Create new files with content (PREFERRED for file creation)
 - **Read** - Read existing files
 - **Edit** - Edit existing files
-- **Bash** - Run shell commands (mkdir, etc.)
+- **Bash** - Run shell commands
 
-**MCP Tools (optional):**
+**MCP Tools (Alternative):**
+- **write_file** - Alternative way to write files
 - **create_directory** - Creates a directory
-- **write_file** - Writes content to a file
 - **list_files** - Lists all generated files
 
 IMPORTANT:
-- Use whichever tools work best for the task
-- Write tool is preferred for creating files
-- Use Bash for system operations if needed
+- Use the **Write** tool for creating files (this is preferred and will work correctly)
+- All paths should be RELATIVE (e.g., "src/App.tsx", not "/full/path/src/App.tsx")
+- The current working directory is already set to ${projectDir}
 - You have full permission - do not ask for approval
 - Focus on generating a complete, working application
 
