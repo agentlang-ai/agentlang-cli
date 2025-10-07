@@ -21,8 +21,8 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2(@opentelemetry/api@1.9.0)(ajv@8.11.0)(core-js@3.44.0)(encoding@0.1.13)
       agentlang:
-        specifier: ^0.0.62
-        version: 0.0.62(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(axios@1.12.2)(encoding@0.1.13)(handlebars@4.7.8)(js-yaml@4.1.0)(mem-fs@4.1.2)(openai@5.11.0(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
+        specifier: ^0.2.1
+        version: 0.2.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(axios@1.12.2)(encoding@0.1.13)(js-yaml@4.1.0)(mem-fs@4.1.2)(openai@5.11.0(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3))
       chalk:
         specifier: ^5.4.1
         version: 5.4.1
@@ -1751,6 +1751,10 @@ packages:
   '@types/fs-extra@11.0.4':
     resolution: {integrity: sha512-yTbItCNreRooED33qjunPthRcSjERP1r4MqCZc7wv0u2sUkzTFp45tgUfS5+r7FrZPdmCCNflLhVSP/o+SemsQ==}
 
+  '@types/handlebars@4.1.0':
+    resolution: {integrity: sha512-gq9YweFKNNB1uFK71eRqsd4niVkXrxHugqWFQkeLRJvGjnxsLr16bYtcsG4tOFwmYi0Bax+wCkbf1reUfdl4kA==}
+    deprecated: This is a stub types definition. handlebars provides its own type definitions, so you do not need this installed.
+
   '@types/http-cache-semantics@4.0.4':
     resolution: {integrity: sha512-1m0bIFVc7eJWyve9S0RnuRgcQqF/Xd5QsUZAZeQFr1Q3/p9JWoQQEqmVy+DPTNpGXwhgIetAoYF8JSc33q29QA==}
 
@@ -1939,8 +1943,8 @@ packages:
     resolution: {integrity: sha512-kja8j7PjmncONqaTsB8fQ+wE2mSU2DJ9D4XKoJ5PFWIdRMa6SLSN1ff4mOr4jCbfRSsxR4keIiySJU0N9T5hIQ==}
     engines: {node: '>= 8.0.0'}
 
-  agentlang@0.0.62:
-    resolution: {integrity: sha512-Fw0Xt8syCuB1w9uz8/PnxyB/2aICTxkvql7qRjrFhcgyXeqna0AuvapDIgZGeYQy3hPzHQW4cn7pdqWfP0Pkpw==}
+  agentlang@0.2.1:
+    resolution: {integrity: sha512-hcFKOQtQ0J8FHMFvCO2go01WlCZHA8HkvZThw3hjtXcnnsjWV53GtPaF2HSWPsPFCD6mUry/m/9WpcZrGEV2Zg==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -3517,6 +3521,7 @@ packages:
   monaco-editor-wrapper@6.9.0:
     resolution: {integrity: sha512-JvmSNNdeyGXeTNDD+iRAt2Cf8wjaWfMKpA8YKFkBQ5KoA47Rwndcbu2dGcKNmT4AT/TwGQw4HvhsdEvvI7jySw==}
     engines: {node: '>=20.10.0', npm: '>=10.2.3'}
+    deprecated: The development of monaco-wrapper-editor will not be continued. Please use https://www.npmjs.com/package/monaco-languageclient v10+ from now on.
 
   monaco-editor@0.52.2:
     resolution: {integrity: sha512-GEQWEZmfkOGLdd3XK8ryrfWz3AIP8YymVXiPHEdewrUq7mh0qrKrfHLNCXcbB6sTnMLnOZ3ztSiKcciFUkIJwQ==}
@@ -7727,6 +7732,10 @@ snapshots:
       '@types/jsonfile': 6.1.4
       '@types/node': 24.1.0
 
+  '@types/handlebars@4.1.0':
+    dependencies:
+      handlebars: 4.7.8
+
   '@types/http-cache-semantics@4.0.4': {}
 
   '@types/http-errors@2.0.5': {}
@@ -7936,7 +7945,7 @@ snapshots:
       humanize-ms: 1.2.1
     optional: true
 
-  agentlang@0.0.62(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(axios@1.12.2)(encoding@0.1.13)(handlebars@4.7.8)(js-yaml@4.1.0)(mem-fs@4.1.2)(openai@5.11.0(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
+  agentlang@0.2.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(axios@1.12.2)(encoding@0.1.13)(js-yaml@4.1.0)(mem-fs@4.1.2)(openai@5.11.0(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.859.0
       '@aws-sdk/client-cognito-identity-provider': 3.859.0
@@ -7948,6 +7957,7 @@ snapshots:
       '@langchain/core': 0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@3.25.76))
       '@langchain/openai': 0.5.18(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@3.25.76)))
       '@types/express': 5.0.3
+      '@types/handlebars': 4.1.0
       amazon-cognito-identity-js: 6.3.15(encoding@0.1.13)
       aws-jwt-verify: 5.1.0
       bcryptjs: 3.0.2
@@ -7958,6 +7968,7 @@ snapshots:
       express: 5.1.0
       fs-extra: 11.3.0
       generator-langium: 3.5.0(@yeoman/types@1.6.0(@types/node@24.1.0)(mem-fs-editor@11.1.4(mem-fs@4.1.2))(mem-fs@4.1.2))(encoding@0.1.13)(mem-fs@4.1.2)
+      handlebars: 4.7.8
       jsonwebtoken: 9.0.2
       jwk-to-pem: 2.0.7
       langchain: 0.3.30(@langchain/anthropic@0.3.26(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@3.25.76))))(@langchain/core@0.3.66(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@5.11.0(zod@3.25.76)))(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(handlebars@4.7.8)(openai@5.11.0(zod@3.25.76))(typeorm@0.3.25(pg@8.16.3)(reflect-metadata@0.2.2)(sql.js@1.13.0)(sqlite3@5.1.7)(ts-node@10.9.2(@types/node@24.1.0)(typescript@5.8.3)))
@@ -8001,7 +8012,6 @@ snapshots:
       - bluebird
       - cheerio
       - encoding
-      - handlebars
       - hdb-pool
       - ioredis
       - js-yaml
