@@ -60,7 +60,7 @@ async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalys
         }
 
         if (entry.isDirectory()) {
-          await scanDirectory(fullPath, prefix + '  ');
+          await scanDirectory(fullPath, `${prefix  }  `);
         }
       }
     }
@@ -81,7 +81,9 @@ async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalys
 
     return analysis;
   } catch (error) {
-    console.log(chalk.yellow(`  ⚠️  Error analyzing directory: ${error instanceof Error ? error.message : String(error)}`));
+    console.log(
+      chalk.yellow(`  ⚠️  Error analyzing directory: ${error instanceof Error ? error.message : String(error)}`),
+    );
     return analysis;
   }
 }
@@ -131,7 +133,7 @@ export async function generateUI(
     } else if (mode === 'incremental') {
       spinner.succeed(chalk.cyan('  🔄 Mode: Incremental update'));
       console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
-      console.log(chalk.gray(`  📝 Will add missing files based on spec`));
+      console.log(chalk.gray('  📝 Will add missing files based on spec'));
       spinner.start('Preparing incremental update...');
     } else if (mode === 'update') {
       spinner.succeed(chalk.cyan('  ✏️  Mode: User-directed update'));
@@ -255,13 +257,11 @@ export async function generateUI(
     // Process messages from the agent
     let lastTextMessage = '';
     let toolCallCount = 0;
-    let messageCount = 0;
 
     for await (const message of session) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
       if (message.type === 'assistant') {
-        messageCount++;
         // Extract text content from assistant message
         const content = message.message.content;
         if (Array.isArray(content)) {
@@ -287,7 +287,7 @@ export async function generateUI(
         const finalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
         if (message.subtype === 'success') {
-          console.log(chalk.green(`\n✅ Agent completed successfully`));
+          console.log(chalk.green('\n✅ Agent completed successfully'));
           console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
           console.log(chalk.gray(`  🔄 Turns: ${message.num_turns}`));
           console.log(chalk.gray(`  🔧 Tool calls: ${toolCallCount}`));
@@ -305,11 +305,11 @@ export async function generateUI(
     // Count actual files generated in the ui/ directory
     const actualFileCount = await countGeneratedFiles(projectDir);
 
-    spinner.succeed(chalk.green(`✅ UI generation completed!`));
-    console.log(chalk.green(`\n📊 Generation Summary:`));
-    console.log(chalk.gray(`  • Files created: `) + chalk.white(actualFileCount));
-    console.log(chalk.gray(`  • Time elapsed: `) + chalk.white(`${((Date.now() - startTime) / 1000).toFixed(1)}s`));
-    console.log(chalk.gray(`  • Output location: `) + chalk.white(projectDir));
+    spinner.succeed(chalk.green('✅ UI generation completed!'));
+    console.log(chalk.green('\n📊 Generation Summary:'));
+    console.log(chalk.gray('  • Files created: ') + chalk.white(actualFileCount));
+    console.log(chalk.gray('  • Time elapsed: ') + chalk.white(`${((Date.now() - startTime) / 1000).toFixed(1)}s`));
+    console.log(chalk.gray('  • Output location: ') + chalk.white(projectDir));
 
     // Output final message from agent
     if (lastTextMessage) {
@@ -338,7 +338,7 @@ export async function generateUI(
 }
 /* eslint-enable no-console */
 
-/* eslint-disable no-console */
+
 /**
  * Count all files (recursively) in the generated project directory
  */
@@ -367,7 +367,7 @@ async function countGeneratedFiles(projectDir: string): Promise<number> {
   await countInDirectory(projectDir);
   return count;
 }
-/* eslint-enable no-console */
+
 
 /* eslint-disable no-console */
 async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
