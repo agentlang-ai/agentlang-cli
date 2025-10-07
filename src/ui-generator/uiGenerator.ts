@@ -130,8 +130,18 @@ export async function generateUI(
     if (mode === 'fresh') {
       spinner.text = `Creating new project: ${projectDir}`;
       console.log(''); // Empty line for spacing
-      console.log(chalk.cyan('  📦 Mode: Fresh generation'));
-    } else if (mode === 'incremental') {
+
+      // Warn if directory exists with files but we're in fresh mode (shouldn't happen)
+      if (projectAnalysis.exists && projectAnalysis.fileCount > 0) {
+        console.log(chalk.yellow(`  ⚠️  Warning: Directory exists with ${projectAnalysis.fileCount} files`));
+        console.log(chalk.yellow('  ⚠️  Switching to incremental mode to preserve existing files'));
+        mode = 'incremental';
+      } else {
+        console.log(chalk.cyan('  📦 Mode: Fresh generation'));
+      }
+    }
+
+    if (mode === 'incremental') {
       spinner.succeed('Project analyzed');
       console.log(''); // Empty line for spacing
       console.log(chalk.cyan('  🔄 Mode: Incremental update'));
@@ -575,9 +585,18 @@ function createGenerationPrompt(
 # MODE: Fresh Generation
 
 You are creating a NEW React + TypeScript + Vite application from scratch.
-- Generate ALL required files for a complete working application
-- Follow the template structure exactly as specified below
-${userMessage ? `\n# ADDITIONAL REQUIREMENT\n\nAfter generating the complete base application, also implement this:\n${userMessage}` : ''}`;
+
+⚠️ CRITICAL: You MUST generate files. Do not skip file generation thinking the task is unclear.
+
+Your task:
+1. Generate ALL required files for a complete working application
+2. Follow the template structure exactly as specified below
+3. Use the Write tool to create each file with its full content
+4. Do not stop until all files are created
+
+${userMessage ? `\n# ADDITIONAL REQUIREMENT\n\nAfter generating the complete base application, also implement this:\n${userMessage}` : ''}
+
+IMPORTANT: Start creating files immediately. This is a fresh project with no existing files.`;
   } else if (mode === 'incremental') {
     modeInstructions = `
 # MODE: Incremental Update
@@ -585,20 +604,22 @@ ${userMessage ? `\n# ADDITIONAL REQUIREMENT\n\nAfter generating the complete bas
 An existing UI project was found at: ${projectDir}
 Existing project has ${projectAnalysis.fileCount} files.
 
+⚠️ CRITICAL: You MUST take action. Do not complete without making changes.
+
 Your task:
-1. Use Read tool to examine the existing project structure
+1. Use Read tool to examine the existing project structure (start with package.json)
 2. Compare it with the UI spec below
 3. Identify MISSING files or features based on the spec
-4. Add ONLY the missing files/features
+4. Add ONLY the missing files/features using Write tool
 5. If files already exist and are complete, DO NOT regenerate them
-6. Update existing files ONLY if they're missing required features from the spec
+6. Update existing files ONLY if they're missing required features from the spec (use Edit tool)
 
 Existing files (showing first 20):
 \`\`\`
 ${projectAnalysis.structure}
 \`\`\`
 
-Be conservative - preserve existing code when possible, only add what's missing.`;
+IMPORTANT: Read the existing files first, then make necessary additions/updates. Do not complete without doing any work.`;
   } else if (mode === 'update') {
     // Check if user message is vague/generic
     const vagueKeywords = ['fix', 'make sure', 'properly', 'work', 'working', 'issue', 'problem', 'error'];
