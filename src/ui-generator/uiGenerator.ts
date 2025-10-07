@@ -126,17 +126,22 @@ export async function generateUI(
       }
     }
 
-    // Display mode info
+    // Display mode info on separate line
     if (mode === 'fresh') {
       spinner.text = `Creating new project: ${projectDir}`;
+      console.log(''); // Empty line for spacing
       console.log(chalk.cyan('  📦 Mode: Fresh generation'));
     } else if (mode === 'incremental') {
-      spinner.succeed(chalk.cyan('  🔄 Mode: Incremental update'));
+      spinner.succeed('Project analyzed');
+      console.log(''); // Empty line for spacing
+      console.log(chalk.cyan('  🔄 Mode: Incremental update'));
       console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
       console.log(chalk.gray('  📝 Will add missing files based on spec'));
       spinner.start('Preparing incremental update...');
     } else if (mode === 'update') {
-      spinner.succeed(chalk.cyan('  ✏️  Mode: User-directed update'));
+      spinner.succeed('Project analyzed');
+      console.log(''); // Empty line for spacing
+      console.log(chalk.cyan('  ✏️  Mode: User-directed update'));
       console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
       console.log(chalk.gray(`  💬 User message: "${userMessage}"`));
       spinner.start('Preparing update...');
@@ -255,11 +260,37 @@ export async function generateUI(
       },
     });
 
+    // Helper function to count files in real-time
+    const countCurrentFiles = async (): Promise<number> => {
+      try {
+        let count = 0;
+        const scan = async (dir: string): Promise<void> => {
+          const entries = await fs.readdir(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (['node_modules', '.git', 'dist', 'build'].includes(entry.name)) continue;
+            if (entry.isDirectory()) {
+              await scan(path.join(dir, entry.name));
+            } else {
+              count++;
+            }
+          }
+        };
+        await scan(projectDir);
+        return count;
+      } catch {
+        return 0;
+      }
+    };
+
     // Process messages from the agent
     let toolCallCount = 0;
     let lastProgressUpdate = Date.now();
     let currentThinking = '';
+    let currentTool = '';
+    let cachedFileCount = 0;
+    let lastFileCountUpdate = Date.now();
     const PROGRESS_UPDATE_INTERVAL = 10000; // Update every 10 seconds
+    const FILE_COUNT_UPDATE_INTERVAL = 2000; // Update file count every 2 seconds
 
     for await (const message of session) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -281,13 +312,26 @@ export async function generateUI(
               }
             } else if (block.type === 'tool_use') {
               toolCallCount++;
+              // Extract tool name
+              const toolName = block.name;
+              currentTool = toolName;
             }
           }
         }
 
-        // Update spinner with clean progress info including thinking
-        const fileCount = filesCreated.length;
-        let spinnerText = chalk.cyan(`Generating... ${fileCount} files • ${elapsed}s`);
+        // Update file count periodically (not on every message to avoid slowdown)
+        if (now - lastFileCountUpdate > FILE_COUNT_UPDATE_INTERVAL) {
+          cachedFileCount = await countCurrentFiles();
+          lastFileCountUpdate = now;
+        }
+
+        // Update spinner with clean progress info
+        let spinnerText = chalk.cyan(`Generating... ${cachedFileCount} files • ${elapsed}s`);
+
+        // Show current tool being used
+        if (currentTool) {
+          spinnerText += chalk.blue(` • Tool: ${currentTool}`);
+        }
 
         // Show current thinking or last file created
         if (currentThinking) {
@@ -299,10 +343,12 @@ export async function generateUI(
         spinner.text = spinnerText;
 
         // Show periodic progress updates (every 10 seconds)
-        if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL && fileCount > 0) {
+        if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL && cachedFileCount > 0) {
           spinner.stop();
           console.log(
-            chalk.gray(`  📊 Progress: ${fileCount} files created, ${toolCallCount} operations, ${elapsed}s elapsed`),
+            chalk.gray(
+              `  📊 Progress: ${cachedFileCount} files created, ${toolCallCount} operations, ${elapsed}s elapsed`,
+            ),
           );
           spinner.start(spinnerText);
           lastProgressUpdate = now;
