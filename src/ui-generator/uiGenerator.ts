@@ -60,7 +60,7 @@ async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalys
         }
 
         if (entry.isDirectory()) {
-          await scanDirectory(fullPath, `${prefix  }  `);
+          await scanDirectory(fullPath, `${prefix}  `);
         }
       }
     }
@@ -144,8 +144,11 @@ export async function generateUI(
 
     await fs.ensureDir(projectDir);
 
-    // Track generated files for MCP tool (though agent will likely use Write tool)
+    // Track generated files and operations
     const generatedFiles: string[] = [];
+    const filesCreated: string[] = [];
+    const directoriesCreated: string[] = [];
+    let lastFileCreated = '';
 
     // Define tools for the agent using the correct API
     const writeFile = tool(
@@ -164,9 +167,10 @@ export async function generateUI(
         // Write the file
         await fs.writeFile(fullPath, args.content, 'utf-8');
 
+        // Track file creation
         generatedFiles.push(args.file_path);
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(chalk.green(`  ✓ [${elapsed}s] Created: ${args.file_path}`));
+        filesCreated.push(args.file_path);
+        lastFileCreated = args.file_path;
 
         return {
           content: [
@@ -188,8 +192,10 @@ export async function generateUI(
       async args => {
         const fullPath = path.join(projectDir, args.dir_path);
         await fs.ensureDir(fullPath);
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-        console.log(chalk.blue(`  📁 [${elapsed}s] Created directory: ${args.dir_path}`));
+
+        // Track silently
+        directoriesCreated.push(args.dir_path);
+
         return {
           content: [
             {
@@ -219,11 +225,6 @@ export async function generateUI(
       tools: [writeFile, createDirectory, listFiles],
     });
 
-    console.log(chalk.gray('\n  📋 Agent Configuration:'));
-    console.log(chalk.gray('    • Working directory: ') + chalk.white(projectDir));
-    console.log(chalk.gray('    • Tool permissions: ') + chalk.green('Full access'));
-    console.log(chalk.gray('    • Available tools: Write, Read, Edit, Bash, MCP tools'));
-
     // Create the generation prompt
     const prompt = createGenerationPrompt(uiSpec, projectDir, mode, projectAnalysis, userMessage);
 
@@ -233,10 +234,10 @@ export async function generateUI(
     // Change working directory to projectDir so Write tool creates files in the right place
     const originalCwd = process.cwd();
     process.chdir(projectDir);
-    console.log(chalk.gray(`    • Changed working directory to: ${projectDir}\n`));
 
-    spinner.text = 'Starting Claude Agent...';
-    console.log(chalk.cyan('🤖 Starting generation...\n'));
+    // Start clean generation
+    console.log('');
+    spinner.start(chalk.cyan('Starting agent...'));
 
     // Query Claude with our MCP server
     const session = query({
@@ -255,31 +256,56 @@ export async function generateUI(
     });
 
     // Process messages from the agent
-    let lastTextMessage = '';
     let toolCallCount = 0;
+    let lastProgressUpdate = Date.now();
+    let currentThinking = '';
+    const PROGRESS_UPDATE_INTERVAL = 10000; // Update every 10 seconds
 
     for await (const message of session) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const now = Date.now();
 
       if (message.type === 'assistant') {
-        // Extract text content from assistant message
+        // Extract text content and tool calls from assistant message
         const content = message.message.content;
         if (Array.isArray(content)) {
           for (const block of content) {
             if (block.type === 'text') {
-              lastTextMessage = block.text;
-              // Show thinking/progress messages
-              if (lastTextMessage.trim()) {
-                const preview = lastTextMessage.slice(0, 80).replace(/\n/g, ' ');
-                console.log(chalk.gray(`  💭 [${elapsed}s] ${preview}${lastTextMessage.length > 80 ? '...' : ''}`));
+              // Extract thinking message
+              const text = block.text;
+              if (text.trim()) {
+                // Clean up the text: take first sentence or first 60 chars
+                const firstSentence = text.split(/[.!?]\s/)[0];
+                const cleaned = firstSentence.replace(/\n/g, ' ').slice(0, 60);
+                currentThinking = cleaned;
               }
             } else if (block.type === 'tool_use') {
               toolCallCount++;
-              const toolName = block.name;
-              console.log(chalk.blue(`  🔧 [${elapsed}s] Using tool: ${toolName}`));
-              spinner.text = `[${elapsed}s] Agent working... (${toolCallCount} tool calls)`;
             }
           }
+        }
+
+        // Update spinner with clean progress info including thinking
+        const fileCount = filesCreated.length;
+        let spinnerText = chalk.cyan(`Generating... ${fileCount} files • ${elapsed}s`);
+
+        // Show current thinking or last file created
+        if (currentThinking) {
+          spinnerText += chalk.gray(` • ${currentThinking}${currentThinking.length >= 60 ? '...' : ''}`);
+        } else if (lastFileCreated) {
+          spinnerText += chalk.gray(` • ${lastFileCreated}`);
+        }
+
+        spinner.text = spinnerText;
+
+        // Show periodic progress updates (every 10 seconds)
+        if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL && fileCount > 0) {
+          spinner.stop();
+          console.log(
+            chalk.gray(`  📊 Progress: ${fileCount} files created, ${toolCallCount} operations, ${elapsed}s elapsed`),
+          );
+          spinner.start(spinnerText);
+          lastProgressUpdate = now;
         }
       } else if (message.type === 'result') {
         // Final result
@@ -290,7 +316,7 @@ export async function generateUI(
           console.log(chalk.green('\n✅ Agent completed successfully'));
           console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
           console.log(chalk.gray(`  🔄 Turns: ${message.num_turns}`));
-          console.log(chalk.gray(`  🔧 Tool calls: ${toolCallCount}`));
+          console.log(chalk.gray(`  🔧 Operations: ${toolCallCount}`));
           console.log(chalk.gray(`  💰 Cost: $${message.total_cost_usd.toFixed(4)}`));
         } else {
           console.log(chalk.yellow(`\n⚠️  Agent finished with status: ${message.subtype}`));
@@ -305,19 +331,21 @@ export async function generateUI(
     // Count actual files generated in the ui/ directory
     const actualFileCount = await countGeneratedFiles(projectDir);
 
-    spinner.succeed(chalk.green('✅ UI generation completed!'));
-    console.log(chalk.green('\n📊 Generation Summary:'));
+    console.log(chalk.green('\n✅ Generation complete!'));
+    console.log(chalk.green('\n📊 Summary:'));
     console.log(chalk.gray('  • Files created: ') + chalk.white(actualFileCount));
     console.log(chalk.gray('  • Time elapsed: ') + chalk.white(`${((Date.now() - startTime) / 1000).toFixed(1)}s`));
     console.log(chalk.gray('  • Output location: ') + chalk.white(projectDir));
 
-    // Output final message from agent
-    if (lastTextMessage) {
-      console.log(chalk.cyan('\n💬 Agent message:'));
-      const messageLines = lastTextMessage.split('\n').slice(0, 5); // Show first 5 lines
-      messageLines.forEach(line => console.log(chalk.gray(`   ${line}`)));
-      if (lastTextMessage.split('\n').length > 5) {
-        console.log(chalk.gray('   ...'));
+    // Show sample files created (first 8)
+    if (filesCreated.length > 0) {
+      console.log(chalk.cyan('\n📄 Sample files created:'));
+      const sampleFiles = filesCreated.slice(0, 8);
+      sampleFiles.forEach(file => {
+        console.log(chalk.gray(`  • ${file}`));
+      });
+      if (filesCreated.length > 8) {
+        console.log(chalk.gray(`  ... and ${filesCreated.length - 8} more files`));
       }
     }
 
@@ -337,7 +365,6 @@ export async function generateUI(
   }
 }
 /* eslint-enable no-console */
-
 
 /**
  * Count all files (recursively) in the generated project directory
@@ -367,7 +394,6 @@ async function countGeneratedFiles(projectDir: string): Promise<number> {
   await countInDirectory(projectDir);
   return count;
 }
-
 
 /* eslint-disable no-console */
 async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
