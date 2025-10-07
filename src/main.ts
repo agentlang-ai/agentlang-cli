@@ -81,11 +81,12 @@ Examples:
 
   program
     .command('ui-gen')
-    .description('Generate a UI application from a ui-spec.json file (requires Anthropic API key)')
+    .description('Generate or update a UI application from a ui-spec.json file (requires Anthropic API key)')
     .argument('[spec-file]', 'Path to the ui-spec.json file (auto-detects if not provided)')
     .option('-d, --directory <dir>', 'Target directory (default: current directory)', '.')
     .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY env var)')
     .option('-p, --push', 'Commit and push changes to git repository', false)
+    .option('-m, --message <message>', 'User message for incremental updates (e.g., "Add dark mode toggle")')
     .addHelpText(
       'after',
       `
@@ -102,12 +103,24 @@ Spec File Auto-Detection:
   - spec.json
   - *.ui-spec.json (any file ending with .ui-spec.json)
 
+Incremental Updates:
+  If the ui/ directory already exists, the generator will intelligently update it:
+  - Adds missing files based on the spec
+  - Updates existing files if needed
+  - Preserves custom changes when possible
+
+  Use --message to provide specific update instructions:
+  - If ui/ exists: Updates based on your message
+  - If ui/ doesn't exist: Generates fresh, then applies your message
+
 Examples:
-  $ agent ui-gen                                 Auto-detect spec and generate UI
-  $ agent ui-gen -p                              Auto-detect spec, generate UI, and push to git
-  $ agent ui-gen ui-spec.json                    Generate UI from specific spec file
-  $ agent ui-gen -d ./my-app                     Generate UI in ./my-app/ui directory
-  $ agent ui-gen ui-spec.json -k sk-ant-...      Generate UI with specified API key`,
+  $ agent ui-gen                                           Auto-detect spec and generate UI
+  $ agent ui-gen -p                                        Generate UI and push to git
+  $ agent ui-gen -m "Add dark mode support"                Update existing UI with dark mode
+  $ agent ui-gen -m "Fix the login form validation"        Update specific feature
+  $ agent ui-gen ui-spec.json                              Generate from specific spec
+  $ agent ui-gen -d ./my-app                               Generate in ./my-app/ui directory
+  $ agent ui-gen ui-spec.json -k sk-ant-...                Generate with specified API key`,
     )
     .action(generateUICommand);
 
@@ -234,7 +247,7 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
 /* eslint-disable no-console */
 export const generateUICommand = async (
   specFile?: string,
-  options?: { directory?: string; apiKey?: string; push?: boolean },
+  options?: { directory?: string; apiKey?: string; push?: boolean; message?: string },
 ): Promise<void> => {
   try {
     console.log(chalk.blue('🚀 AgentLang UI Generator\n'));
@@ -272,8 +285,8 @@ export const generateUICommand = async (
     console.log(chalk.cyan(`📂 Target directory: ${absoluteTargetDir}`));
     console.log(chalk.cyan(`📦 Output will be created in: ${path.join(absoluteTargetDir, 'ui')}`));
 
-    // Generate the UI
-    await generateUI(uiSpec, absoluteTargetDir, apiKey, options?.push || false);
+    // Generate or update the UI
+    await generateUI(uiSpec, absoluteTargetDir, apiKey, options?.push || false, options?.message);
 
     console.log(chalk.green('\n✅ UI generation completed successfully!'));
   } catch (error) {

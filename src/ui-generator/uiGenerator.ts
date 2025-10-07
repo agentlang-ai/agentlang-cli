@@ -6,12 +6,94 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { UISpec } from './specLoader.js';
 
+interface ProjectAnalysis {
+  exists: boolean;
+  isEmpty: boolean;
+  fileCount: number;
+  hasPackageJson: boolean;
+  hasSourceFiles: boolean;
+  structure: string; // Tree-like structure of the project
+}
+
+/* eslint-disable no-console */
+/**
+ * Analyzes the existing UI directory to determine if it exists and what's in it
+ */
+async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalysis> {
+  const analysis: ProjectAnalysis = {
+    exists: false,
+    isEmpty: true,
+    fileCount: 0,
+    hasPackageJson: false,
+    hasSourceFiles: false,
+    structure: '',
+  };
+
+  try {
+    // Check if directory exists
+    if (!(await fs.pathExists(projectDir))) {
+      return analysis;
+    }
+
+    analysis.exists = true;
+
+    // Get all files in the directory (excluding node_modules, etc.)
+    const files: string[] = [];
+    async function scanDirectory(dir: string, prefix = ''): Promise<void> {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        // Skip common directories
+        if (['node_modules', '.git', 'dist', 'build', '.vscode'].includes(entry.name)) {
+          continue;
+        }
+
+        const fullPath = path.join(dir, entry.name);
+        const relativePath = path.relative(projectDir, fullPath);
+        files.push(relativePath);
+
+        if (entry.name === 'package.json') {
+          analysis.hasPackageJson = true;
+        }
+
+        if (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts') || entry.name.endsWith('.jsx')) {
+          analysis.hasSourceFiles = true;
+        }
+
+        if (entry.isDirectory()) {
+          await scanDirectory(fullPath, prefix + '  ');
+        }
+      }
+    }
+
+    await scanDirectory(projectDir);
+
+    analysis.fileCount = files.length;
+    analysis.isEmpty = files.length === 0;
+
+    // Generate structure string (show first 20 files)
+    if (files.length > 0) {
+      const displayFiles = files.slice(0, 20).sort();
+      analysis.structure = displayFiles.join('\n');
+      if (files.length > 20) {
+        analysis.structure += `\n... and ${files.length - 20} more files`;
+      }
+    }
+
+    return analysis;
+  } catch (error) {
+    console.log(chalk.yellow(`  ⚠️  Error analyzing directory: ${error instanceof Error ? error.message : String(error)}`));
+    return analysis;
+  }
+}
+/* eslint-enable no-console */
+
 /* eslint-disable no-console */
 export async function generateUI(
   uiSpec: UISpec,
   outputBaseDir: string,
   apiKey: string,
   shouldPush = false,
+  userMessage?: string,
 ): Promise<void> {
   const spinner = ora('Initializing UI generation...').start();
   const startTime = Date.now();
@@ -20,7 +102,44 @@ export async function generateUI(
     // Create output directory as 'ui' in the specified base directory
     const projectDir = path.join(outputBaseDir, 'ui');
 
-    spinner.text = `Creating project directory: ${projectDir}`;
+    // Analyze existing project
+    spinner.text = 'Analyzing existing project...';
+    const projectAnalysis = await analyzeExistingProject(projectDir);
+
+    // Determine the generation mode
+    let mode: 'fresh' | 'update' | 'incremental';
+    if (userMessage) {
+      // User provided a message
+      if (projectAnalysis.exists && !projectAnalysis.isEmpty) {
+        mode = 'update'; // Update existing project based on user message
+      } else {
+        mode = 'fresh'; // Generate fresh, then apply user message
+      }
+    } else {
+      // No user message
+      if (projectAnalysis.exists && !projectAnalysis.isEmpty) {
+        mode = 'incremental'; // Add missing files based on spec
+      } else {
+        mode = 'fresh'; // Fresh generation
+      }
+    }
+
+    // Display mode info
+    if (mode === 'fresh') {
+      spinner.text = `Creating new project: ${projectDir}`;
+      console.log(chalk.cyan('  📦 Mode: Fresh generation'));
+    } else if (mode === 'incremental') {
+      spinner.succeed(chalk.cyan('  🔄 Mode: Incremental update'));
+      console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
+      console.log(chalk.gray(`  📝 Will add missing files based on spec`));
+      spinner.start('Preparing incremental update...');
+    } else if (mode === 'update') {
+      spinner.succeed(chalk.cyan('  ✏️  Mode: User-directed update'));
+      console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
+      console.log(chalk.gray(`  💬 User message: "${userMessage}"`));
+      spinner.start('Preparing update...');
+    }
+
     await fs.ensureDir(projectDir);
 
     // Track generated files for MCP tool (though agent will likely use Write tool)
@@ -104,7 +223,7 @@ export async function generateUI(
     console.log(chalk.gray('    • Available tools: Write, Read, Edit, Bash, MCP tools'));
 
     // Create the generation prompt
-    const prompt = createGenerationPrompt(uiSpec, projectDir);
+    const prompt = createGenerationPrompt(uiSpec, projectDir, mode, projectAnalysis, userMessage);
 
     // Configure SDK with API key
     process.env.ANTHROPIC_API_KEY = apiKey;
@@ -337,11 +456,75 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
 }
 /* eslint-enable no-console */
 
-function createGenerationPrompt(uiSpec: UISpec, projectDir: string): string {
+function createGenerationPrompt(
+  uiSpec: UISpec,
+  projectDir: string,
+  mode: 'fresh' | 'update' | 'incremental',
+  projectAnalysis: ProjectAnalysis,
+  userMessage?: string,
+): string {
   const referenceAppPath =
     '/home/prertik/Developer/fractl/ui-generator-from-spec/generated-apps/modern-car-dealership-management';
 
-  return `You are a UI generation agent. Your task is to generate a complete React + TypeScript + Vite web application based on a UI specification for an Agentlang backend system.
+  // Mode-specific instructions
+  let modeInstructions = '';
+  if (mode === 'fresh') {
+    modeInstructions = `
+# MODE: Fresh Generation
+
+You are creating a NEW React + TypeScript + Vite application from scratch.
+- Generate ALL required files for a complete working application
+- Follow the template structure exactly as specified below
+${userMessage ? `\n# ADDITIONAL REQUIREMENT\n\nAfter generating the complete base application, also implement this:\n${userMessage}` : ''}`;
+  } else if (mode === 'incremental') {
+    modeInstructions = `
+# MODE: Incremental Update
+
+An existing UI project was found at: ${projectDir}
+Existing project has ${projectAnalysis.fileCount} files.
+
+Your task:
+1. Use Read tool to examine the existing project structure
+2. Compare it with the UI spec below
+3. Identify MISSING files or features based on the spec
+4. Add ONLY the missing files/features
+5. If files already exist and are complete, DO NOT regenerate them
+6. Update existing files ONLY if they're missing required features from the spec
+
+Existing files (showing first 20):
+\`\`\`
+${projectAnalysis.structure}
+\`\`\`
+
+Be conservative - preserve existing code when possible, only add what's missing.`;
+  } else if (mode === 'update') {
+    modeInstructions = `
+# MODE: User-Directed Update
+
+An existing UI project was found at: ${projectDir}
+Existing project has ${projectAnalysis.fileCount} files.
+
+# USER REQUEST:
+${userMessage}
+
+Your task:
+1. Use Read tool to examine relevant existing files
+2. Understand the user's request: "${userMessage}"
+3. Make TARGETED changes to implement the request
+4. Modify existing files as needed using Edit tool
+5. Add new files only if necessary
+6. Test that your changes work with the existing codebase
+
+Existing files (showing first 20):
+\`\`\`
+${projectAnalysis.structure}
+\`\`\`
+
+Focus on the user's specific request. Be surgical - only change what's necessary.`;
+  }
+
+  return `You are a UI generation agent. Your task is to work with a React + TypeScript + Vite web application based on a UI specification for an Agentlang backend system.
+${modeInstructions}
 
 ⚠️ CRITICAL INSTRUCTIONS:
 - You have FULL ACCESS to all tools: Write, Read, Edit, Bash, and MCP tools
@@ -349,8 +532,8 @@ function createGenerationPrompt(uiSpec: UISpec, projectDir: string): string {
 - When using Write tool, use RELATIVE paths (e.g., "src/App.tsx", "package.json")
 - All files will be created in the current working directory (${projectDir})
 - You have full permission - do not ask for approval
-- Generate a complete, working application
 - Use the Write tool for creating files (preferred) or the MCP write_file tool
+${mode !== 'fresh' ? '- Use Read tool to examine existing files before making changes\n- Use Edit tool to modify existing files' : ''}
 
 # UI Specification
 
