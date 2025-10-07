@@ -144,6 +144,14 @@ export async function generateUI(
       console.log(chalk.cyan('  ✏️  Mode: User-directed update'));
       console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
       console.log(chalk.gray(`  💬 User message: "${userMessage}"`));
+
+      // Check if request is vague
+      const vagueKeywords = ['fix', 'make sure', 'properly', 'work', 'working', 'issue', 'problem', 'error'];
+      const isVague = vagueKeywords.some(keyword => userMessage?.toLowerCase().includes(keyword));
+      if (isVague) {
+        console.log(chalk.yellow('  ⚠️  Note: Request is general - agent will first diagnose issues'));
+      }
+
       spinner.start('Preparing update...');
     }
 
@@ -289,6 +297,8 @@ export async function generateUI(
     let currentTool = '';
     let cachedFileCount = 0;
     let lastFileCountUpdate = Date.now();
+    let sessionSucceeded = false;
+    let sessionError: string | undefined;
     const PROGRESS_UPDATE_INTERVAL = 10000; // Update every 10 seconds
     const FILE_COUNT_UPDATE_INTERVAL = 2000; // Update file count every 2 seconds
 
@@ -359,16 +369,36 @@ export async function generateUI(
         const finalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
         if (message.subtype === 'success') {
+          sessionSucceeded = true;
           console.log(chalk.green('\n✅ Agent completed successfully'));
           console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
           console.log(chalk.gray(`  🔄 Turns: ${message.num_turns}`));
           console.log(chalk.gray(`  🔧 Operations: ${toolCallCount}`));
           console.log(chalk.gray(`  💰 Cost: $${message.total_cost_usd.toFixed(4)}`));
         } else {
+          sessionSucceeded = false;
+          sessionError = message.subtype;
           console.log(chalk.yellow(`\n⚠️  Agent finished with status: ${message.subtype}`));
           console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
+
+          // Check if agent did no work
+          if (toolCallCount === 0) {
+            console.log(chalk.yellow('\n⚠️  Warning: Agent completed but performed no operations.'));
+            console.log(chalk.gray('  This might indicate:'));
+            console.log(chalk.gray('  • The task description was unclear or too vague'));
+            console.log(chalk.gray('  • The agent thought no changes were needed'));
+            console.log(chalk.gray('  • An error occurred before tools could be used'));
+          }
         }
       }
+    }
+
+    // Check if session failed
+    if (!sessionSucceeded) {
+      throw new Error(
+        `Agent session failed with status: ${sessionError || 'unknown'}. ` +
+          `The agent completed ${toolCallCount} operations before stopping.`,
+      );
     }
 
     // Restore original working directory
@@ -570,6 +600,10 @@ ${projectAnalysis.structure}
 
 Be conservative - preserve existing code when possible, only add what's missing.`;
   } else if (mode === 'update') {
+    // Check if user message is vague/generic
+    const vagueKeywords = ['fix', 'make sure', 'properly', 'work', 'working', 'issue', 'problem', 'error'];
+    const isVagueRequest = vagueKeywords.some(keyword => userMessage?.toLowerCase().includes(keyword));
+
     modeInstructions = `
 # MODE: User-Directed Update
 
@@ -580,19 +614,37 @@ Existing project has ${projectAnalysis.fileCount} files.
 ${userMessage}
 
 Your task:
-1. Use Read tool to examine relevant existing files
+1. Use Read tool to examine relevant existing files (start with package.json, key config files, and entry points)
 2. Understand the user's request: "${userMessage}"
+${
+  isVagueRequest
+    ? `
+3. IMPORTANT: The user's request is general/vague. First DIAGNOSE issues:
+   - Read package.json to check dependencies and scripts
+   - Read configuration files (vite.config.ts, tsconfig.json, .env)
+   - Read main entry point (src/main.tsx, src/App.tsx)
+   - Look for common issues: missing dependencies, incorrect imports, configuration errors
+   - Check if the project structure matches the UI spec
+   - Identify any incomplete features or broken components
+4. Once you've identified specific issues, FIX them:
+   - Add missing dependencies to package.json
+   - Fix incorrect imports or paths
+   - Complete incomplete features based on the UI spec
+   - Fix configuration issues
+   - Ensure all required files exist and are properly implemented`
+    : `
 3. Make TARGETED changes to implement the request
 4. Modify existing files as needed using Edit tool
 5. Add new files only if necessary
-6. Test that your changes work with the existing codebase
+6. Test that your changes work with the existing codebase`
+}
 
 Existing files (showing first 20):
 \`\`\`
 ${projectAnalysis.structure}
 \`\`\`
 
-Focus on the user's specific request. Be surgical - only change what's necessary.`;
+${isVagueRequest ? 'Start by reading and diagnosing, then fix the issues you find.' : "Focus on the user's specific request. Be surgical - only change what's necessary."}`;
   }
 
   return `You are a UI generation agent. Your task is to work with a React + TypeScript + Vite web application based on a UI specification for an Agentlang backend system.
