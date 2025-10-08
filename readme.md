@@ -7,6 +7,8 @@ entities, events, and relationships.
 
 ## Features
 
+- **Initialize Projects**: Quickly scaffold new AgentLang applications with the
+  proper project structure
 - **Run AgentLang Programs**: Execute AgentLang modules with full runtime
   support
 - **Interactive REPL**: Test and debug your code with a live REPL environment
@@ -28,7 +30,7 @@ entities, events, and relationships.
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- npm or yarn (But prefer pnpm)
 
 ### Install the CLI
 
@@ -48,7 +50,56 @@ After installation, you can use the `agent` command:
 
 The AgentLang CLI provides the following commands:
 
-### 1. Run AgentLang Programs
+### 1. Initialize a New Application
+
+Create a new AgentLang application with the necessary project structure:
+
+```bash
+agent init <appname>
+```
+
+**Description:**
+
+The `init` command creates a new AgentLang application with:
+
+- `package.json` with your app name and version 0.0.1
+- `config.al` for application configuration (empty object by default)
+- `src/core.al` with your application module declaration
+
+The command intelligently checks if the directory is already initialized by
+looking for existing `package.json` or any `.al` files (excluding `config.al`).
+If found, it will skip initialization and inform you.
+
+**Examples:**
+
+```bash
+# Initialize a new car dealership application
+agent init CarDealership
+
+# Initialize an e-commerce application
+agent init MyShop
+
+# Initialize with multiple words (use PascalCase)
+agent init InventoryManagement
+```
+
+**Output:**
+
+```
+🚀 Initializing Agentlang application: CarDealership
+
+✓ Created package.json
+✓ Created config.al
+✓ Created src/core.al
+
+✨ Successfully initialized Agentlang application!
+
+Next steps:
+  1. Add your application logic to src/core.al
+  2. Run your app with: agent run
+```
+
+### 2. Run AgentLang Programs
 
 Execute an AgentLang module with full runtime support:
 
@@ -67,7 +118,7 @@ agent run <file>
 agent run myapp.al
 ```
 
-### 2. Parse and Validate
+### 3. Parse and Validate
 
 Check the syntax and semantic correctness of your AgentLang code:
 
@@ -85,7 +136,7 @@ agent parseAndValidate <file>
 agent parseAndValidate myapp.al
 ```
 
-### 3. Generate API Documentation
+### 4. Generate API Documentation
 
 Generate OpenAPI/Swagger documentation from your AgentLang modules:
 
@@ -108,7 +159,7 @@ agent doc myapp.al -p ./docs/postman.json
 
 This will generate a `docs/openapi-docs.yml` file in your project directory.
 
-### 4. Interactive REPL
+### 5. Interactive REPL
 
 Start an interactive Read-Eval-Print Loop for testing and debugging AgentLang
 code:
@@ -138,7 +189,7 @@ The REPL provides an interactive environment where you can:
 - Hot reload with `--watch` flag for rapid development
 - Access all loaded entities and functions
 
-### 5. Generate UI from Specification
+### 6. Generate UI from Specification
 
 Generate a complete React + TypeScript + Vite application from a UI
 specification using Claude AI:
@@ -447,21 +498,52 @@ agent repl example/usermanagement --watch
 ### Full Development Workflow
 
 ```bash
-# 1. Create your AgentLang application
-agent run ./my-app
+# 1. Initialize a new AgentLang application
+mkdir my-project && cd my-project
+agent init MyApp
 
-# 2. Generate API documentation
-agent doc ./my-app -h ./docs/api.html
+# 2. Add your application logic to src/core.al
+# ... edit src/core.al ...
 
-# 3. Generate UI from specification
+# 3. Run your AgentLang application
+agent run
+
+# 4. Test interactively with REPL
+agent repl --watch
+
+# 5. Generate API documentation
+agent doc -h ./docs/api.html
+
+# 6. Generate UI from specification
 export ANTHROPIC_API_KEY=sk-ant-...
 agent ui-gen ui-spec.json -p
 
-# 4. Navigate to generated UI and test
+# 7. Navigate to generated UI and test
 cd ui
 npm install
 npm run dev
 
-# 5. Make iterative updates to UI
+# 8. Make iterative updates to UI
 agent ui-gen -m "Add export to CSV feature"
+```
+
+### Quick Start Example
+
+```bash
+# Initialize a new project
+mkdir car-dealership && cd car-dealership
+agent init CarDealership
+
+# Your project structure is now:
+# car-dealership/
+# ├── package.json
+# ├── config.al
+# └── src/
+#     └── core.al
+
+# Start building your application in src/core.al
+agent repl --watch
+
+# Run your application
+agent run
 ```
