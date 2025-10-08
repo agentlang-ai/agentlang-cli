@@ -1,6 +1,6 @@
 {
   "name": "agentlangcli",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "A command-line interface tool for AgentLang",
   "main": "out/main.js",
   "type": "module",
@@ -53,7 +53,7 @@
     "@anthropic-ai/sdk": "^0.65.0",
     "@asteasolutions/zod-to-openapi": "7.3.4",
     "@redocly/cli": "^2.0.2",
-    "agentlang": "^0.2.1",
+    "agentlang": "^0.2.4",
     "chalk": "^5.4.1",
     "chokidar": "^4.0.3",
     "commander": "^14.0.0",
