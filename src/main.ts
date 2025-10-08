@@ -29,98 +29,280 @@ import { registerOpenApiModule } from 'agentlang/out/runtime/openapi.js';
 import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js';
 import { runInitFunctions } from 'agentlang/out/runtime/util.js';
 import { startServer } from 'agentlang/out/api/http.js';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Read package.json for version
+let packageVersion = '0.0.0';
+try {
+  const packagePath = join(__dirname, '..', 'package.json');
+  const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8')) as { version?: string };
+  packageVersion = packageJson.version || '0.0.0';
+} catch {
+  // Fallback to a default version
+}
 
 export interface GenerateOptions {
   destination?: string;
 }
 
+// Custom help formatter
+function customHelp(): string {
+  const gradient = [chalk.hex('#00D9FF'), chalk.hex('#00C4E6'), chalk.hex('#00AFCC'), chalk.hex('#009AB3')];
+
+  const header = `
+  ${gradient[0]('█████╗')} ${gradient[1]('  ██████╗')} ${gradient[2]('███████╗')}${gradient[3]('███╗   ██╗')}${gradient[0]('████████╗')}
+  ${gradient[0]('██╔══██╗')}${gradient[1]('██╔════╝')} ${gradient[2]('██╔════╝')}${gradient[3]('████╗  ██║')}${gradient[0]('╚══██╔══╝')}
+  ${gradient[0]('███████║')}${gradient[1]('██║  ███╗')}${gradient[2]('█████╗')}  ${gradient[3]('██╔██╗ ██║')}${gradient[0]('   ██║')}
+  ${gradient[0]('██╔══██║')}${gradient[1]('██║   ██║')}${gradient[2]('██╔══╝')}  ${gradient[3]('██║╚██╗██║')}${gradient[0]('   ██║')}
+  ${gradient[0]('██║  ██║')}${gradient[1]('╚██████╔╝')}${gradient[2]('███████╗')}${gradient[3]('██║ ╚████║')}${gradient[0]('   ██║')}
+  ${gradient[0]('╚═╝  ╚═╝')} ${gradient[1]('╚═════╝')} ${gradient[2]('╚══════╝')}${gradient[3]('╚═╝  ╚═══╝')}${gradient[0]('   ╚═╝')}
+
+  ${chalk.bold.white('Agentlang CLI')} ${chalk.dim(`v${  packageVersion}`)}
+  ${chalk.dim('CLI for all things Agentlang')}
+`;
+
+  const usage = `
+  ${chalk.bold.white('USAGE')}
+    ${chalk.dim('$')} ${chalk.cyan('agent')} ${chalk.yellow('<command>')} ${chalk.dim('[options]')}
+
+  ${chalk.bold.white('COMMANDS')}
+
+    ${chalk.cyan.bold('run')} ${chalk.dim('[file]')}
+      ${chalk.white('▸')} Load and execute an Agentlang module
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-c, --config')} ${chalk.dim('<file>')}    Configuration file path
+
+    ${chalk.cyan.bold('repl')} ${chalk.dim('[directory]')}
+      ${chalk.white('▸')} Start interactive REPL environment
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-w, --watch')}           Watch files and reload automatically
+        ${chalk.cyan('-q, --quiet')}           Suppress startup messages
+
+    ${chalk.cyan.bold('doc')} ${chalk.dim('[file]')}
+      ${chalk.white('▸')} Generate API documentation (Swagger/OpenAPI)
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-h, --outputHtml')} ${chalk.dim('<file>')}     Generate HTML documentation
+        ${chalk.cyan('-p, --outputPostman')} ${chalk.dim('<file>')}  Generate Postman collection
+
+    ${chalk.cyan.bold('parseAndValidate')} ${chalk.dim('<file>')}
+      ${chalk.white('▸')} Parse and validate Agentlang source code
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-d, --destination')} ${chalk.dim('<dir>')}  Output directory
+
+    ${chalk.cyan.bold('ui-gen')} ${chalk.dim('[spec-file]')}
+      ${chalk.white('▸')} Generate UI from specification ${chalk.dim('(requires Anthropic API key)')}
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-d, --directory')} ${chalk.dim('<dir>')}   Target directory
+        ${chalk.cyan('-k, --api-key')} ${chalk.dim('<key>')}      Anthropic API key
+        ${chalk.cyan('-p, --push')}               Commit and push to git
+        ${chalk.cyan('-m, --message')} ${chalk.dim('<text>')}     Update instructions
+
+  ${chalk.bold.white('GLOBAL OPTIONS')}
+    ${chalk.cyan('-h, --help')}       Display help information
+    ${chalk.cyan('-V, --version')}    Display version number
+
+  ${chalk.bold.white('LEARN MORE')}
+    ${chalk.white('Docs')}      ${chalk.cyan('https://github.com/agentlang/agentlang-cli')}
+    ${chalk.white('Issues')}    ${chalk.cyan('https://github.com/agentlang/agentlang-cli/issues')}
+
+  ${chalk.dim('Run')} ${chalk.cyan('agent <command> --help')} ${chalk.dim('for detailed command information')}
+`;
+
+  return header + usage;
+}
+
 export default function (): void {
   const program = new Command();
+
+  // Configure program
+  program
+    .name('agent')
+    .description(chalk.gray('CLI for all things Agentlang'))
+    .version(packageVersion, '-V, --version', 'Display version number')
+    .helpOption('-h, --help', 'Show help information')
+    .helpCommand(false)
+    .configureHelp({
+      sortSubcommands: true,
+      sortOptions: true,
+    });
+
+  // Override help display
+  program.helpInformation = customHelp;
 
   const fileExtensions = AgentlangLanguageMetaData.fileExtensions.join(', ');
 
   program
     .command('run')
-    .argument('[file]', `source file (possible file extensions: ${fileExtensions})`, '.')
-    .option('-c, --config <config>', 'configuration file')
-    .description('Loads and runs an agentlang module')
-    .action(runModule);
-
-  program
-    .command('parseAndValidate')
-    .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
-    .option('-d, --destination <dir>', 'destination directory of generating')
-    .description('Parses and validates an Agentlang module')
-    .action(parseAndValidate);
-
-  program
-    .command('doc')
-    .argument('[file]', `source file (possible file extensions: ${fileExtensions})`, '.')
-    .option('-h, --outputHtml <outputHtml>', 'Generate HTML documentation')
-    .option('-p, --outputPostman <outputPostman>', 'Generate Postman collection')
-    .description('Generate swagger documentation')
-    .action(generateDoc);
-
-  program
-    .command('repl')
-    .argument('[directory]', 'AgentLang application directory (defaults to current directory)')
-    .option('-w, --watch', 'Watch for file changes and reload automatically')
-    .option('-q, --quiet', 'Suppress startup messages')
-    .description('Start an interactive AgentLang REPL (Read-Eval-Print Loop)')
+    .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
+    .option('-c, --config <config>', 'Path to configuration file')
+    .description('Load and execute an Agentlang module')
     .addHelpText(
       'after',
       `
-Examples:
-  $ agent repl                           Start REPL in current directory
-  $ agent repl ./my-app                  Start REPL and load app from ./my-app directory
-  $ agent repl ~/Developer/fractl/erp    Start REPL and load app from directory
-  $ agent repl . --watch                 Start REPL with file watching
-  $ agent repl --quiet                   Start REPL in quiet mode`,
+${chalk.bold.white('DESCRIPTION')}
+  Loads and executes an Agentlang module, starting the runtime environment
+  and initializing all configured services, databases, and integrations.
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Run module in current directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent run')}
+
+  ${chalk.dim('Run specific module file')}
+  ${chalk.dim('$')} ${chalk.cyan('agent run ./my-app/main.al')}
+
+  ${chalk.dim('Run with custom configuration')}
+  ${chalk.dim('$')} ${chalk.cyan('agent run ./my-app -c config.json')}
+
+  ${chalk.dim('Run module from specific directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent run ~/projects/erp-system')}
+`,
+    )
+    .action(runModule);
+
+  program
+    .command('repl')
+    .argument('[directory]', 'Application directory (defaults to current)', '.')
+    .option('-w, --watch', 'Watch for file changes and reload automatically')
+    .option('-q, --quiet', 'Suppress startup messages')
+    .description('Start interactive REPL environment')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Starts an interactive Read-Eval-Print Loop (REPL) environment for
+  Agentlang, allowing you to execute code interactively, test functions,
+  and explore your application in real-time.
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Start REPL in current directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent repl')}
+
+  ${chalk.dim('Start REPL in specific directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent repl ./my-app')}
+
+  ${chalk.dim('Start with file watching enabled')}
+  ${chalk.dim('$')} ${chalk.cyan('agent repl --watch')}
+
+  ${chalk.dim('Start in quiet mode (no startup messages)')}
+  ${chalk.dim('$')} ${chalk.cyan('agent repl --quiet')}
+
+  ${chalk.dim('Combine options for development workflow')}
+  ${chalk.dim('$')} ${chalk.cyan('agent repl . --watch')}
+`,
     )
     .action(replCommand);
 
   program
-    .command('ui-gen')
-    .description('Generate or update a UI application from a ui-spec.json file (requires Anthropic API key)')
-    .argument('[spec-file]', 'Path to the ui-spec.json file (auto-detects if not provided)')
-    .option('-d, --directory <dir>', 'Target directory (default: current directory)', '.')
-    .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY env var)')
-    .option('-p, --push', 'Commit and push changes to git repository', false)
-    .option('-m, --message <message>', 'User message for incremental updates (e.g., "Add dark mode toggle")')
+    .command('doc')
+    .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
+    .option('-h, --outputHtml <outputHtml>', 'Generate HTML documentation')
+    .option('-p, --outputPostman <outputPostman>', 'Generate Postman collection')
+    .description('Generate API documentation (Swagger/OpenAPI)')
     .addHelpText(
       'after',
       `
-API Key Requirement:
-  This command requires an Anthropic API key to function. You can provide it in two ways:
-  1. Set the ANTHROPIC_API_KEY environment variable:
-     $ export ANTHROPIC_API_KEY=sk-ant-...
-  2. Use the --api-key flag:
-     $ agent ui-gen --api-key sk-ant-...
+${chalk.bold.white('DESCRIPTION')}
+  Generates comprehensive API documentation from your Agentlang module
+  in Swagger/OpenAPI format. Supports both HTML and Postman collection
+  output formats for easy API exploration and testing.
 
-Spec File Auto-Detection:
-  If no spec file path is provided, the command will search for spec files in this order:
-  - ui-spec.json
-  - spec.json
-  - *.ui-spec.json (any file ending with .ui-spec.json)
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Generate OpenAPI spec (outputs to console)')}
+  ${chalk.dim('$')} ${chalk.cyan('agent doc')}
 
-Incremental Updates:
-  If the ui/ directory already exists, the generator will intelligently update it:
-  - Adds missing files based on the spec
-  - Updates existing files if needed
-  - Preserves custom changes when possible
+  ${chalk.dim('Generate HTML documentation')}
+  ${chalk.dim('$')} ${chalk.cyan('agent doc --outputHtml api-docs.html')}
 
-  Use --message to provide specific update instructions:
-  - If ui/ exists: Updates based on your message
-  - If ui/ doesn't exist: Generates fresh, then applies your message
+  ${chalk.dim('Generate Postman collection')}
+  ${chalk.dim('$')} ${chalk.cyan('agent doc --outputPostman collection.json')}
 
-Examples:
-  $ agent ui-gen                                           Auto-detect spec and generate UI
-  $ agent ui-gen -p                                        Generate UI and push to git
-  $ agent ui-gen -m "Add dark mode support"                Update existing UI with dark mode
-  $ agent ui-gen -m "Fix the login form validation"        Update specific feature
-  $ agent ui-gen ui-spec.json                              Generate from specific spec
-  $ agent ui-gen -d ./my-app                               Generate in ./my-app/ui directory
-  $ agent ui-gen ui-spec.json -k sk-ant-...                Generate with specified API key`,
+  ${chalk.dim('Generate both HTML and Postman')}
+  ${chalk.dim('$')} ${chalk.cyan('agent doc -h docs.html -p collection.json')}
+
+  ${chalk.dim('Generate docs for specific module')}
+  ${chalk.dim('$')} ${chalk.cyan('agent doc ./my-api -h api.html')}
+`,
+    )
+    .action(generateDoc);
+
+  program
+    .command('parseAndValidate')
+    .argument('<file>', `Agentlang source file (${fileExtensions})`)
+    .option('-d, --destination <dir>', 'Output directory for generated files')
+    .description('Parse and validate Agentlang source code')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Parses and validates an Agentlang source file, checking for syntax
+  errors, lexer issues, and semantic validation problems. Useful for
+  CI/CD pipelines and pre-deployment validation.
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Validate a source file')}
+  ${chalk.dim('$')} ${chalk.cyan('agent parseAndValidate ./src/main.al')}
+
+  ${chalk.dim('Parse and validate with output directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent parseAndValidate main.al -d ./out')}
+
+  ${chalk.dim('Validate in CI/CD pipeline')}
+  ${chalk.dim('$')} ${chalk.cyan('agent parseAndValidate app.al && npm run deploy')}
+`,
+    )
+    .action(parseAndValidate);
+
+  program
+    .command('ui-gen')
+    .argument('[spec-file]', 'Path to ui-spec.json (auto-detects if omitted)')
+    .option('-d, --directory <dir>', 'Target directory (default: current)', '.')
+    .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY)')
+    .option('-p, --push', 'Commit and push changes to git', false)
+    .option('-m, --message <message>', 'User message for incremental updates')
+    .description('Generate UI from specification (requires Anthropic API key)')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Generates a complete UI application from a ui-spec.json specification
+  using AI. Supports incremental updates, allowing you to evolve your UI
+  over time with natural language instructions.
+
+${chalk.yellow.bold('API KEY REQUIRED')}
+  Set ${chalk.cyan('ANTHROPIC_API_KEY')} environment variable or use ${chalk.cyan('--api-key')} flag
+  ${chalk.dim('Get your key at: https://console.anthropic.com')}
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Generate UI with auto-detected spec')}
+  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen')}
+
+  ${chalk.dim('Generate from specific spec file')}
+  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen ui-spec.json')}
+
+  ${chalk.dim('Generate and commit to git')}
+  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen --push')}
+
+  ${chalk.dim('Generate in specific directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen -d ./frontend')}
+
+  ${chalk.dim('Update existing UI with changes')}
+  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen -m "Add dark mode toggle"')}
+
+  ${chalk.dim('Incremental update with git push')}
+  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen -m "Fix login validation" -p')}
+
+  ${chalk.dim('Use custom API key')}
+  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen --api-key sk-ant-...')}
+`,
     )
     .action(generateUICommand);
 
