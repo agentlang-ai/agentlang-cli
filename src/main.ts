@@ -29,7 +29,7 @@ import { registerOpenApiModule } from 'agentlang/out/runtime/openapi.js';
 import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js';
 import { runInitFunctions } from 'agentlang/out/runtime/util.js';
 import { startServer } from 'agentlang/out/api/http.js';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -50,6 +50,97 @@ export interface GenerateOptions {
   destination?: string;
 }
 
+// Helper function to recursively find .al files (excluding config.al)
+function findAgentlangFiles(dir: string, fileList: string[] = []): string[] {
+  try {
+    const files = readdirSync(dir);
+    files.forEach(file => {
+      const filePath = join(dir, file);
+      try {
+        const stat = statSync(filePath);
+        if (stat.isDirectory()) {
+          if (file !== 'node_modules' && file !== '.git') {
+            findAgentlangFiles(filePath, fileList);
+          }
+        } else if (file.endsWith('.al') && file !== 'config.al') {
+          fileList.push(filePath);
+        }
+      } catch {
+        // Skip files/directories we can't access
+      }
+    });
+  } catch {
+    // Directory doesn't exist or can't be read
+  }
+  return fileList;
+}
+
+// Check if an Agentlang app is already initialized
+function isAppInitialized(targetDir: string): boolean {
+  const packageJsonPath = join(targetDir, 'package.json');
+  const hasPackageJson = existsSync(packageJsonPath);
+  const hasAgentlangFiles = findAgentlangFiles(targetDir).length > 0;
+  return hasPackageJson || hasAgentlangFiles;
+}
+
+// Initialize a new Agentlang application
+export const initCommand = (appName: string): void => {
+  const targetDir = process.cwd();
+
+  // Check if already initialized
+  if (isAppInitialized(targetDir)) {
+    // eslint-disable-next-line no-console
+    console.log(chalk.yellow('⚠️  This directory already contains an Agentlang application.'));
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('   Found existing package.json or .al files.'));
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('   No initialization needed.'));
+    return;
+  }
+
+  try {
+    // eslint-disable-next-line no-console
+    console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(appName)}\n`));
+
+    // Create package.json
+    const packageJson = {
+      name: appName,
+      version: '0.0.1',
+    };
+    writeFileSync(join(targetDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
+    // eslint-disable-next-line no-console
+    console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
+
+    // Create config.al
+    writeFileSync(join(targetDir, 'config.al'), '{}', 'utf-8');
+    // eslint-disable-next-line no-console
+    console.log(`${chalk.green('✓')} Created ${chalk.cyan('config.al')}`);
+
+    // Create src directory
+    const srcDir = join(targetDir, 'src');
+    mkdirSync(srcDir, { recursive: true });
+
+    // Create src/core.al
+    const coreContent = `module ${appName}.core`;
+    writeFileSync(join(srcDir, 'core.al'), coreContent, 'utf-8');
+    // eslint-disable-next-line no-console
+    console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
+
+    // eslint-disable-next-line no-console
+    console.log(chalk.green('\n✨ Successfully initialized Agentlang application!'));
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('\nNext steps:'));
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('  1. Add your application logic to src/core.al'));
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('  2. Run your app with: ') + chalk.cyan('agent run'));
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(chalk.red('❌ Error initializing application:'), error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+};
+
 // Custom help formatter
 function customHelp(): string {
   const gradient = [chalk.hex('#00D9FF'), chalk.hex('#00C4E6'), chalk.hex('#00AFCC'), chalk.hex('#009AB3')];
@@ -62,7 +153,7 @@ function customHelp(): string {
   ${gradient[0]('██║  ██║')}${gradient[1]('╚██████╔╝')}${gradient[2]('███████╗')}${gradient[3]('██║ ╚████║')}${gradient[0]('   ██║')}
   ${gradient[0]('╚═╝  ╚═╝')} ${gradient[1]('╚═════╝')} ${gradient[2]('╚══════╝')}${gradient[3]('╚═╝  ╚═══╝')}${gradient[0]('   ╚═╝')}
 
-  ${chalk.bold.white('Agentlang CLI')} ${chalk.dim(`v${  packageVersion}`)}
+  ${chalk.bold.white('Agentlang CLI')} ${chalk.dim(`v${packageVersion}`)}
   ${chalk.dim('CLI for all things Agentlang')}
 `;
 
@@ -71,6 +162,10 @@ function customHelp(): string {
     ${chalk.dim('$')} ${chalk.cyan('agent')} ${chalk.yellow('<command>')} ${chalk.dim('[options]')}
 
   ${chalk.bold.white('COMMANDS')}
+
+    ${chalk.cyan.bold('init')} ${chalk.dim('<appname>')}
+      ${chalk.white('▸')} Initialize a new Agentlang application
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
 
     ${chalk.cyan.bold('run')} ${chalk.dim('[file]')}
       ${chalk.white('▸')} Load and execute an Agentlang module
@@ -140,6 +235,36 @@ export default function (): void {
   program.helpInformation = customHelp;
 
   const fileExtensions = AgentlangLanguageMetaData.fileExtensions.join(', ');
+
+  program
+    .command('init')
+    .argument('<appname>', 'Name of the application to initialize')
+    .description('Initialize a new Agentlang application')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Creates a new Agentlang application with the necessary project structure.
+  This command will create:
+    • package.json with your app name and version
+    • config.al for application configuration
+    • src/core.al with your application module
+
+  The command checks if the directory is already initialized by looking for
+  existing package.json or .al files (excluding config.al).
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Initialize a new app called CarDealership')}
+  ${chalk.dim('$')} ${chalk.cyan('agent init CarDealership')}
+
+  ${chalk.dim('Initialize a new e-commerce app')}
+  ${chalk.dim('$')} ${chalk.cyan('agent init MyShop')}
+
+  ${chalk.dim('Initialize with multiple words (use PascalCase)')}
+  ${chalk.dim('$')} ${chalk.cyan('agent init InventoryManagement')}
+`,
+    )
+    .action(initCommand);
 
   program
     .command('run')
