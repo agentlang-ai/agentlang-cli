@@ -35,13 +35,19 @@ entities, events, and relationships.
 ### Install the CLI
 
 ```bash
-npm install -g agentlangcli
+pnpm install -g agentlangcli
 ```
 
 Or install locally:
 
 ```bash
-npm install agentlangcli
+pnpm install agentlangcli
+```
+
+You can also use npm if you prefer:
+
+```bash
+npm install -g agentlangcli
 ```
 
 After installation, you can use the `agent` command:
@@ -75,12 +81,6 @@ If found, it will skip initialization and inform you.
 ```bash
 # Initialize a new car dealership application
 agent init CarDealership
-
-# Initialize an e-commerce application
-agent init MyShop
-
-# Initialize with multiple words (use PascalCase)
-agent init InventoryManagement
 ```
 
 **Output:**
@@ -439,14 +439,14 @@ The CLI supports AgentLang files with the following extensions:
 ```bash
 git clone <repository>
 cd agentlang-cli/app2
-npm install
-npm run build
+pnpm install
+pnpm run build
 ```
 
 ### Running in Development
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 ## Error Handling
@@ -520,8 +520,8 @@ agent ui-gen ui-spec.json -p
 
 # 7. Navigate to generated UI and test
 cd ui
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 
 # 8. Make iterative updates to UI
 agent ui-gen -m "Add export to CSV feature"

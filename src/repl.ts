@@ -403,7 +403,11 @@ function createReplHelpers() {
       console.log('  inspect.relationships("MyApp") // List relationships in specific module');
       console.log('  inspect.instances()            // List all created instances');
 
-      console.log(chalk.red.bold('\n🛠️  Direct Runtime Functions:'));
+      console.log(
+        chalk.red.bold(
+          '\n🛠️  Direct Runtime Functions (requires full qualified names in string: "<ModuleName>/<Name>"):',
+        ),
+      );
       console.log(chalk.white('  Entity Management:'));
       console.log('    addEntity(name, definition)    // Add entity to runtime');
       console.log('    removeEntity(name)             // Remove entity from runtime');
@@ -873,8 +877,6 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
     });
 
     replState.rl.on('close', () => {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow('\nGoodbye! 👋'));
       cleanup();
       process.exit(0);
     });
