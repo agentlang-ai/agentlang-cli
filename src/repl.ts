@@ -24,9 +24,6 @@ import {
   addEvent,
   removeEvent,
   removeModule,
-  Instance,
-  makeInstance,
-  newInstanceAttributes,
 } from 'agentlang/out/runtime/module.js';
 import {
   addFromDef,
@@ -44,7 +41,7 @@ import {
 } from 'agentlang/out/language/generated/ast.js';
 import { Config, setAppConfig } from 'agentlang/out/runtime/state.js';
 import { runPreInitTasks, runPostInitTasks } from './main.js';
-import { lookupAllInstances } from 'agentlang/out/runtime/interpreter.js';
+import { lookupAllInstances, parseAndEvaluateStatement } from 'agentlang/out/runtime/interpreter.js';
 
 export interface ReplOptions {
   watch?: boolean;
@@ -239,18 +236,42 @@ function createReplHelpers() {
   };
 
   // Instance creation helper
-  const inst = function (entityName: string, attributes: Record<string, unknown>): Instance {
+  const inst = async function (entityName: string, attributes: Record<string, unknown>): Promise<unknown> {
     const currentModule = getActiveModuleName();
     if (!currentModule) {
       throw new Error('No active module found');
     }
-    const attrs = newInstanceAttributes();
-    Object.entries(attributes).forEach(([key, value]) => {
-      attrs.set(key, value);
-    });
-    const instance = makeInstance(currentModule, entityName, attrs);
 
-    return instance;
+    // Helper to format values for AgentLang syntax
+    const formatValue = (value: unknown): string => {
+      if (typeof value === 'string') {
+        return `"${value}"`;
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+      } else if (Array.isArray(value)) {
+        return `[${value.map(formatValue).join(', ')}]`;
+      } else if (value === null || value === undefined) {
+        return 'nil';
+      } else if (typeof value === 'object') {
+        const entries = Object.entries(value)
+          .map(([k, v]) => `${k} ${formatValue(v)}`)
+          .join(', ');
+        return `{${entries}}`;
+      }
+      // For unsupported types, use JSON.stringify as fallback
+      return JSON.stringify(value) ?? 'nil';
+    };
+
+    // Build the statement string
+    const fields = Object.entries(attributes)
+      .map(([key, value]) => `${key} ${formatValue(value)}`)
+      .join(', ');
+    const statement = `{${currentModule}/${entityName} {${fields}}}`;
+
+    // Parse and evaluate the statement
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const result = await parseAndEvaluateStatement(statement);
+    return result;
   };
 
   // Module management object
@@ -412,6 +433,8 @@ function createReplHelpers() {
 
       console.log(chalk.white('  Core Processing:'));
       console.log('    processAgentlang(code)         // Process raw AgentLang code');
+      console.log('    parseAndEvaluateStatement(stmt) // Parse and evaluate AgentLang statement');
+      console.log('    // Example: parseAndEvaluateStatement("{MyApp/User {id 1, name \\"Alice\\"}}");');
 
       console.log(chalk.gray.bold('\n🛠️  Utility Commands (utils.*):'));
       console.log('  utils.help()         // Show this help');
@@ -491,6 +514,7 @@ function createReplHelpers() {
     removeWorkflow,
     getWorkflow,
     processAgentlang,
+    parseAndEvaluateStatement,
   };
 }
 
@@ -713,6 +737,8 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
           'bulkUpdate(',
           'bulkDelete(',
           'transaction(',
+          'parseAndEvaluateStatement(',
+          'processAgentlang(',
         ];
         const hits = completions.filter(c => c.startsWith(line));
         return [hits.length ? hits : completions, line];
