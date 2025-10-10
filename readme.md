@@ -44,10 +44,10 @@ Or install locally:
 npm install agentlangcli
 ```
 
-You can also use npm if you prefer:
+You can also use pnpm if you prefer:
 
 ```bash
-npm install -g agentlangcli
+pnpm install -g agentlangcli
 ```
 
 After installation, you can use the `agent` command:
