@@ -747,12 +747,24 @@ project-root/
 
 Create a **.env** file for backend configuration:
 \`\`\`env
+# Backend API URL
 VITE_BACKEND_URL=http://localhost:8080/
+
+# Mock data mode (set to false when backend is ready)
 VITE_USE_MOCK_DATA=true
+
+# Agent chat configuration (handled by backend)
+# The backend will use these internally for agent LLM integration
+# OPENAI_API_KEY=sk-...  (backend only, not exposed to frontend)
+# ANTHROPIC_API_KEY=sk-ant-...  (backend only, not exposed to frontend)
 \`\`\`
 
-**IMPORTANT**: Default to \`VITE_USE_MOCK_DATA=true\` so the app works immediately without backend.
-Also create **.env.example** with the same defaults.
+**IMPORTANT**:
+- Default to \`VITE_USE_MOCK_DATA=true\` so the app works immediately without backend
+- LLM API keys should NEVER be in frontend .env - they're backend-only
+- Create **.env.example** with the same structure (without actual API keys)
+- Agent chat will call backend endpoint: \`POST /agents/:agentName/chat\`
+- Backend handles LLM provider selection based on agent.llm.provider in spec
 
 ## 2. API Client Structure
 
@@ -979,6 +991,176 @@ The \`navigation\` object defines sidebar structure:
 }
 \`\`\`
 
+## 6. Workflows/Events Array (CRITICAL FOR ACTIONS)
+
+The \`workflows\` array (or tools extracted from agent specs) defines **custom actions** that can create/update entities:
+
+### Workflow Specification Structure:
+\`\`\`json
+{
+  "name": "MakeInquiry",
+  "displayName": "Make Inquiry",
+  "description": "Create a new customer inquiry",
+  "entity": "CarDealership/Inquiry",
+  "action": "create",
+  "inputs": {
+    "customerQuery": {
+      "type": "text",
+      "required": true,
+      "label": "What is your question?",
+      "placeholder": "Enter your inquiry..."
+    },
+    "carModelInterest": {
+      "type": "select",
+      "required": false,
+      "label": "Interested Model",
+      "options": "CarDealership/CarModel"
+    },
+    "timestamp": {
+      "type": "datetime-local",
+      "required": false,
+      "default": "now"
+    }
+  },
+  "ui": {
+    "showOnPages": ["CarDealership/Customer", "CarDealership/CarModel"],
+    "buttonText": "Make Inquiry",
+    "icon": "mdi:message-question",
+    "style": "primary",
+    "position": "header",
+    "confirmation": "Create this inquiry?"
+  }
+}
+\`\`\`
+
+### Key Workflow Fields:
+- **name**: Workflow identifier (e.g., "MakeInquiry")
+- **displayName**: Human-readable name
+- **description**: What the workflow does
+- **entity**: Target entity for the action (optional - for pure workflows, this may not apply)
+- **action**: "create", "update", "delete", or "custom"
+- **inputs**: Form fields with type, validation, and UI config
+- **ui.showOnPages**: Which entity pages show this workflow button
+- **ui.position**: "header", "floating", "inline", "contextMenu"
+
+### Input Types:
+- \`text\`, \`number\`, \`email\`, \`tel\`, \`url\`
+- \`textarea\` - multi-line text
+- \`select\` - dropdown (options can reference an entity: "CarDealership/CarModel")
+- \`checkbox\`, \`radio\`
+- \`date\`, \`time\`, \`datetime-local\`
+- \`file\` - file upload
+
+### Workflow Execution Flow:
+1. User clicks workflow button on entity page
+2. Dialog/modal opens with form based on \`inputs\`
+3. User fills form and submits
+4. Frontend calls: \`POST /<ModelName>/<WorkflowName>\` with form data
+5. Backend executes workflow (creates/updates entities)
+6. Frontend shows success message and refreshes data
+
+### Extracting Workflows from Agent Tools:
+If the spec doesn't have a \`workflows\` array, extract workflows from agent \`tools\`:
+\`\`\`typescript
+// Example: Agent has tools: ["CarDealership/MakeInquiry"]
+// This means MakeInquiry is a workflow that should:
+// 1. Be available as a button on entity pages
+// 2. Be callable by the agent during chat
+\`\`\`
+
+## 7. Agent Configuration with LLM Support (CRITICAL)
+
+Agents are **AI assistants** that can chat with users and call workflows as tools:
+
+### Enhanced Agent Specification:
+\`\`\`json
+{
+  "name": "customerServiceAgent",
+  "displayName": "Customer Service Agent",
+  "description": "Handles customer inquiries and service requests",
+  "instruction": "You are a helpful customer service agent for a car dealership. Help customers with inquiries, scheduling test drives, and finding the right vehicle. Be friendly and professional. When a customer wants to make an inquiry or schedule something, use the appropriate tool.",
+  "llm": {
+    "provider": "claude",
+    "model": "claude-3-5-sonnet-20241022",
+    "temperature": 0.7,
+    "maxTokens": 4096
+  },
+  "tools": [
+    "CarDealership/MakeInquiry",
+    "CarDealership/ScheduleTestDrive",
+    "CarDealership/CreateCustomer"
+  ],
+  "contextEntities": ["Customer", "CarModel"],
+  "ui": {
+    "chatPosition": "sidebar",
+    "icon": "mdi:robot-happy",
+    "color": "#3b82f6",
+    "triggerText": "Ask Customer Service",
+    "showOnPages": ["CarDealership/Customer"],
+    "autoSuggest": true,
+    "welcomeMessage": "Hi! I'm your customer service assistant. How can I help you today?",
+    "placeholderText": "Type your message..."
+  }
+}
+\`\`\`
+
+### LLM Provider Configuration:
+- **provider**: "claude", "openai", or omit for backend default
+- **model**: Specific model name
+  - Claude: "claude-3-5-sonnet-20241022", "claude-3-opus-20240229"
+  - OpenAI: "gpt-4-turbo", "gpt-4o", "gpt-3.5-turbo"
+- **temperature**: 0.0-1.0 (creativity level)
+- **maxTokens**: Response length limit
+
+### Agent Chat Implementation Strategy:
+
+**OPTION A: Backend-Powered Agents (RECOMMENDED)**
+- Frontend sends message to: \`POST /agents/:agentName/chat\`
+- Backend handles LLM integration, maintains conversation history
+- Backend executes tools when agent requests them
+- Frontend displays streaming response
+
+**OPTION B: Frontend-Powered Agents (Alternative)**
+- Use LangChain.js or direct SDK in browser
+- Agent \`instruction\` becomes system prompt
+- Tools are converted to LangChain tools
+- When tool is called, frontend makes API request
+- Requires LLM API keys in frontend (less secure)
+
+**For this generator, use OPTION A** (backend-powered):
+\`\`\`typescript
+// Frontend agent chat hook
+const sendMessage = async (agentName: string, message: string) => {
+  const response = await fetch(\`/agents/\${agentName}/chat\`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      conversationId: currentConversationId,
+      context: { currentEntity, currentEntityId }
+    })
+  });
+
+  // Handle streaming response
+  const reader = response.body.getReader();
+  // Stream chunks and update UI
+};
+\`\`\`
+
+### Agent Tool Execution:
+When an agent uses a tool:
+1. Agent decides to use tool "MakeInquiry"
+2. Backend calls: \`POST /CarDealership/MakeInquiry\` with parameters
+3. Backend returns result to agent
+4. Agent formulates response to user
+5. Frontend displays agent's response
+
+### Context-Aware Agents:
+If \`contextEntities\` is specified:
+- When agent is opened on a Customer page, pass customer data as context
+- Agent can use this context to personalize responses
+- Example: "I see you're looking at Customer #123, John Doe"
+
 # Relationships & Embedded Tables - IMPLEMENTATION DETAILS
 
 ## Relationship Resolution Strategy
@@ -1044,32 +1226,101 @@ GET /CarDealership/Inquiry?customerId=<customer-id>
    - Fetches related child entities for a parent
    - Returns array of \`{ relationship, data }\` objects
 
-# Workflows & Custom Actions
+# Workflows & Custom Actions - IMPLEMENTATION REQUIREMENTS
 
-The UI spec contains a **\`workflows\`** array defining events/workflows. These should be exposed as custom actions:
+Workflows are **custom actions** that appear as buttons on entity pages and can also be called by agents as tools.
 
-## Implementation:
-1. **Parse workflows from UI spec**
-   - Each workflow has \`name\`, \`displayName\`, \`ui.showOnPages\`, \`inputs\`
+## Dual Purpose of Workflows:
+1. **User-Triggered Actions**: Users click workflow buttons to execute actions
+2. **Agent Tools**: Agents can call workflows during conversations
 
-2. **Show workflows as action buttons**
-   - On entity list/detail pages matching \`ui.showOnPages\`
-   - Display button with \`ui.buttonText\`, \`ui.icon\`, \`ui.style\`
-   - Position based on \`ui.position\` (header, floating, inline)
+## Implementation Components Required:
 
-3. **Workflow execution**
-   - When clicked, show a form with workflow \`inputs\`
-   - On submit, POST to \`/<ModelName>/<WorkflowName>\`
-   - Show confirmation if \`ui.confirmation\` is set
+### 1. Workflow Parser Utility (\`src/utils/workflowParser.ts\`):
+\`\`\`typescript
+// Get all workflows from spec
+function getWorkflows(spec: UISpec): Workflow[]
 
-4. **Example workflows:**
-   - \`CreateCarModel\`: Shows on "CarDealership/Dealer" page as "Add Car Model" button
-   - \`ProcessSale\`: Shows on "CarDealership/Customer" and "CarDealership/CarModel" pages
-   - When executed: \`POST /CarDealership/ProcessSale\` with form data
+// Get workflows that should show on a specific page
+function getWorkflowsForPage(spec: UISpec, pagePath: string): Workflow[]
 
-5. **UI Integration:**
-   - Create \`src/components/workflows/WorkflowButton.tsx\` for rendering workflow actions
-   - Create \`src/components/workflows/WorkflowDialog.tsx\` for workflow input forms
+// Extract workflows from agent tools if no workflows array exists
+function extractWorkflowsFromAgents(spec: UISpec): Workflow[]
+\`\`\`
+
+### 2. Workflow Components:
+- **src/components/workflows/WorkflowButton.tsx** - Renders workflow action button:
+  * Displays with icon from \`ui.icon\`
+  * Styled based on \`ui.style\` (primary, secondary, danger)
+  * Positioned based on \`ui.position\` (header, floating, inline, contextMenu)
+  * Shows only on pages listed in \`ui.showOnPages\`
+
+- **src/components/workflows/WorkflowDialog.tsx** - Modal/dialog for workflow execution:
+  * Dynamically renders form from \`inputs\` specification
+  * Maps input types to form controls (text, select, textarea, date, etc.)
+  * Handles entity reference selects (e.g., \`options: "CarDealership/CarModel"\`)
+  * Validates required fields
+  * Shows confirmation dialog if \`ui.confirmation\` is set
+  * Submits to: \`POST /<ModelName>/<WorkflowName>\`
+
+- **src/components/workflows/WorkflowContainer.tsx** - Container for workflow buttons:
+  * Reads workflows for current page from spec
+  * Renders all applicable WorkflowButton components
+  * Manages workflow dialog state (open/close)
+
+### 3. Workflow Execution Flow:
+\`\`\`typescript
+// 1. User clicks "Make Inquiry" button on Customer page
+// 2. WorkflowDialog opens with form fields from workflow.inputs
+// 3. User fills form:
+//    - customerQuery: "What's the price of Model X?"
+//    - carModelInterest: Selected from dropdown
+// 4. User submits
+// 5. If ui.confirmation exists, show confirmation dialog
+// 6. Frontend calls: POST /CarDealership/MakeInquiry
+//    Body: { customerQuery: "...", carModelInterest: "..." }
+// 7. Backend executes workflow, creates Inquiry entity
+// 8. Frontend shows success message
+// 9. Frontend refreshes entity data
+\`\`\`
+
+### 4. Integration with Entity Pages:
+- **EntityList.tsx** should include:
+  \`\`\`tsx
+  <WorkflowContainer
+    currentPage={currentEntityPath}
+    position="header"
+  />
+  \`\`\`
+
+- **EntityDetail.tsx** should include:
+  \`\`\`tsx
+  <WorkflowContainer
+    currentPage={currentEntityPath}
+    currentEntityId={entityId}
+    position="header"
+  />
+  \`\`\`
+
+### 5. Entity Reference Selects:
+When workflow input has \`options: "CarDealership/CarModel"\`:
+- Fetch all CarModel entities: \`GET /CarDealership/CarModel\`
+- Populate dropdown with entity names/IDs
+- Submit selected entity ID with workflow
+
+### 6. Workflow API Endpoint Pattern:
+\`\`\`
+POST /<ModelName>/<WorkflowName>
+Body: { ...inputs from form }
+
+Example:
+POST /CarDealership/MakeInquiry
+Body: {
+  "customerQuery": "What's the warranty?",
+  "carModelInterest": "model-123",
+  "timestamp": "2025-01-15T10:30:00"
+}
+\`\`\`
 
 # Your Task
 
@@ -1188,9 +1439,23 @@ Generate a COMPLETE, production-ready web application with ALL the following:
      * Sends messages to agent endpoint
      * Handles tool execution callbacks
 
-## 12. Workflows
-   - **src/components/workflows/WorkflowButton.tsx** - Workflow action button
-   - **src/components/workflows/WorkflowDialog.tsx** - Workflow input form/dialog
+## 12. Workflows (ENHANCED)
+   - **src/utils/workflowParser.ts** - Workflow parsing utilities:
+     * \`getWorkflows(spec)\` - Get all workflows from spec or extract from agent tools
+     * \`getWorkflowsForPage(spec, pagePath)\` - Get workflows for specific entity page
+     * \`extractWorkflowsFromAgents(spec)\` - Extract workflows from agent.tools
+   - **src/components/workflows/WorkflowButton.tsx** - Workflow action button:
+     * Renders button with icon, style, position from workflow.ui
+     * Triggers workflow dialog on click
+   - **src/components/workflows/WorkflowDialog.tsx** - Workflow execution dialog:
+     * Dynamically builds form from workflow.inputs
+     * Handles entity reference selects (fetches options from entities)
+     * Validates and submits to workflow endpoint
+     * Shows confirmation if workflow.ui.confirmation is set
+   - **src/components/workflows/WorkflowContainer.tsx** - Workflow button container:
+     * Fetches workflows for current page using workflowParser
+     * Renders all applicable WorkflowButton components
+     * Manages dialog open/close state
 
 ## 13. Dashboard
    - **src/components/dashboard/Dashboard.tsx**
@@ -1291,6 +1556,24 @@ Generate a COMPLETE, production-ready web application with ALL the following:
    - Apply validation rules to auth forms
    - Use validation patterns (email, minLength, pattern) in DynamicForm
 
+✅ **Workflow Integration** (CRITICAL):
+   - Create \`src/utils/workflowParser.ts\` to extract workflows from spec
+   - If spec has \`workflows\` array, use it directly
+   - If not, extract workflows from \`agent.tools\` arrays
+   - Show workflow buttons on entity pages based on \`ui.showOnPages\`
+   - WorkflowDialog dynamically builds form from \`workflow.inputs\`
+   - Handle entity reference selects (fetch options from entity endpoints)
+   - Submit workflows to: \`POST /<ModelName>/<WorkflowName>\`
+
+✅ **Agent Chat with Backend Integration** (CRITICAL):
+   - Agent chat is **backend-powered** (not frontend LLM)
+   - Frontend sends message to: \`POST /agents/:agentName/chat\`
+   - Backend handles LLM provider selection based on \`agent.llm.provider\`
+   - Backend executes agent tools (workflows) when requested
+   - Frontend displays streaming response
+   - Agent instructions from spec become system prompts (backend handles this)
+   - No LLM API keys in frontend - all handled by backend
+
 # Tools Available
 
 You have FULL PERMISSION to use ALL tools without asking:
@@ -1322,10 +1605,19 @@ Follow this order for generation:
 2. Generate configuration files:
    - **package.json** - Use "agentlang-ui" as package name
    - **tsconfig.json** and **tsconfig.node.json**
-   - **vite.config.ts**
+   - **vite.config.ts** - IMPORTANT: Configure dev server port to 3000 (not default 5173):
+     \`\`\`typescript
+     export default defineConfig({
+       server: {
+         port: 3000,
+         host: true
+       },
+       // ... rest of config
+     });
+     \`\`\`
    - **index.html** - Use \`${uiSpec.appInfo.title}\` as title
    - **.env** - Set \`VITE_USE_MOCK_DATA=true\`, \`VITE_BACKEND_URL=http://localhost:8080/\`
-   - **.env.example** - Same as .env
+   - **.env.example** - Same as .env (without API keys)
    - **.gitignore**
 
 ## Phase 2: Utilities & Types (CRITICAL - DO THIS FIRST)
@@ -1337,9 +1629,13 @@ Follow this order for generation:
    - \`resolveComponentRef(componentRef)\`
    - \`getEntityFromPath(path)\`
    - \`parseComponentReference(ref)\`
-4. Generate **src/types/index.ts** - TypeScript interfaces for all entities
-5. Generate **src/data/uiSpec.ts** - Export the full UI spec object
-6. Generate **src/data/mockData.ts** - Mock data for all entities + auth
+4. Generate **src/utils/workflowParser.ts** - Workflow parsing functions:
+   - \`getWorkflows(spec)\` - Get all workflows (from spec.workflows or extract from agent.tools)
+   - \`getWorkflowsForPage(spec, pagePath)\` - Filter workflows for specific page
+   - \`extractWorkflowsFromAgents(spec)\` - Extract workflows from agent tools
+5. Generate **src/types/index.ts** - TypeScript interfaces for all entities, workflows, and agents
+6. Generate **src/data/uiSpec.ts** - Export the full UI spec object
+7. Generate **src/data/mockData.ts** - Mock data for all entities + auth + mock conversation history
 
 ## Phase 3: API Layer
 7. Generate **src/api/client.ts** - Axios client with .env integration
@@ -1378,30 +1674,35 @@ Follow this order for generation:
 30. Generate **src/components/agents/AgentTrigger.tsx** - Context-aware trigger
 
 ## Phase 9: Workflows & Dashboard
-31. Generate **src/components/workflows/WorkflowButton.tsx**
-32. Generate **src/components/workflows/WorkflowDialog.tsx**
-33. Generate **src/components/dashboard/Dashboard.tsx**
-34. Generate **src/components/dashboard/StatCard.tsx**
-35. Generate **src/components/dashboard/ChartWidget.tsx**
+31. Generate **src/components/workflows/WorkflowButton.tsx** - Individual workflow action button
+32. Generate **src/components/workflows/WorkflowDialog.tsx** - Workflow execution dialog with dynamic form
+33. Generate **src/components/workflows/WorkflowContainer.tsx** - Container that manages workflow buttons for a page
+34. Generate **src/components/dashboard/Dashboard.tsx**
+35. Generate **src/components/dashboard/StatCard.tsx**
+36. Generate **src/components/dashboard/ChartWidget.tsx**
 
 ## Phase 10: Core Application
-36. Generate **src/App.tsx** - Routing with spec-driven navigation
+37. Generate **src/App.tsx** - Routing with spec-driven navigation
    - Routes: \`/:modelName/:entityName\`, \`/:modelName/:entityName/:id\`
    - Agent routes: \`/agents\`, \`/agents/:agentName\`
-37. Generate **src/main.tsx** - Entry point
-38. Generate **src/index.css** - Global styles with branding colors from spec
-39. Generate **src/utils/validation.ts** - Validation utilities
-40. Generate **src/utils/routeParser.ts** - Route parsing utilities
+   - Include WorkflowContainer on entity pages
+38. Generate **src/main.tsx** - Entry point
+39. Generate **src/index.css** - Global styles with branding colors from spec
+40. Generate **src/utils/validation.ts** - Validation utilities
+41. Generate **src/utils/routeParser.ts** - Route parsing utilities
 
 ## Phase 11: Documentation
-41. Generate **README.md** - Setup instructions, backend configuration, feature list
+42. Generate **README.md** - Setup instructions, backend configuration, feature list
 
 ## IMPORTANT REMINDERS:
-- **Start with specParser.ts** - Everything else depends on it
+- **Start with specParser.ts and workflowParser.ts** - Everything else depends on them
 - **Dynamic components are critical** - EntityList and EntityDetail use ComponentResolver
 - **Test relationship detection** - EntityDetail must detect and render child entities
+- **Workflow integration** - Add WorkflowContainer to EntityList and EntityDetail
 - **Agent routes** - Add agent listing and chat routes to App.tsx
+- **Agent backend integration** - Agent chat calls backend, backend handles LLM
 - **Apply branding** - Use colors from spec.branding in CSS
+- **Port 3000** - Configure Vite dev server to use port 3000
 
 START NOW! Generate the complete application following this exact process.`;
 }
