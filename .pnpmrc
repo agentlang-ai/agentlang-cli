@@ -1,1 +1,10 @@
 shamefully-hoist=true
+
+# Auto-approve package builds (for native modules like better-sqlite3)
+enable-pre-post-scripts=true
+
+# Auto-install peer dependencies
+auto-install-peers=true
+
+# Strict peer dependencies
+strict-peer-dependencies=false

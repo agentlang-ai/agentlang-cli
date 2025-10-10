@@ -24,9 +24,6 @@ import {
   addEvent,
   removeEvent,
   removeModule,
-  Instance,
-  makeInstance,
-  newInstanceAttributes,
 } from 'agentlang/out/runtime/module.js';
 import {
   addFromDef,
@@ -44,6 +41,7 @@ import {
 } from 'agentlang/out/language/generated/ast.js';
 import { Config, setAppConfig } from 'agentlang/out/runtime/state.js';
 import { runPreInitTasks, runPostInitTasks } from './main.js';
+import { lookupAllInstances, parseAndEvaluateStatement } from 'agentlang/out/runtime/interpreter.js';
 
 export interface ReplOptions {
   watch?: boolean;
@@ -65,12 +63,6 @@ interface ReplState {
 
 // Global REPL state
 let replState: ReplState | null = null;
-
-// Global instance tracking
-const createdInstances = new Map<
-  string,
-  { instance: Instance; entityName: string; attributes: Record<string, unknown>; createdAt: Date }
->();
 
 // Core AgentLang processing function
 async function processAgentlang(code: string): Promise<string> {
@@ -244,27 +236,42 @@ function createReplHelpers() {
   };
 
   // Instance creation helper
-  const inst = function (entityName: string, attributes: Record<string, unknown>): Instance {
+  const inst = async function (entityName: string, attributes: Record<string, unknown>): Promise<unknown> {
     const currentModule = getActiveModuleName();
     if (!currentModule) {
       throw new Error('No active module found');
     }
-    const attrs = newInstanceAttributes();
-    Object.entries(attributes).forEach(([key, value]) => {
-      attrs.set(key, value);
-    });
-    const instance = makeInstance(currentModule, entityName, attrs);
 
-    // Track the created instance
-    const instanceId = `${entityName}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    createdInstances.set(instanceId, {
-      instance,
-      entityName,
-      attributes,
-      createdAt: new Date(),
-    });
+    // Helper to format values for AgentLang syntax
+    const formatValue = (value: unknown): string => {
+      if (typeof value === 'string') {
+        return `"${value}"`;
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+      } else if (Array.isArray(value)) {
+        return `[${value.map(formatValue).join(', ')}]`;
+      } else if (value === null || value === undefined) {
+        return 'nil';
+      } else if (typeof value === 'object') {
+        const entries = Object.entries(value)
+          .map(([k, v]) => `${k} ${formatValue(v)}`)
+          .join(', ');
+        return `{${entries}}`;
+      }
+      // For unsupported types, use JSON.stringify as fallback
+      return JSON.stringify(value) ?? 'nil';
+    };
 
-    return instance;
+    // Build the statement string
+    const fields = Object.entries(attributes)
+      .map(([key, value]) => `${key} ${formatValue(value)}`)
+      .join(', ');
+    const statement = `{${currentModule}/${entityName} {${fields}}}`;
+
+    // Parse and evaluate the statement
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const result = await parseAndEvaluateStatement(statement);
+    return result;
   };
 
   // Module management object
@@ -313,25 +320,15 @@ function createReplHelpers() {
       rels.forEach(rel => console.log(`  • ${rel}`));
       return rels;
     },
-    instances: () => {
-      const instances = Array.from(createdInstances.entries());
-      // eslint-disable-next-line no-console
-      console.log(chalk.cyan(`🏭 Created Instances (${instances.length}):`));
-      if (instances.length === 0) {
-        // eslint-disable-next-line no-console
-        console.log(chalk.gray('  No instances created yet'));
-        return [];
+    instances: async (entityName?: string) => {
+      if (!entityName) {
+        throw new Error('entityName is required');
       }
+      const instances = await lookupAllInstances(entityName);
+      // eslint-disable-next-line no-console
+      console.log(chalk.cyan(`🏭 Instances for ${entityName}:`));
 
-      instances.forEach(([id, data]) => {
-        const timeAgo = new Date().getTime() - data.createdAt.getTime();
-        const timeStr = timeAgo < 60000 ? `${Math.floor(timeAgo / 1000)}s ago` : `${Math.floor(timeAgo / 60000)}m ago`;
-        // eslint-disable-next-line no-console
-        console.log(`  • ${chalk.bold(data.entityName)} (${id.split('_')[2]}) - ${timeStr}`);
-        // eslint-disable-next-line no-console
-        console.log(`    ${chalk.gray(JSON.stringify(data.attributes))}`);
-      });
-      return instances.map(([id, data]) => ({ id, ...data }));
+      return instances;
     },
   };
 
@@ -401,9 +398,13 @@ function createReplHelpers() {
       console.log('  inspect.events("MyApp")        // List events in specific module');
       console.log('  inspect.relationships()        // List relationships in active module');
       console.log('  inspect.relationships("MyApp") // List relationships in specific module');
-      console.log('  inspect.instances()            // List all created instances');
+      console.log('  inspect.instances("MyApp/EntityName") // List instances created for an entity');
 
-      console.log(chalk.red.bold('\n🛠️  Direct Runtime Functions:'));
+      console.log(
+        chalk.red.bold(
+          '\n🛠️  Direct Runtime Functions (requires full qualified names in string: "<ModuleName>/<Name>"):',
+        ),
+      );
       console.log(chalk.white('  Entity Management:'));
       console.log('    addEntity(name, definition)    // Add entity to runtime');
       console.log('    removeEntity(name)             // Remove entity from runtime');
@@ -431,13 +432,14 @@ function createReplHelpers() {
 
       console.log(chalk.white('  Core Processing:'));
       console.log('    processAgentlang(code)         // Process raw AgentLang code');
+      console.log('    parseAndEvaluateStatement(stmt) // Parse and evaluate AgentLang statement');
+      console.log('    // Example: parseAndEvaluateStatement("{MyApp/User {id 1, name \\"Alice\\"}}");');
 
       console.log(chalk.gray.bold('\n🛠️  Utility Commands (utils.*):'));
       console.log('  utils.help()         // Show this help');
       console.log('  utils.clear()        // Clear screen');
       console.log('  utils.restart()      // Restart REPL');
       console.log('  utils.exit()         // Exit REPL');
-      console.log('  utils.clearInstances() // Clear all tracked instances');
 
       console.log(chalk.gray.bold('\n💡 Tips:'));
       console.log('  • Use tab completion for commands');
@@ -445,13 +447,12 @@ function createReplHelpers() {
       console.log('  • All functions return promises - use await if needed');
       console.log('  • File watching auto-restarts on changes (if enabled)');
       console.log('  • Use inspect.* commands to explore your application');
-      console.log('  • Created instances are tracked until REPL restart or cleared');
 
       console.log(chalk.blue('\n📚 Examples:'));
       console.log('  al`entity User { id String @id, name String }`');
       console.log('  inst("User", {id: "123", name: "Alice"})');
       console.log('  inspect.entities()');
-      console.log('  inspect.instances()');
+      console.log('  inspect.instances(MyApp/EntityName)');
       console.log('  m.active()');
       /* eslint-enable no-console */
 
@@ -473,13 +474,6 @@ function createReplHelpers() {
       console.log(chalk.yellow('\n👋 Goodbye!'));
       cleanup();
       process.exit(0);
-    },
-    clearInstances: () => {
-      const count = createdInstances.size;
-      createdInstances.clear();
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow(`🗑️  Cleared ${count} instances`));
-      return `Cleared ${count} instances`;
     },
   };
 
@@ -519,6 +513,7 @@ function createReplHelpers() {
     removeWorkflow,
     getWorkflow,
     processAgentlang,
+    parseAndEvaluateStatement,
   };
 }
 
@@ -592,14 +587,6 @@ async function restartRepl(): Promise<void> {
   try {
     // eslint-disable-next-line no-console
     console.log(chalk.yellow('\n🔄 Restarting AgentLang REPL...'));
-
-    // Clear tracked instances on restart
-    const instanceCount = createdInstances.size;
-    createdInstances.clear();
-    if (instanceCount > 0) {
-      // eslint-disable-next-line no-console
-      console.log(chalk.gray(`🗑️  Cleared ${instanceCount} tracked instances`));
-    }
 
     // Reload the application
     if (replState.appDir) {
@@ -724,12 +711,11 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
           'inspect.entities()',
           'inspect.events()',
           'inspect.relationships(',
-          'inspect.instances()',
+          'inspect.instances(',
           'utils.help()',
           'utils.clear()',
           'utils.restart()',
           'utils.exit()',
-          'utils.clearInstances()',
           'addEntity(',
           'removeEntity(',
           'getEntity(',
@@ -750,6 +736,8 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
           'bulkUpdate(',
           'bulkDelete(',
           'transaction(',
+          'parseAndEvaluateStatement(',
+          'processAgentlang(',
         ];
         const hits = completions.filter(c => c.startsWith(line));
         return [hits.length ? hits : completions, line];
@@ -873,8 +861,6 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
     });
 
     replState.rl.on('close', () => {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow('\nGoodbye! 👋'));
       cleanup();
       process.exit(0);
     });

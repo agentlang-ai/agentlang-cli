@@ -30,7 +30,7 @@ entities, events, and relationships.
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn (But prefer pnpm)
+- npm or pnpm
 
 ### Install the CLI
 
@@ -42,6 +42,12 @@ Or install locally:
 
 ```bash
 npm install agentlangcli
+```
+
+You can also use pnpm if you prefer:
+
+```bash
+pnpm install -g agentlangcli
 ```
 
 After installation, you can use the `agent` command:
@@ -75,12 +81,6 @@ If found, it will skip initialization and inform you.
 ```bash
 # Initialize a new car dealership application
 agent init CarDealership
-
-# Initialize an e-commerce application
-agent init MyShop
-
-# Initialize with multiple words (use PascalCase)
-agent init InventoryManagement
 ```
 
 **Output:**
