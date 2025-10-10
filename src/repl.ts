@@ -327,8 +327,7 @@ function createReplHelpers() {
       const instances = await lookupAllInstances(entityName);
       // eslint-disable-next-line no-console
       console.log(chalk.cyan(`🏭 Instances for ${entityName}:`));
-      // eslint-disable-next-line no-console
-      instances.forEach(inst => console.log(`  • ${JSON.stringify(inst)}`));
+
       return instances;
     },
   };
