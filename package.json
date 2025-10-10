@@ -1,6 +1,6 @@
 {
   "name": "agentlangcli",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "A command-line interface tool for AgentLang",
   "main": "out/main.js",
   "type": "module",
@@ -54,7 +54,7 @@
     "@anthropic-ai/sdk": "^0.65.0",
     "@asteasolutions/zod-to-openapi": "7.3.4",
     "@redocly/cli": "^2.0.2",
-    "agentlang": "^0.2.4",
+    "agentlang": "^0.3.0",
     "better-sqlite3": "^12.4.1",
     "chalk": "^5.4.1",
     "chokidar": "^4.0.3",
@@ -69,6 +69,9 @@
     "tmp": "^0.2.3",
     "yaml": "^2.8.1",
     "zod": "^3.25.0"
+  },
+  "overrides": {
+    "typeorm": "^0.3.27"
   },
   "pnpm": {
     "overrides": {
