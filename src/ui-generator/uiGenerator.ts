@@ -524,7 +524,7 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
 
     // Commit changes
     gitSpinner.start('Committing changes...');
-    const commitMessage = `Add generated UI for ${appTitle}\n\n🤖 Generated with AgentLang CLI`;
+    const commitMessage = `Add generated UI for ${appTitle}\n\n🤖 Generated with Agentlang CLI`;
     await execAsync(`git commit -m "${commitMessage}"`);
     gitSpinner.succeed('Committed changes');
 
@@ -810,31 +810,239 @@ Use **Agentlang path structure** for all routes:
 
 Parse the route params to extract \`modelName\` and \`entityName\`, then make API calls accordingly.
 
-# Relationships & Embedded Tables
+# UI Spec Structure - NEW SPEC FORMAT
 
-The UI spec contains a **\`relationships\`** array with relationship information. Use this to show related data:
+The UI spec now uses a **composition-based structure** with the following key patterns:
 
-## Implementation:
-1. In **EntityDetail** component, when viewing a parent entity (e.g., \`Dealer\`):
-   - Check \`relationships\` array for entries where \`parent\` matches current entity
-   - For each relationship with \`ui.showInParentDetail: true\`:
-     - Show an embedded table/cards section with the child entities
-     - Title the section with \`displayName\`
-     - Use the \`ui.listComponent\` type (table, cards, reference)
-     - Enable actions based on \`ui.allowInlineEdit\`, \`ui.allowCreate\`
+## 1. Entity UI Definitions
 
-2. **Example:** When viewing a Dealer:
-   - Show "Dealer Car Models" table (from DealerCarModels relationship)
-   - Show "Dealer Sales" table (from DealerSales relationship)
-   - Show "Dealer Inventory" table (from DealerInventory relationship)
+Each entity has multiple UI configuration keys:
 
-3. **Fetching related data:**
-   - Use relationship info to make additional API calls
-   - Example: \`GET /CarDealership/CarModel?dealerId=<dealer-id>\` (add query params)
+### Form Specification: \`<Entity>.ui.form\`
+Defines form fields and their input types:
+\`\`\`json
+{
+  "Form": {
+    "name": { "inputType": "text" },
+    "contactDetails": { "inputType": "text" },
+    "preferences": { "inputType": "text" }
+  },
+  "order": ["name", "contactDetails", "preferences"]
+}
+\`\`\`
 
-4. **Relationship types:**
-   - \`contains\`: Parent owns children (1:many)
-   - \`between\`: Association/reference (many:many or reference)
+### Dashboard Specification: \`<Entity>.ui.dashboard\`
+References to header and body components:
+\`\`\`json
+[
+  "CarDealership/Customer.ui.dashboard.header",
+  "CarDealership/Customer.ui.dashboard.body"
+]
+\`\`\`
+
+### Instance Specification: \`<Entity>.ui.instance\`
+References to header, summary, and related entity tables:
+\`\`\`json
+[
+  "CarDealership/Customer.ui.instance.header",
+  "CarDealership/Customer.ui.instance.summary",
+  "CarDealership/Inquiry.ui.dashboard.body",    // Related child table
+  "CarDealership/Sale.ui.dashboard.body"        // Related child table
+]
+\`\`\`
+
+## 2. Component Specifications
+
+### Header Component: \`<Entity>.ui.dashboard.header\` or \`<Entity>.ui.instance.header\`
+\`\`\`json
+{
+  "type": "collection",  // or "instance"
+  "view": {
+    "Heading": {
+      "title": "Customers",
+      "subtitle": "List of Customers",
+      "showBreadcrumbs": true
+    }
+  }
+}
+\`\`\`
+
+### Dashboard Body: \`<Entity>.ui.dashboard.body\`
+\`\`\`json
+{
+  "type": "collection",
+  "view": {
+    "create": {
+      "type": "button",
+      "text": "Add Customer",
+      "icon": "mdi:plus",
+      "style": "primary",
+      "actionType": "navigation",
+      "action": "Customer/new"
+    },
+    "Table": {
+      "fields": ["id", "name", "contactDetails"],
+      "showGlobalFilter": true,
+      "showColumnFilter": true,
+      "enableSelection": true,
+      "pagination": { "enabled": true, "pageSize": 25 },
+      "sorting": { "enabled": true, "defaultSort": "name" },
+      "actions": {
+        "row": ["view", "edit", "delete"],
+        "bulk": ["delete", "export", "update_status"]
+      }
+    }
+  }
+}
+\`\`\`
+
+### Instance Summary: \`<Entity>.ui.instance.summary\`
+\`\`\`json
+{
+  "type": "instance",
+  "view": {
+    "edit": { "type": "button", "text": "Edit", "icon": "mdi:pencil" },
+    "delete": { "type": "button", "text": "Delete", "icon": "mdi:delete" },
+    "Card": {
+      "fields": ["id", "name", "contactDetails"],
+      "layout": "grid",
+      "columns": 2
+    }
+  }
+}
+\`\`\`
+
+## 3. Relationships Array
+
+The \`relationships\` array defines parent-child and association relationships:
+\`\`\`json
+{
+  "name": "CustomerInquiries",
+  "type": "contains",
+  "parent": "Customer",
+  "child": "Inquiry",
+  "displayName": "Customer Inquiries",
+  "ui": {
+    "showInParentDetail": true,
+    "showInChildDetail": false,
+    "listComponent": "table",
+    "allowInlineEdit": true,
+    "allowCreate": true,
+    "sortBy": "timestamp"
+  }
+}
+\`\`\`
+
+## 4. Agents Array
+
+The \`agents\` array defines AI assistants with chat UI:
+\`\`\`json
+{
+  "name": "customerServiceAgent",
+  "displayName": "Customer Service",
+  "description": "AI assistant for customer service",
+  "instruction": "Handle general inquiries...",
+  "ui": {
+    "chatPosition": "sidebar",
+    "icon": "mdi:robot",
+    "color": "#3b82f6",
+    "triggerText": "Ask Customer Service",
+    "showOnPages": [],
+    "autoSuggest": true,
+    "welcomeMessage": "Hi! I can help you with customer service."
+  },
+  "tools": ["CarDealership/MakeInquiry"],
+  "contextEntities": []
+}
+\`\`\`
+
+## 5. Navigation Configuration
+
+The \`navigation\` object defines sidebar structure:
+\`\`\`json
+{
+  "type": "sidebar",
+  "grouping": [
+    {
+      "title": "Entities",
+      "items": ["CarDealership/Dealer", "CarDealership/Customer"],
+      "icon": "bi:card-list",
+      "color": "#19c381"
+    },
+    {
+      "title": "Agents",
+      "items": ["carModelExpertAgent", "customerServiceAgent"],
+      "icon": "fluent:bot-sparkle-24-regular",
+      "color": "#00bcd4"
+    }
+  ]
+}
+\`\`\`
+
+# Relationships & Embedded Tables - IMPLEMENTATION DETAILS
+
+## Relationship Resolution Strategy
+
+The spec uses a **composition pattern** where instance views reference child entity dashboards:
+
+### Step 1: Parse Instance View Array
+When rendering an entity detail (e.g., Customer), read the instance view:
+\`\`\`json
+"CarDealership/Customer.ui.instance": [
+  "CarDealership/Customer.ui.instance.header",
+  "CarDealership/Customer.ui.instance.summary",
+  "CarDealership/Inquiry.ui.dashboard.body",    // ← Child entity reference
+  "CarDealership/Sale.ui.dashboard.body"        // ← Child entity reference
+]
+\`\`\`
+
+### Step 2: Identify Child Entity References
+For each reference that doesn't belong to the current entity (e.g., "Inquiry.ui.dashboard.body"):
+1. Extract the entity name (e.g., "Inquiry")
+2. Look up the relationship in \`relationships\` array where:
+   - \`parent\` matches current entity ("Customer")
+   - \`child\` matches the referenced entity ("Inquiry")
+
+### Step 3: Render Relationship Section
+For the found relationship:
+1. Use \`displayName\` as the section title (e.g., "Customer Inquiries")
+2. Use the child entity's dashboard body spec to render the table
+3. Add "Create" button if \`ui.allowCreate: true\`
+4. Enable inline editing if \`ui.allowInlineEdit: true\`
+5. Apply sorting from \`ui.sortBy\`
+
+### Step 4: Fetch Related Data
+Query the child entity with parent filter:
+\`\`\`
+GET /CarDealership/Inquiry?customerId=<customer-id>
+\`\`\`
+
+### Relationship Types:
+- **\`contains\`**: Parent owns children (1:many, cascade delete)
+- **\`between\`**: Association/reference (many:many or lookup)
+
+## Implementation Components Required:
+
+1. **src/utils/specParser.ts** - Utility functions:
+   - \`getFormSpec(entityName)\` - Get form configuration
+   - \`getDashboardSpec(entityName)\` - Get dashboard configuration
+   - \`getInstanceSpec(entityName)\` - Get instance view configuration
+   - \`getChildRelationships(parentEntity)\` - Get all child relationships
+   - \`resolveComponentRef(componentRef)\` - Resolve component reference to spec
+
+2. **src/components/dynamic/ComponentResolver.tsx** - Component resolver:
+   - Takes a component reference string
+   - Looks up the spec from uiSpec object
+   - Renders the appropriate component (Heading, Table, Card, etc.)
+
+3. **src/components/entity/RelationshipSection.tsx** - Relationship renderer:
+   - Receives relationship spec and child dashboard spec
+   - Renders titled section with child entity table
+   - Handles create/edit actions based on relationship UI config
+
+4. **src/hooks/useRelationships.ts** - Relationship data hook:
+   - Fetches related child entities for a parent
+   - Returns array of \`{ relationship, data }\` objects
 
 # Workflows & Custom Actions
 
@@ -905,47 +1113,183 @@ Generate a COMPLETE, production-ready web application with ALL the following:
    - **src/components/navigation/Sidebar.tsx** - With grouping from UI spec
    - **src/components/navigation/Navbar.tsx**
 
-## 8. Entity Management (Generic & Reusable)
-   - **src/components/entity/EntityList.tsx** - Lists with Agentlang API integration
-   - **src/components/entity/EntityDetail.tsx** - Details with relationship sections
-   - **src/components/entity/EntityForm.tsx** - Forms using Formik
-   - **src/components/entity/RelationshipSection.tsx** - Embedded tables for relationships
+## 8. Spec Parser Utilities (NEW - CRITICAL)
+   - **src/utils/specParser.ts** - Utility functions for parsing the UI spec:
+     * \`getFormSpec(entityName)\` - Returns form configuration for an entity
+     * \`getDashboardSpec(entityName)\` - Returns dashboard configuration
+     * \`getInstanceSpec(entityName)\` - Returns instance view configuration
+     * \`getChildRelationships(parentEntity)\` - Returns all child relationships
+     * \`resolveComponentRef(componentRef)\` - Resolves component reference to spec object
+     * \`getEntityFromPath(path)\` - Extracts entity name from path (e.g., "CarDealership/Customer")
+     * \`parseComponentReference(ref)\` - Parses component refs like "CarDealership/Customer.ui.instance.header"
 
-## 9. Workflows
+## 9. Dynamic Component System (NEW - CRITICAL)
+   - **src/components/dynamic/ComponentResolver.tsx** - Resolves and renders components from spec:
+     * Takes a component reference string (e.g., "CarDealership/Customer.ui.instance.header")
+     * Looks up the spec from uiSpec object using resolveComponentRef
+     * Determines component type (Heading, Table, Card, Form, Button)
+     * Renders the appropriate component with spec data
+   - **src/components/dynamic/DynamicHeading.tsx** - Renders heading from spec
+   - **src/components/dynamic/DynamicTable.tsx** - Renders table from spec with:
+     * Column configuration from \`fields\` array
+     * Pagination from \`pagination\` config
+     * Sorting from \`sorting\` config
+     * Row/bulk actions from \`actions\` config
+     * Global/column filters based on \`showGlobalFilter\` and \`showColumnFilter\`
+   - **src/components/dynamic/DynamicCard.tsx** - Renders summary card from spec:
+     * Grid layout based on \`layout\` and \`columns\`
+     * Field display from \`fields\` array
+   - **src/components/dynamic/DynamicForm.tsx** - Renders form from spec:
+     * Maps \`inputType\` to form controls (text, number, datetime-local, select)
+     * Applies field order from \`order\` array
+     * Integrates with Formik for validation and submission
+   - **src/components/dynamic/DynamicButton.tsx** - Renders action buttons from spec:
+     * Handles \`actionType\`: navigation, modal, submit
+     * Displays icon from Iconify based on \`icon\` field
+
+## 10. Entity Management (Generic & Reusable - ENHANCED)
+   - **src/components/entity/EntityList.tsx** - Lists with spec-driven rendering:
+     * Uses ComponentResolver to render dashboard header and body
+     * Reads dashboard spec: \`spec["<Entity>.ui.dashboard"]\`
+     * Dynamically renders table/cards based on dashboard body spec
+   - **src/components/entity/EntityDetail.tsx** - Details with spec-driven rendering:
+     * Uses ComponentResolver to render instance components
+     * Reads instance spec: \`spec["<Entity>.ui.instance"]\`
+     * Iterates through instance view array and renders each component
+     * **Identifies child entity references** (e.g., "Inquiry.ui.dashboard.body")
+     * For child references, renders RelationshipSection component
+   - **src/components/entity/EntityForm.tsx** - Uses DynamicForm component:
+     * Reads form spec: \`spec["<Entity>.ui.form"]\`
+     * Passes to DynamicForm for rendering
+   - **src/components/entity/RelationshipSection.tsx** - Renders embedded child entity tables:
+     * Receives relationship spec and child dashboard spec
+     * Displays section title from \`relationship.displayName\`
+     * Uses DynamicTable to render child entity data
+     * Shows "Create" button if \`relationship.ui.allowCreate: true\`
+     * Enables inline editing if \`relationship.ui.allowInlineEdit: true\`
+     * Fetches data using useRelationships hook
+
+## 11. Agent Integration (NEW - CRITICAL)
+   - **src/components/agents/AgentChat.tsx** - Chat interface for AI agents:
+     * Reads agent spec from \`spec.agents\` array
+     * Positions chat based on \`ui.chatPosition\` (sidebar, modal, fullscreen)
+     * Displays \`ui.welcomeMessage\` on open
+     * Sends messages to: \`POST /agents/<agentName>/chat\`
+     * Handles streaming responses
+     * Executes agent tools (calls tool endpoints when agent requests)
+   - **src/components/agents/AgentList.tsx** - Lists all available agents:
+     * Displays agent cards with \`displayName\`, \`description\`, \`icon\`
+     * Click to open agent chat
+   - **src/components/agents/AgentTrigger.tsx** - Trigger button for context-aware agents:
+     * Shows on pages listed in \`ui.showOnPages\`
+     * Passes \`contextEntities\` data to agent when opened
+   - **src/hooks/useAgentChat.ts** - Hook for agent chat functionality:
+     * Manages chat state (messages, loading, streaming)
+     * Sends messages to agent endpoint
+     * Handles tool execution callbacks
+
+## 12. Workflows
    - **src/components/workflows/WorkflowButton.tsx** - Workflow action button
    - **src/components/workflows/WorkflowDialog.tsx** - Workflow input form/dialog
 
-## 10. Dashboard
+## 13. Dashboard
    - **src/components/dashboard/Dashboard.tsx**
    - **src/components/dashboard/StatCard.tsx**
    - **src/components/dashboard/ChartWidget.tsx**
 
-## 11. Context
+## 14. Context
    - **src/context/AuthContext.tsx**
 
-## 12. Hooks
+## 15. Hooks (ENHANCED)
    - **src/hooks/useEntityData.ts** - Entity CRUD operations
    - **src/hooks/useBackend.ts** - Backend connection checking
-   - **src/hooks/useRelationships.ts** - Fetch related entity data
+   - **src/hooks/useRelationships.ts** - Fetch related entity data:
+     * Takes parent entity name and parent ID
+     * Finds all child relationships from spec
+     * Fetches child data for each relationship
+     * Returns array of \`{ relationship, data, loading, error }\`
+   - **src/hooks/useAgentChat.ts** - Agent chat functionality (see Agent Integration section)
 
-## 13. Utils
-   - **src/utils/validation.ts**
+## 16. Utils (ENHANCED)
+   - **src/utils/validation.ts** - Validation utilities
    - **src/utils/routeParser.ts** - Parse Agentlang routes
+   - **src/utils/specParser.ts** - Spec parsing utilities (see Spec Parser section)
 
 # Implementation Requirements
 
+## Core Requirements (Keep All Previous):
 ✅ **Agentlang Routing**: Use /:modelName/:entityName format everywhere
 ✅ **Backend Integration**: Read .env for backend URL, fallback to mock data
 ✅ **Mock Mode Default**: Set \`VITE_USE_MOCK_DATA=true\` in .env so app works immediately
 ✅ **Auth Endpoints**: Use \`/agentlang_auth/login\`, \`/agentlang_auth/signUp\`, \`/agentlang_auth/forgotPassword\`
 ✅ **API Pattern**: Entities follow \`/<ModelName>/<Entity>\`, workflows follow \`/<ModelName>/<WorkflowName>\`
-✅ **Relationships**: Show embedded tables based on relationships array
-✅ **Workflows**: Display and execute workflows as custom actions on entity pages
 ✅ **TypeScript**: Proper typing for all components
 ✅ **Error Handling**: Handle backend unavailable gracefully
 ✅ **Loading States**: Show spinners during API calls
 ✅ **Responsive**: Mobile-friendly design
 ✅ **Mock Data**: Include mock user/auth data for testing authentication flow
+
+## NEW Spec-Driven Requirements (CRITICAL):
+
+✅ **Spec Parser**: Create \`src/utils/specParser.ts\` with ALL utility functions:
+   - \`getFormSpec(entityName)\` - Returns \`spec["<Entity>.ui.form"]\`
+   - \`getDashboardSpec(entityName)\` - Returns \`spec["<Entity>.ui.dashboard"]\` array
+   - \`getInstanceSpec(entityName)\` - Returns \`spec["<Entity>.ui.instance"]\` array
+   - \`getChildRelationships(parentEntity)\` - Filters \`spec.relationships\` where parent matches
+   - \`resolveComponentRef(componentRef)\` - Looks up spec object from reference string
+   - All functions must handle full entity paths (e.g., "CarDealership/Customer")
+
+✅ **Dynamic Components**: Create complete \`src/components/dynamic/\` directory:
+   - **ComponentResolver.tsx** - Main resolver that:
+     * Takes component reference (e.g., "CarDealership/Customer.ui.instance.header")
+     * Uses \`resolveComponentRef\` to get spec object
+     * Detects component type from spec.view keys (Heading, Table, Card, etc.)
+     * Renders appropriate Dynamic* component
+   - **DynamicHeading.tsx** - Renders heading from \`view.Heading\` spec
+   - **DynamicTable.tsx** - Full-featured table with pagination, sorting, filtering, row/bulk actions
+   - **DynamicCard.tsx** - Grid layout card for instance summaries
+   - **DynamicForm.tsx** - Form builder with Formik integration and input type mapping
+   - **DynamicButton.tsx** - Action button renderer with icon and action handling
+
+✅ **Enhanced EntityDetail**: Make \`EntityDetail.tsx\` spec-driven:
+   - Read \`spec["<Entity>.ui.instance"]\` array
+   - Iterate through component references
+   - Use ComponentResolver to render each reference
+   - **Detect child entity references**: if reference contains different entity name than current
+   - For child references, look up relationship and render RelationshipSection
+
+✅ **Enhanced EntityList**: Make \`EntityList.tsx\` spec-driven:
+   - Read \`spec["<Entity>.ui.dashboard"]\` array
+   - Use ComponentResolver to render header and body components
+   - Table configuration comes from dashboard body spec
+
+✅ **Relationship Resolution**:
+   - In EntityDetail, when processing instance view array
+   - If component reference is for different entity (e.g., viewing Customer but see "Inquiry.ui.dashboard.body")
+   - Look up relationship: \`spec.relationships.find(r => r.parent === currentEntity && r.child === refEntity)\`
+   - Pass relationship spec + child dashboard spec to RelationshipSection
+
+✅ **Agent Integration**:
+   - Create \`/agents\` route listing all agents from \`spec.agents\`
+   - Create \`/agents/:agentName\` route for agent chat
+   - Agent chat sends to: \`POST /agents/:agentName/chat\`
+   - Handle agent tool execution by calling tool endpoints
+
+✅ **Navigation from Spec**:
+   - Read \`spec.navigation.grouping\`
+   - Build sidebar with groups and items
+   - Entity items link to \`/:modelName/:entityName\`
+   - Agent items link to \`/agents/:agentName\`
+
+✅ **Branding from Spec**:
+   - Apply \`spec.branding.primaryColor\` and \`spec.branding.secondaryColor\` to theme
+   - Use \`spec.branding.logo\` and \`spec.branding.favicon\`
+   - Apply colors to navigation groups from \`navigation.grouping[].color\`
+
+✅ **Form Validation from Spec**:
+   - Read \`spec.login.form.validation\` and \`spec.signUp.form.validation\`
+   - Apply validation rules to auth forms
+   - Use validation patterns (email, minLength, pattern) in DynamicForm
 
 # Tools Available
 
@@ -969,19 +1313,95 @@ IMPORTANT:
 - You have full permission - do not ask for approval
 - Focus on generating a complete, working application
 
-# Process
+# Process - UPDATED FOR NEW SPEC FORMAT
 
-1. Create the project directory structure
-2. Generate configuration files (.env, .env.example, package.json, tsconfig, vite.config, etc.)
-   - IMPORTANT: In package.json, use "agentlang-ui" as the package name
-   - In index.html, use "${uiSpec.appInfo.title}" as the title
-3. Generate API layer (client.ts, endpoints.ts) with Agentlang integration
-4. Generate types and data files
-5. Generate hooks (useBackend, useEntityData, useRelationships)
-6. Generate components (auth, navigation, entity, workflows, dashboard)
-7. Generate App.tsx with Agentlang routing (/:modelName/:entityName)
-8. Generate main.tsx and index.css
-9. Generate README with setup instructions
+Follow this order for generation:
 
-START NOW! Use whatever tools you need to generate the complete application.`;
+## Phase 1: Project Setup
+1. Create project directory structure
+2. Generate configuration files:
+   - **package.json** - Use "agentlang-ui" as package name
+   - **tsconfig.json** and **tsconfig.node.json**
+   - **vite.config.ts**
+   - **index.html** - Use \`${uiSpec.appInfo.title}\` as title
+   - **.env** - Set \`VITE_USE_MOCK_DATA=true\`, \`VITE_BACKEND_URL=http://localhost:8080/\`
+   - **.env.example** - Same as .env
+   - **.gitignore**
+
+## Phase 2: Utilities & Types (CRITICAL - DO THIS FIRST)
+3. Generate **src/utils/specParser.ts** - ALL parsing functions:
+   - \`getFormSpec(entityName)\`
+   - \`getDashboardSpec(entityName)\`
+   - \`getInstanceSpec(entityName)\`
+   - \`getChildRelationships(parentEntity)\`
+   - \`resolveComponentRef(componentRef)\`
+   - \`getEntityFromPath(path)\`
+   - \`parseComponentReference(ref)\`
+4. Generate **src/types/index.ts** - TypeScript interfaces for all entities
+5. Generate **src/data/uiSpec.ts** - Export the full UI spec object
+6. Generate **src/data/mockData.ts** - Mock data for all entities + auth
+
+## Phase 3: API Layer
+7. Generate **src/api/client.ts** - Axios client with .env integration
+8. Generate **src/api/endpoints.ts** - Agentlang endpoint functions (entities, auth, agents)
+
+## Phase 4: Hooks
+9. Generate **src/hooks/useBackend.ts** - Backend connection checking
+10. Generate **src/hooks/useEntityData.ts** - Entity CRUD operations
+11. Generate **src/hooks/useRelationships.ts** - Fetch child relationships
+12. Generate **src/hooks/useAgentChat.ts** - Agent chat functionality
+
+## Phase 5: Dynamic Component System (CRITICAL)
+13. Generate **src/components/dynamic/ComponentResolver.tsx** - Main resolver
+14. Generate **src/components/dynamic/DynamicHeading.tsx** - Heading renderer
+15. Generate **src/components/dynamic/DynamicTable.tsx** - Table renderer with full features
+16. Generate **src/components/dynamic/DynamicCard.tsx** - Card renderer for summaries
+17. Generate **src/components/dynamic/DynamicForm.tsx** - Form builder with Formik
+18. Generate **src/components/dynamic/DynamicButton.tsx** - Button renderer
+
+## Phase 6: Entity Components (Spec-Driven)
+19. Generate **src/components/entity/EntityList.tsx** - Uses ComponentResolver
+20. Generate **src/components/entity/EntityDetail.tsx** - Uses ComponentResolver + relationship detection
+21. Generate **src/components/entity/EntityForm.tsx** - Uses DynamicForm
+22. Generate **src/components/entity/RelationshipSection.tsx** - Embedded child tables
+
+## Phase 7: Navigation & Auth
+23. Generate **src/components/navigation/Sidebar.tsx** - Reads \`spec.navigation.grouping\`
+24. Generate **src/components/navigation/Navbar.tsx**
+25. Generate **src/components/auth/SignIn.tsx** - Uses validation from spec
+26. Generate **src/components/auth/SignUp.tsx** - Uses validation from spec
+27. Generate **src/context/AuthContext.tsx**
+
+## Phase 8: Agent Integration
+28. Generate **src/components/agents/AgentChat.tsx** - Chat UI
+29. Generate **src/components/agents/AgentList.tsx** - List all agents
+30. Generate **src/components/agents/AgentTrigger.tsx** - Context-aware trigger
+
+## Phase 9: Workflows & Dashboard
+31. Generate **src/components/workflows/WorkflowButton.tsx**
+32. Generate **src/components/workflows/WorkflowDialog.tsx**
+33. Generate **src/components/dashboard/Dashboard.tsx**
+34. Generate **src/components/dashboard/StatCard.tsx**
+35. Generate **src/components/dashboard/ChartWidget.tsx**
+
+## Phase 10: Core Application
+36. Generate **src/App.tsx** - Routing with spec-driven navigation
+   - Routes: \`/:modelName/:entityName\`, \`/:modelName/:entityName/:id\`
+   - Agent routes: \`/agents\`, \`/agents/:agentName\`
+37. Generate **src/main.tsx** - Entry point
+38. Generate **src/index.css** - Global styles with branding colors from spec
+39. Generate **src/utils/validation.ts** - Validation utilities
+40. Generate **src/utils/routeParser.ts** - Route parsing utilities
+
+## Phase 11: Documentation
+41. Generate **README.md** - Setup instructions, backend configuration, feature list
+
+## IMPORTANT REMINDERS:
+- **Start with specParser.ts** - Everything else depends on it
+- **Dynamic components are critical** - EntityList and EntityDetail use ComponentResolver
+- **Test relationship detection** - EntityDetail must detect and render child entities
+- **Agent routes** - Add agent listing and chat routes to App.tsx
+- **Apply branding** - Use colors from spec.branding in CSS
+
+START NOW! Generate the complete application following this exact process.`;
 }

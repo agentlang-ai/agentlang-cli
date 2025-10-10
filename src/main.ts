@@ -557,7 +557,7 @@ export const generateUICommand = async (
   options?: { directory?: string; apiKey?: string; push?: boolean; message?: string },
 ): Promise<void> => {
   try {
-    console.log(chalk.blue('🚀 AgentLang UI Generator\n'));
+    console.log(chalk.blue('🚀 Agentlang UI Generator\n'));
 
     // Get API key from options or environment
     const apiKey = options?.apiKey || process.env.ANTHROPIC_API_KEY;
