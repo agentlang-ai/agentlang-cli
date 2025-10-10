@@ -18,13 +18,13 @@
     "build": "tsc -b tsconfig.src.json && node esbuild.mjs",
     "start": "ts-node src/index.ts",
     "dev": "ts-node src/index.ts",
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "npm run build",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "check": "pnpm run typecheck && pnpm run lint:check && pnpm run format:check"
+    "check": "npm run typecheck && npm run lint:check && npm run format:check"
   },
   "keywords": [
     "agentlang",
