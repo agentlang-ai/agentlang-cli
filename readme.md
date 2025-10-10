@@ -30,18 +30,18 @@ entities, events, and relationships.
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn (But prefer pnpm)
+- npm or pnpm
 
 ### Install the CLI
 
 ```bash
-pnpm install -g agentlangcli
+npm install -g agentlangcli
 ```
 
 Or install locally:
 
 ```bash
-pnpm install agentlangcli
+npm install agentlangcli
 ```
 
 You can also use npm if you prefer:
@@ -439,14 +439,14 @@ The CLI supports AgentLang files with the following extensions:
 ```bash
 git clone <repository>
 cd agentlang-cli/app2
-pnpm install
-pnpm run build
+npm install
+npm run build
 ```
 
 ### Running in Development
 
 ```bash
-pnpm run dev
+npm run dev
 ```
 
 ## Error Handling
@@ -520,8 +520,8 @@ agent ui-gen ui-spec.json -p
 
 # 7. Navigate to generated UI and test
 cd ui
-pnpm install
-pnpm run dev
+npm install
+npm run dev
 
 # 8. Make iterative updates to UI
 agent ui-gen -m "Add export to CSV feature"
