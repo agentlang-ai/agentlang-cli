@@ -707,10 +707,114 @@ This generator follows a strict **React + Vite + TypeScript** template conventio
 - **Axios** for HTTP requests
 
 # UI LAYOUT BEST PRACTICES (CRITICAL - ALWAYS FOLLOW)
-Basically, when you create Entity based tables and cards and headers with Edit and Delete buttons, etc.
-These need to be followed.
-For other pages, dashboard, sign up, etc. use a proper industry standard layout.
-Create proper dashboard and sign in sign up pages and good logout flow.
+
+⚠️ **IMPORTANT SCOPE**: The following layout rules apply specifically to:
+- Entity list/table pages
+- Entity detail/card pages
+- Entity forms
+- Workflow dialogs
+- Admin/management interfaces
+
+**EXEMPT FROM THESE RULES** (use industry-standard designs instead):
+- **Sign-in/Sign-up/Auth pages** - Use modern, centered auth layouts (like Auth0, Firebase, Clerk)
+- **Landing pages** - Use marketing/product page layouts
+- **Public pages** - Use appropriate public-facing layouts
+
+## SPECIAL REQUIREMENTS FOR NON-ENTITY PAGES:
+
+### Authentication Pages (Sign-in, Sign-up, Forgot Password)
+- **Layout**: Centered card design, full-screen centered OR split-screen with branding
+- **Style**: Modern, clean, professional (reference: Vercel, GitHub, Linear auth pages)
+- **Features**:
+  * Logo at top
+  * Clean form with generous white space
+  * Social login buttons (if applicable)
+  * Link to alternate auth page (Sign in ↔ Sign up)
+  * Forgot password link
+  * Beautiful gradient or image background (optional)
+  * Form validation with inline error messages
+  * Loading states during submission
+- **NO SIDEBAR** on auth pages
+- **NO TABLE LAYOUT RULES** - these are standalone pages
+
+### Dashboard/Home Page
+- **Toggleable Sidebar**: Sidebar must be collapsible/expandable with toggle button
+  * Use hamburger icon (mdi:menu) for toggle
+  * Maintain toggle state in localStorage
+  * Smooth animation (200-300ms) for slide in/out
+  * On mobile (< 768px): Sidebar should be hidden by default, overlay when opened
+- **Dashboard Content**: Show informative, actionable content
+  * Summary statistics (stat cards with icons, numbers, trends)
+  * Recent activity widgets
+  * **Workflow Quick Actions Section**: Show all workflows as actionable cards/buttons
+    - Display workflows in a grid or list
+    - Each workflow card shows: icon, display name, description
+    - Clicking opens WorkflowDialog with form to fill inputs
+    - After submission, show success message and refresh relevant data
+  * Charts and visualizations (use Recharts)
+  * Helpful links/shortcuts
+- **Professional Polish**: Use card layouts, proper spacing, visual hierarchy
+
+### Chatbot Bubble Component (CRITICAL - ALWAYS INCLUDE)
+⚠️ **REQUIRED**: Every page must have access to the chatbot bubble component
+
+**Implementation Requirements:**
+- **Component**: Create \`src/components/agents/ChatbotBubble.tsx\` as a reusable, standalone component
+- **Position**: Fixed position, bottom-right corner (20px from bottom, 20px from right)
+- **Style**: Floating circular button (60px diameter) with agent icon or chat icon (mdi:message-text or mdi:robot)
+  * Primary brand color background
+  * White icon
+  * Shadow: \`box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15)\`
+  * Hover effect: Slight scale up (transform: scale(1.1))
+  * Pulse animation on first load to draw attention
+- **Behavior**:
+  * Click to open chat interface (see below)
+  * Badge showing unread message count (if applicable)
+  * Smooth slide-in animation from bottom-right on page load
+- **Chat Interface** (opens when bubble clicked):
+  * **Position**: Bottom-right, fixed, overlaying content
+  * **Size**: 400px wide × 600px tall (on desktop), full-screen on mobile
+  * **Style**: Card with shadow, rounded corners
+  * **Header**:
+    - Agent selector dropdown (if multiple agents available)
+    - Currently selected agent name and avatar
+    - Close button (×) to minimize back to bubble
+  * **Chat Area**:
+    - Messages list (scrollable, newest at bottom)
+    - User messages: right-aligned, blue background
+    - Agent messages: left-aligned, gray background
+    - Typing indicator when agent is responding
+    - Auto-scroll to latest message
+  * **Input Area**:
+    - Text input with placeholder "Type your message..."
+    - Send button (or Enter to send)
+    - File upload button (if supported)
+  * **Agent Selection**: If multiple agents exist:
+    - Show dropdown or tabs at top to switch between agents
+    - Each agent has own conversation history
+    - Visual indication of which agent is active
+- **Messenger-Style Design**: Follow modern chat UI patterns (like Facebook Messenger, WhatsApp Web, Intercom, Drift)
+  * Clean, minimal design
+  * Message bubbles with timestamps
+  * Avatar images for agent (bot icon)
+  * Smooth animations for new messages
+  * Typing indicator dots
+- **Template/Reusable**: Design as a completely reusable component
+  * Can be included in App.tsx layout to show on ALL pages
+  * Maintains chat state across page navigation
+  * Uses useAgentChat hook for all agent communication
+
+**Integration:**
+\`\`\`tsx
+// In src/App.tsx layout
+<div className="app-layout">
+  {/* Main content, sidebar, etc. */}
+  <Routes>...</Routes>
+
+  {/* Chatbot bubble - available on all pages */}
+  <ChatbotBubble />
+</div>
+\`\`\`
 
 ## 1. BUTTON PLACEMENT & STYLING
 
@@ -742,9 +846,10 @@ When buttons appear on card components:
 - Button order (left to right): Secondary/Cancel → Primary/Submit
 
 ### List/Table Header Buttons
-- Create/Add buttons: RIGHT aligned in header section
-- Bulk action buttons: LEFT aligned or contextual to selection
-- Filter/Search toggles: RIGHT aligned near Create button
+- **ONLY ONE Create/Add button**: Show a single primary "Create" or "Add {Entity}" button - NO other buttons
+- Position: RIGHT aligned in header section (beside the search filter)
+- NO multiple action buttons in table header - keep it minimal and clean
+- Bulk action buttons: Only show when rows are selected, position in a context toolbar
 
 ## 2. TABLE REQUIREMENTS (MANDATORY)
 
@@ -764,16 +869,22 @@ When buttons appear on card components:
     <h2>Entity List</h2>
   </div>
   <div className="table-actions">
+    {/* Search filter */}
     <input
       type="text"
       placeholder="Search..."
       className="global-filter"
       onChange={(e) => setGlobalFilter(e.target.value)}
     />
-    <button className="btn-create">+ Create</button>
+    {/* ONLY ONE create button - no other action buttons here */}
+    <button className="btn-create btn-primary">
+      <Icon icon="mdi:plus" /> Create
+    </button>
   </div>
 </div>
 \`\`\`
+
+⚠️ **CRITICAL**: Table headers should have ONLY ONE create/add button. Do not add extra action buttons, export buttons, or other controls. Keep it minimal and clean.
 
 ### Column Filters (RECOMMENDED)
 - Add filter inputs in column headers for filterable columns
@@ -1588,9 +1699,18 @@ Generate a COMPLETE, production-ready web application with ALL the following:
    - **src/components/auth/SignUp.tsx** - Uses \`POST /agentlang_auth/signUp\`
    - Add forgot password support using \`POST /agentlang_auth/forgotPassword\`
 
-## 7. Navigation
+## 7. Navigation (ENHANCED)
    - **src/components/navigation/Sidebar.tsx** - With grouping from UI spec
-   - **src/components/navigation/Navbar.tsx**
+     * **CRITICAL**: Must be toggleable/collapsible
+     * Hamburger icon toggle button
+     * Save toggle state to localStorage
+     * Smooth slide animation (200-300ms)
+     * On mobile: Overlay mode, hidden by default
+   - **src/components/navigation/Navbar.tsx** - Top navigation bar
+     * Logo/app title
+     * User menu with logout
+     * Notifications (optional)
+     * Profile dropdown
 
 ## 8. Spec Parser Utilities (NEW - CRITICAL)
    - **src/utils/specParser.ts** - Utility functions for parsing the UI spec:
@@ -1662,6 +1782,13 @@ Generate a COMPLETE, production-ready web application with ALL the following:
    - **src/components/agents/AgentTrigger.tsx** - Trigger button for context-aware agents:
      * Shows on pages listed in \`ui.showOnPages\`
      * Passes \`contextEntities\` data to agent when opened
+   - **src/components/agents/ChatbotBubble.tsx** - Floating chatbot bubble (CRITICAL):
+     * Floating button fixed bottom-right (60px circle)
+     * Opens messenger-style chat interface (400×600px)
+     * Agent selector if multiple agents
+     * Message bubbles, typing indicator, timestamps
+     * Available on ALL pages
+     * Maintains state across navigation
    - **src/hooks/useAgentChat.ts** - Hook for agent chat functionality:
      * Manages chat state (messages, loading, streaming)
      * Sends messages to agent endpoint
@@ -1685,10 +1812,19 @@ Generate a COMPLETE, production-ready web application with ALL the following:
      * Renders all applicable WorkflowButton components
      * Manages dialog open/close state
 
-## 13. Dashboard
-   - **src/components/dashboard/Dashboard.tsx**
-   - **src/components/dashboard/StatCard.tsx**
-   - **src/components/dashboard/ChartWidget.tsx**
+## 13. Dashboard (ENHANCED)
+   - **src/components/dashboard/Dashboard.tsx** - Main dashboard with:
+     * Toggleable sidebar integration
+     * Stat cards (entities count, recent activity, etc.)
+     * **Workflow Quick Actions section** - Grid of all workflows
+     * Charts and visualizations
+     * Recent activity feed
+   - **src/components/dashboard/StatCard.tsx** - Stat display card with icon
+   - **src/components/dashboard/ChartWidget.tsx** - Chart container component
+   - **src/components/dashboard/WorkflowQuickAction.tsx** - Workflow action card:
+     * Displays workflow icon, name, description
+     * Clicking opens WorkflowDialog
+     * Shows workflow execution result
 
 ## 14. Context
    - **src/context/AuthContext.tsx**
@@ -1913,27 +2049,37 @@ Follow this order for generation:
 28. Generate **src/components/agents/AgentChat.tsx** - Chat UI
 29. Generate **src/components/agents/AgentList.tsx** - List all agents
 30. Generate **src/components/agents/AgentTrigger.tsx** - Context-aware trigger
+31. Generate **src/components/agents/ChatbotBubble.tsx** - Floating chatbot bubble (CRITICAL - messenger-style chat)
 
 ## Phase 9: Workflows & Dashboard
-31. Generate **src/components/workflows/WorkflowButton.tsx** - Individual workflow action button
-32. Generate **src/components/workflows/WorkflowDialog.tsx** - Workflow execution dialog with dynamic form
-33. Generate **src/components/workflows/WorkflowContainer.tsx** - Container that manages workflow buttons for a page
-34. Generate **src/components/dashboard/Dashboard.tsx**
-35. Generate **src/components/dashboard/StatCard.tsx**
-36. Generate **src/components/dashboard/ChartWidget.tsx**
+32. Generate **src/components/workflows/WorkflowButton.tsx** - Individual workflow action button
+33. Generate **src/components/workflows/WorkflowDialog.tsx** - Workflow execution dialog with dynamic form
+34. Generate **src/components/workflows/WorkflowContainer.tsx** - Container that manages workflow buttons for a page
+35. Generate **src/components/dashboard/Dashboard.tsx** - MUST include:
+   * Toggleable sidebar (hamburger icon, localStorage state)
+   * **Workflow Quick Actions section** - Grid of workflow cards
+   * Stat cards with icons
+   * Charts and visualizations
+36. Generate **src/components/dashboard/StatCard.tsx**
+37. Generate **src/components/dashboard/ChartWidget.tsx**
+38. Generate **src/components/dashboard/WorkflowQuickAction.tsx** - Workflow card for dashboard quick actions
 
 ## Phase 10: Core Application
-37. Generate **src/App.tsx** - Routing with spec-driven navigation
+39. Generate **src/App.tsx** - Routing with spec-driven navigation
    - Routes: \`/:modelName/:entityName\`, \`/:modelName/:entityName/:id\`
    - Agent routes: \`/agents\`, \`/agents/:agentName\`
    - Include WorkflowContainer on entity pages
-38. Generate **src/main.tsx** - Entry point
-39. Generate **src/index.css** - Global styles with branding colors from spec
-40. Generate **src/utils/validation.ts** - Validation utilities
-41. Generate **src/utils/routeParser.ts** - Route parsing utilities
+   - **CRITICAL**: Include <ChatbotBubble /> in the main layout (available on ALL pages)
+40. Generate **src/main.tsx** - Entry point
+41. Generate **src/index.css** - Global styles with branding colors from spec
+   * Include styles for ChatbotBubble (floating, animation)
+   * Include styles for toggleable sidebar
+   * Modern, polished aesthetic
+42. Generate **src/utils/validation.ts** - Validation utilities
+43. Generate **src/utils/routeParser.ts** - Route parsing utilities
 
 ## Phase 11: Documentation
-42. Generate **README.md** - Setup instructions, backend configuration, feature list
+44. Generate **README.md** - Setup instructions, backend configuration, feature list
 
 ## IMPORTANT REMINDERS:
 - **Start with specParser.ts and workflowParser.ts** - Everything else depends on them
@@ -2095,6 +2241,204 @@ Follow this order for generation:
 - [ ] Typography is consistent
 
 ⚠️ **IF ANY OF THESE ARE MISSING, STOP AND FIX BEFORE PROCEEDING**
+
+# POLISH & MINIMALISM GUIDELINES (PRODUCTION-READY UI)
+
+⚠️ **CRITICAL**: The generated UI must be polished, professional, and deployment-ready. Follow these guidelines:
+
+## 1. Visual Polish & Professional Appearance
+
+### Clean, Modern Aesthetic
+- **Whitespace**: Use generous whitespace between sections (24-32px)
+- **Borders**: Subtle borders (1px solid #e5e7eb) or shadows instead of heavy lines
+- **Corners**: Consistent border-radius (8px for cards, 6px for buttons, 4px for inputs)
+- **Shadows**: Subtle shadows for depth
+  * Cards: \`0 1px 3px 0 rgba(0, 0, 0, 0.1)\`
+  * Hover: \`0 4px 6px -1px rgba(0, 0, 0, 0.1)\`
+  * Modals: \`0 20px 25px -5px rgba(0, 0, 0, 0.1)\`
+- **Colors**: Use a limited, consistent color palette
+  * Primary action: #3b82f6 (blue)
+  * Success: #10b981 (green)
+  * Danger: #ef4444 (red)
+  * Neutral: #6b7280 (gray)
+  * Background: #f9fafb (light gray)
+
+### Typography Excellence
+- **Font Stack**: System fonts for speed and consistency
+  * \`font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif\`
+- **Hierarchy**: Clear size distinctions
+  * h1: 32px/2rem (page titles)
+  * h2: 24px/1.5rem (section titles)
+  * h3: 20px/1.25rem (card titles)
+  * body: 16px/1rem (content)
+  * small: 14px/0.875rem (meta info)
+- **Readability**:
+  * Line height: 1.5 for body text
+  * Max width: 65-75 characters per line for reading
+  * Contrast: WCAG AA compliant (4.5:1 for normal text)
+
+### Smooth Interactions
+- **Transitions**: All interactive elements have smooth transitions
+  * Buttons: \`transition: all 0.2s ease\`
+  * Hover effects: Background color, transform (scale), shadow changes
+  * Page transitions: Fade in/out
+- **Loading States**:
+  * Skeleton screens for content loading (not just spinners)
+  * Disable + show spinner on button during submit
+  * Progress indicators for multi-step processes
+- **Animations**:
+  * Subtle, purposeful animations (not distracting)
+  * Modal fade in/slide up
+  * Toast notifications slide in from top-right
+  * List items fade in when loaded
+
+## 2. Minimalism & Clutter Reduction
+
+### NO Unnecessary Elements
+- **One Primary Action**: Each section should have max ONE primary button
+- **Remove Redundant Features**:
+  * Don't show "Export", "Print", "Share" buttons unless explicitly in spec
+  * Don't add extra toolbar buttons "just in case"
+  * Don't create unnecessary tabs or navigation items
+- **Hide Advanced Features**: Put advanced/rarely-used features in dropdowns or "More" menus
+- **Progressive Disclosure**: Show simple interface first, reveal complexity when needed
+
+### Clean Table/List Interfaces
+- **Essential Columns Only**: Show 4-6 most important columns by default
+- **Actions**: Use icon buttons (not text) for row actions (view, edit, delete)
+- **Bulk Actions**: Only show when rows are selected (not always visible)
+- **Filters**: Collapse advanced filters into a "Filters" button/panel
+
+### Form Simplicity
+- **Group Related Fields**: Use fieldsets or visual grouping
+- **One Column**: Default to single-column forms (easier to scan)
+- **Smart Defaults**: Pre-fill fields when possible
+- **Inline Validation**: Show errors only after field blur, not while typing
+- **Help Text**: Use placeholder text, tooltips, or help icons (not always-visible text blocks)
+
+## 3. Consistency Everywhere
+
+### Component Reuse
+- **Build Once, Use Everywhere**: Create reusable components (Button, Input, Card, etc.)
+- **Same Spacing**: Use consistent spacing scale everywhere (4, 8, 12, 16, 24, 32px)
+- **Same Colors**: Don't introduce random colors - stick to the palette
+- **Same Patterns**: If one table has search at top-right, ALL tables should
+
+### Predictable Behavior
+- **Navigation**: Same navigation structure on every page
+- **Action Placement**: Actions in same places (tables: create button top-right, cards: actions bottom-right)
+- **Feedback**: Same success/error messages and toast positions
+- **Loading**: Same loading indicators and skeleton screens
+
+### Icon Usage
+- **Consistent Icon Set**: Use ONLY Iconify icons from Material Design Icons (mdi)
+- **Consistent Size**: 20px for buttons, 24px for feature icons, 16px for inline icons
+- **Meaningful Icons**: Use widely-understood icons
+  * Create: mdi:plus
+  * Edit: mdi:pencil
+  * Delete: mdi:delete
+  * Search: mdi:magnify
+  * Filter: mdi:filter-variant
+  * Menu: mdi:menu
+  * Close: mdi:close
+  * Check: mdi:check
+  * Alert: mdi:alert-circle
+
+## 4. Mobile Responsiveness (Critical)
+
+### Mobile-First Approach
+- **Touch Targets**: Min 44px height for buttons/links
+- **Readable Text**: Min 16px font size (prevents zoom on iOS)
+- **Thumb-Friendly**: Important actions within reach (bottom of screen)
+- **Simplified Layout**: Reduce columns, hide less important info on mobile
+
+### Responsive Patterns
+- **Tables**: Convert to card list on mobile (< 768px)
+- **Sidebars**: Overlay on mobile, don't reduce content width
+- **Forms**: Full-width inputs on mobile
+- **Modals**: Full-screen on mobile
+- **Navigation**: Hamburger menu on mobile
+
+## 5. Deployment-Ready Checklist
+
+### Code Quality
+- **No Console Errors**: Clean browser console
+- **TypeScript**: No type errors
+- **Linting**: No linting errors
+- **Build**: \`npm run build\` succeeds without warnings
+
+### User Experience
+- **Fast Load**: Initial page load < 3 seconds
+- **Smooth Scroll**: No jank or lag
+- **Error Handling**: All errors caught and displayed to user
+- **Empty States**: All lists/tables have empty state messages
+- **Loading States**: All async operations show loading UI
+- **Success Feedback**: Actions show success toasts/messages
+
+### Accessibility
+- **Keyboard Navigation**: All interactive elements keyboard-accessible
+- **ARIA Labels**: Proper ARIA labels on icons and buttons
+- **Focus States**: Visible focus indicators
+- **Contrast**: Meet WCAG AA contrast requirements
+
+### Content
+- **No Lorem Ipsum**: Use realistic placeholder content
+- **No Broken Images**: All images have alt text and fallbacks
+- **No Dead Links**: All navigation works
+- **Helpful Messages**: Clear, actionable error messages
+
+## 6. Component-Specific Polish
+
+### Buttons
+- ✅ Proper hover states (background darken, slight shadow)
+- ✅ Active/pressed state (slight scale down)
+- ✅ Disabled state (reduced opacity, no pointer)
+- ✅ Loading state (spinner + "Loading..." text, disabled)
+- ✅ Icons properly aligned with text
+
+### Inputs
+- ✅ Focus state (blue border, subtle shadow)
+- ✅ Error state (red border, error message below)
+- ✅ Disabled state (gray background, no pointer)
+- ✅ Placeholder text (helpful, not generic)
+- ✅ Clear/reset button for search inputs
+
+### Tables
+- ✅ Hover state on rows (light gray background)
+- ✅ Selected state (blue background)
+- ✅ Sorting indicators (arrows)
+- ✅ Loading skeleton while fetching
+- ✅ Empty state with helpful message
+- ✅ Pagination with page numbers (not just prev/next)
+
+### Modals/Dialogs
+- ✅ Smooth fade-in animation
+- ✅ Backdrop blur or darken
+- ✅ Click outside to close (with confirmation if form has data)
+- ✅ Escape key to close
+- ✅ Focus trap (tab stays within modal)
+- ✅ Scroll lock on body when modal open
+
+### Toasts/Notifications
+- ✅ Slide in from top-right
+- ✅ Auto-dismiss after 5 seconds (info/success), manual dismiss for errors
+- ✅ Stacking (multiple toasts stack vertically)
+- ✅ Icons for success/error/warning/info
+- ✅ Action buttons if needed ("Undo", "View Details")
+
+⚠️ **FINAL VALIDATION**: Before considering generation complete:
+1. View each page and verify it looks polished and professional
+2. Test on mobile viewport (< 768px)
+3. Check all interactions (buttons, forms, modals)
+4. Verify no console errors
+5. Confirm \`npm run build\` succeeds
+6. Check that the app looks ready for production deployment
+
+**Remember**:
+- **Quality over Quantity**: Better to have fewer, well-polished features than many half-finished ones
+- **Minimalism**: When in doubt, leave it out. Add only what's necessary.
+- **Consistency**: Every page should feel like part of the same app
+- **Professional**: The UI should look like a commercial SaaS product
 
 **Additionally, try running the `npm run dev` or run a typecheck to verify it works properly**
 
