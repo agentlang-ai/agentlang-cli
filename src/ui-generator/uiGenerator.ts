@@ -706,6 +706,219 @@ This generator follows a strict **React + Vite + TypeScript** template conventio
 - **date-fns** for date operations
 - **Axios** for HTTP requests
 
+# UI LAYOUT BEST PRACTICES (CRITICAL - ALWAYS FOLLOW)
+Basically, when you create Entity based tables and cards and headers with Edit and Delete buttons, etc.
+These need to be followed.
+For other pages, dashboard, sign up, etc. use a proper industry standard layout.
+Create proper dashboard and sign in sign up pages and good logout flow.
+
+## 1. BUTTON PLACEMENT & STYLING
+
+### Card Layouts - Action Buttons
+When buttons appear on card components:
+- **ALWAYS align buttons to the RIGHT** at the bottom of the card
+- Use flexbox with \`justify-content: flex-end\`
+- Maintain consistent spacing: \`gap: 0.75rem\` (12px) between buttons
+- Position buttons in a horizontal row using \`flex-direction: row\`
+- Add top margin/padding: \`mt-4\` or \`padding-top: 1rem\` to separate from content
+
+**Example CSS Pattern:**
+\`\`\`css
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb; /* Optional separator */
+}
+\`\`\`
+
+### Form Buttons
+- Submit/Save buttons: RIGHT aligned, primary style
+- Cancel/Back buttons: positioned LEFT of submit button
+- Destructive actions (Delete): use danger/red styling, positioned separately or with confirmation
+- Button order (left to right): Secondary/Cancel → Primary/Submit
+
+### List/Table Header Buttons
+- Create/Add buttons: RIGHT aligned in header section
+- Bulk action buttons: LEFT aligned or contextual to selection
+- Filter/Search toggles: RIGHT aligned near Create button
+
+## 2. TABLE REQUIREMENTS (MANDATORY)
+
+⚠️ **EVERY TABLE MUST HAVE**:
+
+### Global Search/Filter (REQUIRED)
+- **Position**: Top-right of table header, above the table grid
+- **Placeholder**: "Search..." or "Filter {entity}..."
+- **Functionality**: Filter across ALL visible columns in real-time
+- **Styling**: Input with search icon, min-width: 250px
+- **Debouncing**: 300ms delay for performance
+
+**Implementation Pattern:**
+\`\`\`tsx
+<div className="table-header">
+  <div className="table-title">
+    <h2>Entity List</h2>
+  </div>
+  <div className="table-actions">
+    <input
+      type="text"
+      placeholder="Search..."
+      className="global-filter"
+      onChange={(e) => setGlobalFilter(e.target.value)}
+    />
+    <button className="btn-create">+ Create</button>
+  </div>
+</div>
+\`\`\`
+
+### Column Filters (RECOMMENDED)
+- Add filter inputs in column headers for filterable columns
+- Use appropriate input types: text, select, date range
+- Clear filter button when filter is active
+
+### Pagination (REQUIRED for >25 rows)
+- **Position**: Bottom-right of table
+- **Controls**: First, Prev, Page Numbers, Next, Last
+- **Page Size Selector**: 10, 25, 50, 100 options (default: 25)
+- **Info Display**: "Showing X-Y of Z entries"
+
+### Sorting (REQUIRED)
+- Clickable column headers with sort indicators (↑↓)
+- Multi-column sorting support (hold Shift)
+- Default sort: Usually by name or created date
+
+### Row Selection (RECOMMENDED)
+- Checkbox in first column for multi-select
+- Select All checkbox in header
+- Show selected count and bulk actions when rows selected
+
+## 3. CARD LAYOUTS & STRUCTURE
+
+### Summary Cards (Entity Details)
+\`\`\`
+┌─────────────────────────────────────┐
+│ Card Header (Title, Icon)           │
+│─────────────────────────────────────│
+│ Field Grid (2-3 columns)            │
+│   Label: Value  Label: Value        │
+│   Label: Value  Label: Value        │
+│─────────────────────────────────────│
+│           [Cancel]  [Edit] [Delete] │ ← RIGHT ALIGNED
+└─────────────────────────────────────┘
+\`\`\`
+
+**CSS Guidelines:**
+- **Grid Layout**: \`grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))\`
+- **Field Spacing**: \`gap: 1rem\` for grid items
+- **Label Style**: Bold, smaller font, muted color
+- **Value Style**: Regular weight, primary color
+- **Card Padding**: \`padding: 1.5rem\`
+- **Card Border**: \`border: 1px solid #e5e7eb\`, \`border-radius: 0.5rem\`
+
+### Dashboard Stat Cards
+- **Layout**: Horizontal flex or grid (typically 4 per row)
+- **Content Order**: Icon/Visual → Stat Number → Label → Trend/Change
+- **Spacing**: \`gap: 1.5rem\` between cards
+- **Responsive**: Stack on mobile (< 768px)
+
+## 4. FORM LAYOUTS
+
+### Field Structure
+- **Label Position**: Above input (vertical layout)
+- **Required Indicator**: Red asterisk (*) after label
+- **Input Width**: Full width of container, \`max-width: 500px\` for long forms
+- **Spacing**: \`margin-bottom: 1.25rem\` between fields
+- **Error Messages**: Below input, red color, small font
+
+### Form Actions (Submit Bar)
+\`\`\`
+┌─────────────────────────────────────┐
+│ Form Fields...                      │
+│                                     │
+│─────────────────────────────────────│
+│                    [Cancel] [Submit]│ ← RIGHT ALIGNED
+└─────────────────────────────────────┘
+\`\`\`
+
+- **Position**: Bottom of form, sticky on scroll for long forms
+- **Alignment**: RIGHT for submit, with cancel to its left
+- **Spacing**: \`gap: 0.75rem\`, \`padding: 1rem\`
+- **Separator**: \`border-top: 1px solid #e5e7eb\`
+
+## 5. SPACING & VISUAL HIERARCHY
+
+### Consistent Spacing Scale
+Use Tailwind spacing or equivalent:
+- **xs**: 0.25rem (4px) - Tight spacing, inline elements
+- **sm**: 0.5rem (8px) - Small gaps
+- **base**: 0.75rem (12px) - Standard button/tag spacing
+- **md**: 1rem (16px) - Standard padding/margin
+- **lg**: 1.5rem (24px) - Section spacing
+- **xl**: 2rem (32px) - Major section breaks
+
+### Container Widths
+- **Full-width sections**: Tables, lists
+- **Constrained content**: \`max-width: 1200px\` for detail views
+- **Forms**: \`max-width: 600px\` for single-column forms
+- **Modals/Dialogs**: \`max-width: 500px\` for small, \`800px\` for large
+
+## 6. COLOR & TYPOGRAPHY CONVENTIONS
+
+### Button Styles
+- **Primary**: Brand color (blue), white text, used for main actions
+- **Secondary**: Gray background, dark text, used for cancel/alternative
+- **Danger**: Red background, white text, used for delete/destructive
+- **Ghost**: Transparent background, colored text and border
+
+### Status Colors
+- **Success**: Green (#10b981)
+- **Warning**: Yellow/Orange (#f59e0b)
+- **Error**: Red (#ef4444)
+- **Info**: Blue (#3b82f6)
+- **Neutral**: Gray (#6b7280)
+
+### Typography Scale
+- **Page Title (h1)**: 2rem (32px), bold
+- **Section Title (h2)**: 1.5rem (24px), semi-bold
+- **Card Title (h3)**: 1.25rem (20px), semi-bold
+- **Body**: 1rem (16px), regular
+- **Small/Meta**: 0.875rem (14px), regular
+- **Labels**: 0.875rem (14px), medium weight
+
+## 7. RESPONSIVE DESIGN RULES
+
+### Breakpoints
+- **Mobile**: < 768px
+- **Tablet**: 768px - 1024px
+- **Desktop**: > 1024px
+
+### Responsive Patterns
+- **Tables**: Horizontal scroll on mobile, OR convert to card list
+- **Buttons**: Full width on mobile, auto width on desktop
+- **Grids**: Single column on mobile, multi-column on desktop
+- **Navigation**: Hamburger menu on mobile, sidebar on desktop
+
+## 8. COMPONENT CONSISTENCY CHECKLIST
+
+Before generating ANY component, verify:
+- [ ] Buttons are RIGHT aligned in cards and forms
+- [ ] Tables have global search filter at top-right
+- [ ] Tables have pagination for >25 rows
+- [ ] Tables have sortable columns
+- [ ] Card action buttons have proper spacing (gap: 0.75rem)
+- [ ] Forms have labels above inputs
+- [ ] Error states are handled and displayed
+- [ ] Loading states are shown during async operations
+- [ ] Spacing follows the consistent scale
+- [ ] Colors match the defined palette
+- [ ] Component is responsive (mobile-friendly)
+
+⚠️ **VALIDATION**: After generating each component, review against this checklist. If any item is missing, regenerate the component with corrections.
+
 ## Project Structure Convention:
 \`\`\`
 project-root/
@@ -908,6 +1121,14 @@ References to header, summary, and related entity tables:
 }
 \`\`\`
 
+⚠️ **CRITICAL TABLE REQUIREMENTS** (Even if not in spec):
+- **\`showGlobalFilter\` defaults to TRUE** - ALWAYS implement global search
+- **\`pagination.enabled\` defaults to TRUE** - ALWAYS implement pagination for tables with >10 rows
+- **\`sorting.enabled\` defaults to TRUE** - ALWAYS make columns sortable
+- If spec omits these fields, ASSUME they are required and implement them
+- Global filter must be positioned at TOP-RIGHT of table header
+- Pagination controls must be at BOTTOM-RIGHT of table
+
 ### Instance Summary: \`<Entity>.ui.instance.summary\`
 \`\`\`json
 {
@@ -923,6 +1144,13 @@ References to header, summary, and related entity tables:
   }
 }
 \`\`\`
+
+⚠️ **CRITICAL CARD & BUTTON REQUIREMENTS** (Always enforce):
+- **Action buttons (edit, delete, etc.) MUST be RIGHT-ALIGNED** at bottom of card
+- Use flexbox: \`display: flex; justify-content: flex-end; gap: 0.75rem\`
+- Add separator: \`border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem\`
+- Button order: Least destructive (Cancel) → Most important (Save/Submit)
+- Destructive actions (Delete) should have red/danger styling and confirmation dialogs
 
 ## 3. Relationships Array
 
@@ -1511,10 +1739,23 @@ Generate a COMPLETE, production-ready web application with ALL the following:
      * Detects component type from spec.view keys (Heading, Table, Card, etc.)
      * Renders appropriate Dynamic* component
    - **DynamicHeading.tsx** - Renders heading from \`view.Heading\` spec
-   - **DynamicTable.tsx** - Full-featured table with pagination, sorting, filtering, row/bulk actions
-   - **DynamicCard.tsx** - Grid layout card for instance summaries
-   - **DynamicForm.tsx** - Form builder with Formik integration and input type mapping
-   - **DynamicButton.tsx** - Action button renderer with icon and action handling
+   - **DynamicTable.tsx** - Full-featured table with:
+     * **REQUIRED**: Global search filter (top-right, 250px min-width, search icon)
+     * **REQUIRED**: Pagination (bottom-right, default 25 per page, page size selector)
+     * **REQUIRED**: Sortable columns with visual indicators (↑↓)
+     * **REQUIRED**: Proper table header layout - title LEFT, actions/search RIGHT
+     * Optional: Column filters, row selection, bulk actions
+   - **DynamicCard.tsx** - Grid layout card for instance summaries with:
+     * **REQUIRED**: Action buttons RIGHT-ALIGNED at bottom with separator
+     * **REQUIRED**: Button spacing (gap: 0.75rem) and proper ordering
+     * Grid layout for fields (2-3 columns based on spec)
+     * Label/value styling (label: bold, muted; value: regular, primary)
+   - **DynamicForm.tsx** - Form builder with:
+     * **REQUIRED**: Labels above inputs, required indicators (*)
+     * **REQUIRED**: Form actions RIGHT-ALIGNED at bottom (Cancel left of Submit)
+     * Formik integration and input type mapping
+     * Error messages below inputs, proper spacing
+   - **DynamicButton.tsx** - Action button renderer with icon and styling support
 
 ✅ **Enhanced EntityDetail**: Make \`EntityDetail.tsx\` spec-driven:
    - Read \`spec["<Entity>.ui.instance"]\` array
@@ -1703,6 +1944,159 @@ Follow this order for generation:
 - **Agent backend integration** - Agent chat calls backend, backend handles LLM
 - **Apply branding** - Use colors from spec.branding in CSS
 - **Port 3000** - Configure Vite dev server to use port 3000
+
+# SENSIBLE DEFAULTS - ALWAYS APPLY THESE (CRITICAL!)
+
+⚠️ **THESE DEFAULTS MUST BE APPLIED EVEN IF NOT EXPLICITLY MENTIONED IN THE SPEC**
+
+## Table Defaults (Apply to ALL tables)
+1. **Global Search Filter**: ALWAYS add global search filter at top-right
+   - Position: Top-right corner of table header
+   - Width: min-width 250px
+   - Icon: Search icon (mdi:magnify)
+   - Placeholder: "Search..." or "Filter {EntityName}..."
+   - Debounce: 300ms
+
+2. **Pagination**: ALWAYS add pagination if table has >10 rows
+   - Position: Bottom-right of table
+   - Default page size: 25
+   - Page size options: [10, 25, 50, 100]
+   - Show: "Showing X-Y of Z entries"
+
+3. **Sorting**: ALWAYS make columns sortable
+   - Add sort indicators (↑↓) to column headers
+   - Default sort: Usually by \`name\` or first text field
+   - Make headers clickable
+
+4. **Table Header Layout**:
+   - Title/heading: LEFT aligned
+   - Actions (Create button, Search filter): RIGHT aligned
+   - Use flexbox: \`display: flex; justify-content: space-between\`
+
+## Card Defaults (Apply to ALL cards)
+1. **Button Placement**: ALWAYS align action buttons RIGHT
+   - CSS: \`display: flex; justify-content: flex-end; gap: 0.75rem\`
+   - Add separator: \`border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 1rem\`
+
+2. **Button Order** (left to right):
+   - Least destructive first (Cancel, Back)
+   - Most important last (Save, Submit)
+   - Destructive separately (Delete with red styling)
+
+3. **Field Layout**:
+   - Grid layout: 2-3 columns
+   - CSS: \`display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem\`
+
+4. **Label/Value Styling**:
+   - Labels: Bold, 14px, muted color (#6b7280)
+   - Values: Regular, 16px, primary color (#1f2937)
+
+## Form Defaults (Apply to ALL forms)
+1. **Field Layout**:
+   - Labels: ALWAYS above inputs (vertical layout)
+   - Required indicator: Red asterisk (*) after label
+   - Spacing: 1.25rem between fields
+
+2. **Form Actions**:
+   - Position: Bottom of form, RIGHT aligned
+   - Button order: Cancel (left) → Submit (right)
+   - Spacing: gap 0.75rem between buttons
+   - Add separator: \`border-top: 1px solid #e5e7eb\`
+
+3. **Error Messages**:
+   - Position: Below input field
+   - Color: Red (#ef4444)
+   - Font size: 14px
+   - Margin top: 0.25rem
+
+## Button Defaults (Apply to ALL buttons)
+1. **Styling by Type**:
+   - Primary: Blue background, white text
+   - Secondary: Gray background, dark text
+   - Danger: Red background, white text
+   - Ghost: Transparent, border, colored text
+
+2. **Spacing**:
+   - Between buttons: gap 0.75rem (12px)
+   - Padding: 0.5rem 1rem (8px 16px)
+   - Border radius: 0.375rem (6px)
+
+3. **Icons**:
+   - Use Iconify icons
+   - Position: Left of text
+   - Size: 20px
+   - Margin right: 0.5rem
+
+## Layout Defaults
+1. **Spacing Scale** (use consistently):
+   - xs: 4px, sm: 8px, base: 12px, md: 16px, lg: 24px, xl: 32px
+
+2. **Container Widths**:
+   - Full-width: Tables, lists
+   - Constrained: max-width 1200px for detail views
+   - Forms: max-width 600px
+
+3. **Responsive Breakpoints**:
+   - Mobile: < 768px (single column, full-width buttons)
+   - Tablet: 768-1024px
+   - Desktop: > 1024px
+
+## Visual Consistency Defaults
+1. **Colors**:
+   - Primary: #3b82f6 (blue)
+   - Success: #10b981 (green)
+   - Warning: #f59e0b (orange)
+   - Error: #ef4444 (red)
+   - Neutral: #6b7280 (gray)
+
+2. **Typography**:
+   - h1: 32px bold
+   - h2: 24px semi-bold
+   - h3: 20px semi-bold
+   - body: 16px regular
+   - small: 14px regular
+
+3. **Borders**:
+   - Default: 1px solid #e5e7eb
+   - Radius: 0.5rem (8px) for cards, 0.375rem (6px) for buttons
+
+4. **Shadows**:
+   - Card: 0 1px 3px 0 rgb(0 0 0 / 0.1)
+   - Hover: 0 4px 6px -1px rgb(0 0 0 / 0.1)
+
+## Loading & Error States (ALWAYS implement)
+1. **Loading States**:
+   - Show spinner during data fetching
+   - Disable buttons during submission
+   - Show "Loading..." text
+
+2. **Error States**:
+   - Show error message in red
+   - Keep form values on error
+   - Highlight invalid fields
+
+3. **Empty States**:
+   - Show helpful message when no data
+   - Suggest actions ("Create your first...")
+   - Use appropriate icon
+
+## Validation CHECKLIST (before generating EACH component):
+- [ ] Tables have global search at top-right
+- [ ] Tables have pagination at bottom-right
+- [ ] Tables have sortable columns
+- [ ] Card buttons are right-aligned with separator
+- [ ] Form actions are right-aligned
+- [ ] Form labels are above inputs
+- [ ] Proper spacing throughout (using scale)
+- [ ] Loading states implemented
+- [ ] Error states implemented
+- [ ] Responsive on mobile
+- [ ] Colors match palette
+- [ ] Typography is consistent
+
+⚠️ **IF ANY OF THESE ARE MISSING, STOP AND FIX BEFORE PROCEEDING**
+
+**Additionally, try running the `npm run dev` or run a typecheck to verify it works properly**
 
 START NOW! Generate the complete application following this exact process.`;
 }
