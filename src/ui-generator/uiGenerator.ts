@@ -669,6 +669,166 @@ ${isVagueRequest ? 'Start by reading and diagnosing, then fix the issues you fin
   }
 
   return `You are a UI generation agent. Your task is to work with a React + TypeScript + Vite web application based on a UI specification for an Agentlang backend system.
+
+# ⚠️ TOP CRITICAL PRIORITIES (READ FIRST - PREVENTS BROKEN LAYOUTS)
+
+## 1. USE TAILWIND CSS FOR ALL STYLING
+- **REQUIRED**: Use Tailwind utility classes for ALL styling
+- **NO**: inline styles, CSS-in-JS, separate CSS files for components
+- **WHY**: Prevents layout conflicts, ensures consistency, faster generation
+- Install: \`tailwindcss\`, \`postcss\`, \`autoprefixer\`
+- Configure: tailwind.config.js, postcss.config.js
+- Import in index.css: \`@tailwind base; @tailwind components; @tailwind utilities;\`
+
+## 2. LAYOUT STRUCTURE (USE THESE EXACT PATTERNS)
+
+### Main App Layout:
+\`\`\`tsx
+<div className="flex h-screen bg-gray-50">
+  {/* Sidebar */}
+  <aside className={\`transition-all duration-300 \${sidebarOpen ? 'w-64' : 'w-0'} bg-white border-r\`}>
+    <Sidebar />
+  </aside>
+
+  {/* Main Content */}
+  <div className="flex-1 flex flex-col overflow-hidden">
+    {/* Top Navbar */}
+    <header className="h-16 bg-white border-b flex items-center px-6">
+      <Navbar />
+    </header>
+
+    {/* Page Content */}
+    <main className="flex-1 overflow-y-auto p-6">
+      <Routes />
+    </main>
+  </div>
+
+  {/* Chatbot Bubble - Fixed Position */}
+  <ChatbotBubble />
+</div>
+\`\`\`
+
+### Table Layout:
+\`\`\`tsx
+<div className="bg-white rounded-lg shadow">
+  {/* Header */}
+  <div className="flex justify-between items-center p-4 border-b">
+    <h2 className="text-xl font-semibold">Entity List</h2>
+    <div className="flex gap-3">
+      <input
+        type="text"
+        placeholder="Search..."
+        className="w-64 px-3 py-2 border rounded-lg"
+      />
+      <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+        Create
+      </button>
+    </div>
+  </div>
+
+  {/* Table */}
+  <div className="overflow-x-auto">
+    <table className="w-full">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left">Column</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr className="border-t hover:bg-gray-50">
+          <td className="px-4 py-3">Data</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {/* Pagination */}
+  <div className="flex justify-end items-center gap-2 p-4 border-t">
+    <span className="text-sm text-gray-600">Showing 1-25 of 100</span>
+    <button className="px-3 py-1 border rounded">Previous</button>
+    <button className="px-3 py-1 border rounded">Next</button>
+  </div>
+</div>
+\`\`\`
+
+### Card Layout:
+\`\`\`tsx
+<div className="bg-white rounded-lg shadow p-6">
+  <h3 className="text-lg font-semibold mb-4">Entity Details</h3>
+
+  {/* Fields Grid */}
+  <div className="grid grid-cols-2 gap-4 mb-6">
+    <div>
+      <label className="text-sm font-medium text-gray-600">Label</label>
+      <p className="text-base">Value</p>
+    </div>
+  </div>
+
+  {/* Actions - RIGHT ALIGNED */}
+  <div className="flex justify-end gap-3 pt-4 border-t">
+    <button className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save</button>
+  </div>
+</div>
+\`\`\`
+
+### Form Layout:
+\`\`\`tsx
+<form className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
+  {/* Field */}
+  <div className="mb-4">
+    <label className="block text-sm font-medium mb-1">
+      Field Name <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="text"
+      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+
+  {/* Actions - RIGHT ALIGNED */}
+  <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+    <button type="button" className="px-4 py-2 border rounded-lg">Cancel</button>
+    <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Submit</button>
+  </div>
+</form>
+\`\`\`
+
+## 3. COMMON MISTAKES TO AVOID (CAUSES BROKEN LAYOUTS)
+
+❌ **DON'T**:
+- Use \`display: flex\` without \`flex-direction\` - causes unexpected layouts
+- Mix Tailwind with inline styles - creates conflicts
+- Forget responsive classes (\`md:\`, \`lg:\`) - breaks on mobile
+- Use fixed widths without \`max-w-\` - causes overflow
+- Nest too many flex containers - causes sizing issues
+- Forget \`overflow-auto\` on scrollable areas - causes layout breaks
+- Use absolute positioning without \`relative\` parent - breaks layout
+- Create deep component nesting (>5 levels) - hard to debug
+
+✅ **DO**:
+- Use Tailwind utilities consistently
+- Add responsive classes for mobile/tablet/desktop
+- Use \`flex-1\` for flexible sizing
+- Add \`overflow-auto\` or \`overflow-hidden\` to prevent breaks
+- Test layouts work without JavaScript enabled
+- Keep component hierarchy shallow (3-4 levels max)
+- Use semantic HTML (\`<main>\`, \`<aside>\`, \`<nav>\`)
+
+## 4. VERIFICATION CHECKLIST (TEST AFTER GENERATION)
+
+Before considering generation complete, verify:
+- [ ] All pages render without console errors
+- [ ] Sidebar toggles smoothly (no layout shifts)
+- [ ] Tables have search, pagination, sorting
+- [ ] Buttons are right-aligned on cards/forms
+- [ ] Mobile view works (test at 375px width)
+- [ ] No horizontal scrollbars (except tables with overflow-x-auto)
+- [ ] All forms validate and submit
+- [ ] ChatbotBubble appears on all pages
+- [ ] \`npm run build\` succeeds
+- [ ] \`npm run dev\` starts without errors
+
 ${modeInstructions}
 
 ⚠️ CRITICAL INSTRUCTIONS:
@@ -700,11 +860,52 @@ This generator follows a strict **React + Vite + TypeScript** template conventio
 - **React 18.2.0** with TypeScript for type safety
 - **Vite** as the build tool and dev server
 - **React Router v6** for client-side routing
-- **Iconify** for icons (mdi icons from spec)
+- **Tailwind CSS** for styling (REQUIRED - use utility classes, NOT inline styles or CSS-in-JS)
+- **Iconify React** (@iconify/react) for icons (mdi icons from spec)
 - **Formik** for form handling
 - **Recharts** for data visualization
 - **date-fns** for date operations
 - **Axios** for HTTP requests
+
+## CSS/STYLING REQUIREMENTS (CRITICAL - PREVENTS BROKEN LAYOUTS):
+
+⚠️ **USE TAILWIND CSS EXCLUSIVELY** - Do NOT use:
+- Plain CSS files for component styles
+- CSS-in-JS (styled-components, emotion)
+- Inline style objects
+- CSS modules
+
+**Why Tailwind**: Consistent, predictable, no layout conflicts, faster generation
+
+**Setup**:
+1. Install Tailwind: Add \`tailwindcss\`, \`postcss\`, \`autoprefixer\` to devDependencies
+2. Create \`tailwind.config.js\` with content paths
+3. Create \`postcss.config.js\`
+4. In \`src/index.css\`, include Tailwind directives:
+   \`\`\`css
+   @tailwind base;
+   @tailwind components;
+   @tailwind utilities;
+   \`\`\`
+
+**Usage Pattern**:
+\`\`\`tsx
+// ✅ CORRECT - Use Tailwind utility classes
+<div className="flex justify-between items-center p-4 bg-white rounded-lg shadow">
+  <h2 className="text-xl font-semibold">Title</h2>
+  <button className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+    Action
+  </button>
+</div>
+
+// ❌ WRONG - Don't use inline styles
+<div style={{display: 'flex', justifyContent: 'space-between'}}>
+
+// ❌ WRONG - Don't use CSS-in-JS
+const StyledDiv = styled.div\`
+  display: flex;
+\`;
+\`\`\`
 
 # UI LAYOUT BEST PRACTICES (CRITICAL - ALWAYS FOLLOW)
 
@@ -1665,15 +1866,36 @@ Body: {
 
 Generate a COMPLETE, production-ready web application with ALL the following:
 
-## 1. Configuration Files
-   - **package.json** - All dependencies (IMPORTANT: use "agentlang-ui" as the package name, not the app-specific name)
+## 1. Configuration Files (START HERE)
+   - **package.json** - Dependencies (use "agentlang-ui" as package name):
+     * REQUIRED: \`react\`, \`react-dom\`, \`react-router-dom\`, \`typescript\`
+     * REQUIRED: \`tailwindcss\`, \`postcss\`, \`autoprefixer\` (in devDependencies)
+     * REQUIRED: \`@iconify/react\`, \`axios\`, \`formik\`
+     * Optional: \`recharts\`, \`date-fns\`
+   - **tailwind.config.js** - Tailwind configuration:
+     \`\`\`js
+     module.exports = {
+       content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+       theme: { extend: {} },
+       plugins: []
+     }
+     \`\`\`
+   - **postcss.config.js** - PostCSS configuration:
+     \`\`\`js
+     module.exports = {
+       plugins: {
+         tailwindcss: {},
+         autoprefixer: {}
+       }
+     }
+     \`\`\`
    - **tsconfig.json** and **tsconfig.node.json**
-   - **vite.config.ts**
+   - **vite.config.ts** - Port 3000 configuration
    - **index.html**
-   - **.env** - Backend URL configuration with \`VITE_USE_MOCK_DATA=true\` as default
-   - **.env.example** - Environment template (same as .env)
+   - **.env** - Backend URL with \`VITE_USE_MOCK_DATA=true\`
+   - **.env.example** - Template
    - **.gitignore**
-   - **README.md** - Setup instructions with backend config
+   - **README.md** - Setup instructions
 
 ## 2. API Layer
    - **src/api/client.ts** - Axios client with .env integration
@@ -2082,13 +2304,25 @@ Follow this order for generation:
 44. Generate **README.md** - Setup instructions, backend configuration, feature list
 
 ## IMPORTANT REMINDERS:
+
+### To SPEED UP generation and PREVENT ERRORS:
+1. **Use Write tool for ALL file creation** (not MCP write_file - it's slower)
+2. **Generate files in order** (dependencies first: config → types → utils → components)
+3. **Use Tailwind classes ONLY** (no custom CSS files per component)
+4. **Keep components simple** (100-150 lines max per component)
+5. **Don't overthink** - Use the exact patterns shown above
+6. **Test as you go** - After critical components, verify they work
+
+### Critical path:
 - **Start with specParser.ts and workflowParser.ts** - Everything else depends on them
+- **Use Tailwind exclusively** - Prevents layout conflicts
+- **Follow exact layout patterns** - Use the templates provided above
 - **Dynamic components are critical** - EntityList and EntityDetail use ComponentResolver
 - **Test relationship detection** - EntityDetail must detect and render child entities
 - **Workflow integration** - Add WorkflowContainer to EntityList and EntityDetail
 - **Agent routes** - Add agent listing and chat routes to App.tsx
-- **Agent backend integration** - Agent chat calls backend, backend handles LLM
-- **Apply branding** - Use colors from spec.branding in CSS
+- **ChatbotBubble in App.tsx** - Must be in main layout
+- **Toggleable sidebar** - Save state to localStorage
 - **Port 3000** - Configure Vite dev server to use port 3000
 
 # SENSIBLE DEFAULTS - ALWAYS APPLY THESE (CRITICAL!)
@@ -2440,7 +2674,35 @@ Follow this order for generation:
 - **Consistency**: Every page should feel like part of the same app
 - **Professional**: The UI should look like a commercial SaaS product
 
-**Additionally, try running the "npm run dev" or run a typecheck to verify it works properly**
+## FINAL REMINDERS BEFORE STARTING:
 
-START NOW! Generate the complete application following this exact process.`;
+1. **Tailwind CSS is MANDATORY** - No inline styles, no CSS-in-JS
+2. **Use exact layout templates** - Don't improvise, use patterns shown at the top
+3. **Keep it simple** - Don't add unnecessary features
+4. **One create button per table** - No clutter
+5. **Auth pages are different** - Centered layout, no sidebar
+6. **Test after generation** - Run \`npm run dev\` to verify
+7. **Check for errors** - Browser console should be clean
+
+**SPEED TIPS** (to reduce generation time):
+- Generate config files first (takes 30 seconds)
+- Then types and utils (takes 1-2 minutes)
+- Then components (takes 3-5 minutes)
+- Use Write tool (not MCP write_file - it's faster)
+- Follow the generation phases in order
+- Keep components under 150 lines
+
+**QUALITY CHECKLIST** (verify before completing):
+- [ ] Tailwind installed and configured
+- [ ] All layouts use Tailwind classes (NO inline styles)
+- [ ] No console errors
+- [ ] Sidebar toggles smoothly
+- [ ] ChatbotBubble visible on all pages
+- [ ] Forms work and validate
+- [ ] Tables have search/pagination
+- [ ] Mobile responsive (test at 375px)
+- [ ] \`npm run build\` succeeds
+- [ ] \`npm run dev\` starts without errors
+
+START NOW! Generate the complete application following this exact process. Work efficiently, use Tailwind, follow the patterns, and test as you go.`;
 }
