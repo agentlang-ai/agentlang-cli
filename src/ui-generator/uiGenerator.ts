@@ -708,47 +708,119 @@ ${isVagueRequest ? 'Start by reading and diagnosing, then fix the issues you fin
 </div>
 \`\`\`
 
-### Table Layout:
+### Table Layout (STANDARD REUSABLE PATTERN - USE EVERYWHERE):
+⚠️ **CRITICAL**: This is the ONLY table pattern. Use it for:
+- Entity list pages
+- Relationship tables (child entities in detail views)
+- Any data table in the application
+
 \`\`\`tsx
 <div className="bg-white rounded-lg shadow">
-  {/* Header */}
+  {/* Header - Title LEFT, Search + Create RIGHT (TOGETHER) */}
   <div className="flex justify-between items-center p-4 border-b">
     <h2 className="text-xl font-semibold">Entity List</h2>
-    <div className="flex gap-3">
+
+    {/* Search and Create - ALWAYS TOGETHER on right side */}
+    <div className="flex items-center gap-3">
       <input
         type="text"
         placeholder="Search..."
-        className="w-64 px-3 py-2 border rounded-lg"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-64 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
       />
-      <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-        Create
+      <button
+        onClick={() => handleCreate()}
+        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
+      >
+        <Icon icon="mdi:plus" /> Create
       </button>
     </div>
   </div>
 
-  {/* Table */}
+  {/* Table - Full width, responsive */}
   <div className="overflow-x-auto">
     <table className="w-full">
       <thead className="bg-gray-50">
         <tr>
-          <th className="px-4 py-3 text-left">Column</th>
+          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+            Column Name
+          </th>
         </tr>
       </thead>
-      <tbody>
-        <tr className="border-t hover:bg-gray-50">
-          <td className="px-4 py-3">Data</td>
-        </tr>
+      <tbody className="divide-y">
+        {filteredData.map((item) => (
+          <tr key={item.id} className="hover:bg-gray-50 cursor-pointer">
+            <td className="px-4 py-3 text-sm">{item.value}</td>
+          </tr>
+        ))}
       </tbody>
     </table>
   </div>
 
-  {/* Pagination */}
-  <div className="flex justify-end items-center gap-2 p-4 border-t">
-    <span className="text-sm text-gray-600">Showing 1-25 of 100</span>
-    <button className="px-3 py-1 border rounded">Previous</button>
-    <button className="px-3 py-1 border rounded">Next</button>
+  {/* Pagination - ALWAYS at bottom right */}
+  <div className="flex justify-between items-center p-4 border-t">
+    <span className="text-sm text-gray-600">
+      Showing {startIndex + 1}-{endIndex} of {total}
+    </span>
+    <div className="flex items-center gap-2">
+      <select
+        value={pageSize}
+        onChange={(e) => setPageSize(Number(e.target.value))}
+        className="px-2 py-1 border rounded text-sm"
+      >
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+      <button
+        onClick={() => setPage(page - 1)}
+        disabled={page === 1}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        Previous
+      </button>
+      <span className="text-sm">{page} / {totalPages}</span>
+      <button
+        onClick={() => setPage(page + 1)}
+        disabled={page === totalPages}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
   </div>
 </div>
+\`\`\`
+
+⚠️ **CRITICAL RULES FOR TABLES**:
+1. Search and Create button MUST be together on the right side
+2. NO create button above the table component
+3. Pagination MUST be at the bottom with page size selector
+4. Use this EXACT pattern for entity lists AND relationship tables
+5. Don't put search inside table, keep it in header section
+
+⚠️ **CRITICAL: RELATIONSHIP TABLES (Child Entities in Detail Views)**:
+**PROBLEM**: Relationship tables often show raw JSON instead of formatted tables
+**SOLUTION**:
+- In EntityDetail, when rendering child entities (relationships), use DynamicTable component
+- **NEVER** use JSON.stringify() or JSON.parse() to display relationship data
+- **NEVER** show raw object notation like \`{id: 1, name: "test"}\`
+- **ALWAYS** render child entity data using the SAME table pattern above
+- RelationshipSection component MUST call DynamicTable with child entity data
+- Example:
+\`\`\`tsx
+// ❌ WRONG - Don't do this:
+<pre>{JSON.stringify(childEntities)}</pre>
+<div>{childEntities.map(e => <p>{e.toString()}</p>)}</div>
+
+// ✅ CORRECT - Do this:
+<DynamicTable
+  data={childEntities}
+  spec={childDashboardSpec}
+  title={relationship.displayName}
+/>
 \`\`\`
 
 ### Card Layout:
@@ -947,11 +1019,34 @@ const StyledDiv = styled.div\`
 - **Dashboard Content**: Show informative, actionable content
   * Summary statistics (stat cards with icons, numbers, trends)
   * Recent activity widgets
-  * **Workflow Quick Actions Section**: Show all workflows as actionable cards/buttons
-    - Display workflows in a grid or list
-    - Each workflow card shows: icon, display name, description
-    - Clicking opens WorkflowDialog with form to fill inputs
-    - After submission, show success message and refresh relevant data
+  * **Workflow Quick Actions Section** (CRITICAL - NEW COMPONENT):
+    - Create \`src/components/dashboard/QuickActions.tsx\`
+    - Shows ALL workflows from spec in a grid (3-4 per row)
+    - Each workflow card:
+      * Icon (from workflow.ui.icon or default mdi:lightning-bolt)
+      * Display name (workflow.displayName)
+      * Description (workflow.description)
+      * Click to open WorkflowDialog with form
+    - After submission: success toast + refresh data
+    - Template:
+    \`\`\`tsx
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {workflows.map((workflow) => (
+          <button
+            key={workflow.name}
+            onClick={() => openWorkflowDialog(workflow)}
+            className="p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 text-left transition"
+          >
+            <Icon icon={workflow.ui.icon} className="text-2xl mb-2 text-blue-500" />
+            <h3 className="font-semibold">{workflow.displayName}</h3>
+            <p className="text-sm text-gray-600 mt-1">{workflow.description}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+    \`\`\`
   * Charts and visualizations (use Recharts)
   * Helpful links/shortcuts
 - **Professional Polish**: Use card layouts, proper spacing, visual hierarchy
@@ -1983,12 +2078,30 @@ Generate a COMPLETE, production-ready web application with ALL the following:
      * Reads form spec: \`spec["<Entity>.ui.form"]\`
      * Passes to DynamicForm for rendering
    - **src/components/entity/RelationshipSection.tsx** - Renders embedded child entity tables:
+     * ⚠️ **CRITICAL**: Must render a PROPER TABLE, NOT JSON dump
+     * Use the EXACT SAME table pattern as entity lists (see Table Layout template above)
      * Receives relationship spec and child dashboard spec
      * Displays section title from \`relationship.displayName\`
-     * Uses DynamicTable to render child entity data
+     * **MUST use DynamicTable component** to render child entity data as table
+     * Table MUST have: search input, create button (both together on right), pagination
      * Shows "Create" button if \`relationship.ui.allowCreate: true\`
      * Enables inline editing if \`relationship.ui.allowInlineEdit: true\`
      * Fetches data using useRelationships hook
+     * **DO NOT** use JSON.stringify or display raw data
+     * **DO NOT** create separate create buttons - use the one in table header
+     * Template structure:
+     \`\`\`tsx
+     <div className="mt-6">
+       <h3 className="text-lg font-semibold mb-3">{relationship.displayName}</h3>
+       {/* Use DynamicTable with child entity data */}
+       <DynamicTable
+         data={childData}
+         spec={childDashboardSpec}
+         onRowClick={(item) => navigate(\`/\${childEntity}/\${item.id}\`)}
+         onCreateClick={() => openCreateDialog()}
+       />
+     </div>
+     \`\`\`
 
 ## 11. Agent Integration (NEW - CRITICAL)
    - **src/components/agents/AgentChat.tsx** - Chat interface for AI agents:
@@ -2143,7 +2256,9 @@ Generate a COMPLETE, production-ready web application with ALL the following:
    - Read \`spec.navigation.grouping\`
    - Build sidebar with groups and items
    - Entity items link to \`/:modelName/:entityName\`
-   - Agent items link to \`/agents/:agentName\`
+   - ⚠️ **DO NOT include Agent items in navigation** - Agents are accessed ONLY via ChatbotBubble
+   - Filter out any agent entries from navigation groups
+   - Only show entity/workflow navigation items in sidebar
 
 ✅ **Branding from Spec**:
    - Apply \`spec.branding.primaryColor\` and \`spec.branding.secondaryColor\` to theme
@@ -2259,6 +2374,10 @@ Follow this order for generation:
 20. Generate **src/components/entity/EntityDetail.tsx** - Uses ComponentResolver + relationship detection
 21. Generate **src/components/entity/EntityForm.tsx** - Uses DynamicForm
 22. Generate **src/components/entity/RelationshipSection.tsx** - Embedded child tables
+    * ⚠️ **CRITICAL**: MUST render proper table using DynamicTable component
+    * **DO NOT** dump JSON data - use table format
+    * Use SAME table layout pattern as EntityList (search + create together on right)
+    * No duplicate create buttons
 
 ## Phase 7: Navigation & Auth
 23. Generate **src/components/navigation/Sidebar.tsx** - Reads \`spec.navigation.grouping\`
@@ -2279,12 +2398,16 @@ Follow this order for generation:
 34. Generate **src/components/workflows/WorkflowContainer.tsx** - Container that manages workflow buttons for a page
 35. Generate **src/components/dashboard/Dashboard.tsx** - MUST include:
    * Toggleable sidebar (hamburger icon, localStorage state)
-   * **Workflow Quick Actions section** - Grid of workflow cards
+   * **Workflow Quick Actions section** - Grid of workflow cards (use QuickActions component)
    * Stat cards with icons
    * Charts and visualizations
 36. Generate **src/components/dashboard/StatCard.tsx**
 37. Generate **src/components/dashboard/ChartWidget.tsx**
-38. Generate **src/components/dashboard/WorkflowQuickAction.tsx** - Workflow card for dashboard quick actions
+38. Generate **src/components/dashboard/QuickActions.tsx** - Workflow quick actions grid:
+   * Shows ALL workflows from spec
+   * Grid layout (3 columns on desktop, 1 on mobile)
+   * Each card: icon, name, description
+   * Click opens WorkflowDialog
 
 ## Phase 10: Core Application
 39. Generate **src/App.tsx** - Routing with spec-driven navigation
@@ -2703,6 +2826,33 @@ Follow this order for generation:
 - [ ] Mobile responsive (test at 375px)
 - [ ] \`npm run build\` succeeds
 - [ ] \`npm run dev\` starts without errors
+
+## 🔥 FINAL CRITICAL REMINDERS (COMMON ISSUES):
+
+### 1. ❌ NO Agents in Navigation Sidebar
+- Agents are accessed ONLY via ChatbotBubble
+- Filter out agent entries from spec.navigation.grouping
+- Only show entities and workflows in sidebar
+
+### 2. ✅ Dashboard MUST Have Quick Actions
+- Create QuickActions.tsx component
+- Shows ALL workflows in a grid (3 columns)
+- Each card shows icon, name, description
+- Clicking opens WorkflowDialog with input form
+
+### 3. ❌ NO JSON Dumps in Relationship Tables
+- **NEVER** use JSON.stringify() to show child entities
+- **ALWAYS** use DynamicTable component for relationships
+- RelationshipSection must render proper table with search + create
+- Use exact same table pattern as entity lists
+
+### 4. ✅ Table Search + Create Button TOGETHER
+- Search input and Create button MUST be side-by-side on right
+- NO separate create button above or outside table
+- Pagination MUST be at bottom with page size selector
+- Use this pattern for ALL tables (entity lists AND relationship tables)
+
+**Double-check these 4 issues before completing generation!**
 
 START NOW! Generate the complete application following this exact process. Work efficiently, use Tailwind, follow the patterns, and test as you go.`;
 }
