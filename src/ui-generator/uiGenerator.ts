@@ -2431,7 +2431,7 @@ Follow this order for generation:
 2. Test on mobile viewport (< 768px)
 3. Check all interactions (buttons, forms, modals)
 4. Verify no console errors
-5. Confirm \`npm run build\` succeeds
+5. Confirm "npm run build" succeeds
 6. Check that the app looks ready for production deployment
 
 **Remember**:
@@ -2440,7 +2440,7 @@ Follow this order for generation:
 - **Consistency**: Every page should feel like part of the same app
 - **Professional**: The UI should look like a commercial SaaS product
 
-**Additionally, try running the `npm run dev` or run a typecheck to verify it works properly**
+**Additionally, try running the "npm run dev" or run a typecheck to verify it works properly**
 
 START NOW! Generate the complete application following this exact process.`;
 }
