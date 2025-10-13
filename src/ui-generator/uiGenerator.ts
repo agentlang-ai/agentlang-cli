@@ -2365,7 +2365,7 @@ Follow this order for generation:
 - **No Console Errors**: Clean browser console
 - **TypeScript**: No type errors
 - **Linting**: No linting errors
-- **Build**: \`npm run build\` succeeds without warnings
+- **Build**: "npm run build" succeeds without warnings
 
 ### User Experience
 - **Fast Load**: Initial page load < 3 seconds
