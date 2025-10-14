@@ -2225,6 +2225,289 @@ Generate a COMPLETE, production-ready web application with ALL the following:
 ✅ **Responsive**: Mobile-friendly design
 ✅ **Mock Data**: Include mock user/auth data for testing authentication flow
 
+## 🔥 MOCK DATA & DEFENSIVE CODING (CRITICAL - PREVENTS RUNTIME ERRORS)
+
+⚠️ **REQUIRED**: Follow these patterns to prevent "not iterable", "undefined", and data access errors:
+
+### 1. Mock Data Generation (src/data/mockData.ts)
+
+**ALWAYS create comprehensive mock data for ALL entities in the spec**:
+
+\`\`\`typescript
+// src/data/mockData.ts
+import { UISpec } from './uiSpec';
+
+// Generate mock data for each entity
+export const mockData = {
+  'CarDealership/Dealer': [
+    { id: '1', name: 'Premium Auto Sales', location: 'New York, NY', contactInfo: 'contact@premium.com' },
+    { id: '2', name: 'City Motors', location: 'Los Angeles, CA', contactInfo: 'info@citymotors.com' },
+    { id: '3', name: 'Luxury Cars Inc', location: 'Miami, FL', contactInfo: 'sales@luxurycars.com' }
+  ],
+  'CarDealership/CarModel': [
+    { id: '1', dealerId: '1', make: 'Toyota', model: 'Camry', year: 2024, price: 28000, features: 'Leather seats, Sunroof', specifications: 'Engine: 2.5L, MPG: 30/38', inventoryCount: 5 },
+    { id: '2', dealerId: '1', make: 'Honda', model: 'Accord', year: 2024, price: 30000, features: 'Navigation, Bluetooth', specifications: 'Engine: 1.5L Turbo, MPG: 29/37', inventoryCount: 3 },
+    { id: '3', dealerId: '2', make: 'BMW', model: 'X5', year: 2024, price: 65000, features: 'Panoramic roof, Premium sound', specifications: 'Engine: 3.0L, MPG: 21/26', inventoryCount: 2 }
+  ],
+  'CarDealership/Customer': [
+    { id: '1', name: 'John Doe', contactDetails: 'john@email.com', preferences: 'Sedan, fuel efficient' },
+    { id: '2', name: 'Jane Smith', contactDetails: 'jane@email.com', preferences: 'SUV, luxury features' },
+    { id: '3', name: 'Bob Johnson', contactDetails: '555-0123', preferences: 'Compact, affordable' }
+  ],
+  'CarDealership/Inquiry': [
+    { id: '1', customerId: '1', customerQuery: 'Interested in 2024 Camry pricing', carModelInterest: 'Toyota Camry', status: 'pending', createdAt: '2024-03-15' },
+    { id: '2', customerId: '2', customerQuery: 'Test drive availability for X5', carModelInterest: 'BMW X5', status: 'responded', createdAt: '2024-03-16' }
+  ],
+  // Add mock data for ALL entities from spec
+};
+
+// Mock API functions that follow AgentLang patterns
+export const mockApi = {
+  // GET /:modelName/:entityName - List all
+  async list(modelName: string, entityName: string) {
+    const key = \`\${modelName}/\${entityName}\`;
+    await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
+    return { data: mockData[key] || [], status: 'success' };
+  },
+
+  // GET /:modelName/:entityName/:id - Get one
+  async get(modelName: string, entityName: string, id: string) {
+    const key = \`\${modelName}/\${entityName}\`;
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const item = (mockData[key] || []).find((item: any) => item.id === id);
+    if (!item) return { error: 'Not found', status: 'error' };
+    return { data: item, status: 'success' };
+  },
+
+  // POST /:modelName/:entityName - Create
+  async create(modelName: string, entityName: string, data: any) {
+    const key = \`\${modelName}/\${entityName}\`;
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const newItem = { id: String(Date.now()), ...data };
+    if (!mockData[key]) mockData[key] = [];
+    mockData[key].push(newItem);
+    return { data: newItem, status: 'success' };
+  },
+
+  // PUT /:modelName/:entityName/:id - Update
+  async update(modelName: string, entityName: string, id: string, data: any) {
+    const key = \`\${modelName}/\${entityName}\`;
+    await new Promise(resolve => setTimeout(resolve, 400));
+    const index = (mockData[key] || []).findIndex((item: any) => item.id === id);
+    if (index === -1) return { error: 'Not found', status: 'error' };
+    mockData[key][index] = { ...mockData[key][index], ...data };
+    return { data: mockData[key][index], status: 'success' };
+  },
+
+  // DELETE /:modelName/:entityName/:id - Delete
+  async delete(modelName: string, entityName: string, id: string) {
+    const key = \`\${modelName}/\${entityName}\`;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    mockData[key] = (mockData[key] || []).filter((item: any) => item.id !== id);
+    return { status: 'success' };
+  }
+};
+\`\`\`
+
+### 2. Defensive Coding Patterns (ALWAYS USE)
+
+**In ALL components that handle data, use these patterns**:
+
+\`\`\`typescript
+// ❌ WRONG - Will cause "not iterable" error
+const sortedData = [...filteredData];
+
+// ✅ CORRECT - Always check if data exists and is array
+const sortedData = Array.isArray(filteredData) ? [...filteredData] : [];
+
+// ❌ WRONG - Will crash if data is undefined
+data.map(item => ...)
+
+// ✅ CORRECT - Always provide fallback
+(data || []).map(item => ...)
+
+// ❌ WRONG - Will crash if nested property doesn't exist
+const name = user.profile.name;
+
+// ✅ CORRECT - Use optional chaining
+const name = user?.profile?.name || 'Unknown';
+
+// ❌ WRONG - Accessing array without checking
+const firstItem = items[0];
+
+// ✅ CORRECT - Check length first
+const firstItem = items && items.length > 0 ? items[0] : null;
+\`\`\`
+
+**DynamicTable Component Pattern**:
+\`\`\`typescript
+// In DynamicTable.tsx - DEFENSIVE PATTERN
+const DynamicTable = ({ data, spec, onRowClick, onCreateClick }: Props) => {
+  // 1. ALWAYS validate data is array
+  const safeData = Array.isArray(data) ? data : [];
+
+  // 2. ALWAYS provide fallback for undefined/null
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // 3. Filter with safety checks
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return safeData;
+
+    return safeData.filter((item) => {
+      // Safe property access
+      return Object.values(item || {}).some(value =>
+        String(value || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+  }, [safeData, searchTerm]);
+
+  // 4. Sort with safety - ALWAYS check if array
+  const sortedData = useMemo(() => {
+    if (!Array.isArray(filteredData)) return [];
+    return [...filteredData]; // Safe spread
+  }, [filteredData]);
+
+  // 5. Pagination with safety
+  const paginatedData = useMemo(() => {
+    if (!Array.isArray(sortedData)) return [];
+    const start = (currentPage - 1) * pageSize;
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, currentPage, pageSize]);
+
+  // 6. Always check before rendering
+  if (!spec) return <div>No table specification provided</div>;
+  if (!Array.isArray(safeData)) return <div>Invalid data format</div>;
+  if (safeData.length === 0) return <div>No data available</div>;
+
+  return (/* table JSX */);
+};
+\`\`\`
+
+### 3. useEntityData Hook - Defensive Pattern
+
+\`\`\`typescript
+// src/hooks/useEntityData.ts
+export const useEntityData = (modelName: string, entityName: string) => {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const useMock = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
+      let result;
+      if (useMock) {
+        result = await mockApi.list(modelName, entityName);
+      } else {
+        const response = await fetch(\`\${API_URL}/\${modelName}/\${entityName}\`);
+        result = await response.json();
+      }
+
+      // ✅ CRITICAL: Always ensure data is array
+      const dataArray = Array.isArray(result.data) ? result.data : [];
+      setData(dataArray);
+
+    } catch (err) {
+      setError(err.message);
+      // ✅ CRITICAL: Set empty array on error, not undefined
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    data: Array.isArray(data) ? data : [], // Always return array
+    loading,
+    error,
+    fetchData
+  };
+};
+\`\`\`
+
+### 4. Error Boundary (src/components/ErrorBoundary.tsx)
+
+**ALWAYS wrap the main app with ErrorBoundary**:
+
+\`\`\`typescript
+import React from 'react';
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+            <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
+            <p className="text-gray-700 mb-4">{this.state.error?.message}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+\`\`\`
+
+**In main.tsx**:
+\`\`\`typescript
+import ErrorBoundary from './components/ErrorBoundary';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  </React.StrictMode>
+);
+\`\`\`
+
+### 5. Checklist - BEFORE completing generation:
+
+- [ ] Created src/data/mockData.ts with ALL entities
+- [ ] All components use Array.isArray() checks before spread/map
+- [ ] All components use optional chaining (?.) for nested access
+- [ ] All components provide fallback values (|| [])
+- [ ] useEntityData always returns array (never undefined)
+- [ ] ErrorBoundary wraps main app in main.tsx
+- [ ] .env has VITE_USE_MOCK_DATA=true
+- [ ] Mock API functions follow AgentLang patterns
+- [ ] All tables validate data before rendering
+- [ ] Empty states shown when data.length === 0
+
+⚠️ **IF ANY RUNTIME ERROR OCCURS, IT'S BECAUSE THESE PATTERNS WEREN'T FOLLOWED**
+
 ## NEW Spec-Driven Requirements (CRITICAL):
 
 ✅ **Spec Parser**: Create \`src/utils/specParser.ts\` with ALL utility functions:
@@ -2938,7 +3221,20 @@ Follow this order for generation:
 - Pagination MUST be at bottom with page size selector
 - Use this pattern for ALL tables (entity lists AND relationship tables)
 
-**Double-check these 4 issues before completing generation!**
+### 5. 🔥 DEFENSIVE CODING & MOCK DATA (CRITICAL - PREVENTS CRASHES)
+- **ALWAYS create src/data/mockData.ts** with comprehensive mock data for ALL entities
+- **ALWAYS use Array.isArray()** before spreading or mapping arrays
+- **ALWAYS use optional chaining** (?.) for nested property access
+- **ALWAYS provide fallbacks**: (data || []), (item?.name || 'Unknown')
+- **ALWAYS validate in DynamicTable**: \`const safeData = Array.isArray(data) ? data : [];\`
+- **ALWAYS return arrays from hooks**: \`return { data: Array.isArray(data) ? data : [] }\`
+- **ALWAYS wrap app with ErrorBoundary** in main.tsx
+- **ALWAYS set VITE_USE_MOCK_DATA=true** in .env by default
+- Mock API functions MUST follow AgentLang patterns (list, get, create, update, delete)
+- Empty states MUST be shown when data.length === 0
+- **NO "not iterable" errors** - these indicate defensive patterns weren't followed
+
+**Double-check these 5 issues before completing generation!**
 
 START NOW! Generate the complete application following this exact process. Work efficiently, use Tailwind, follow the patterns, and test as you go.`;
 }
