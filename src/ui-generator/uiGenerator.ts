@@ -2897,6 +2897,7 @@ Follow this order for generation:
 - [ ] Forms work and validate
 - [ ] Tables have search/pagination
 - [ ] Mobile responsive (test at 375px)
+- [ ] All pages and functionality implemented
 - [ ] \`npm run build\` succeeds
 - [ ] \`npm run dev\` starts without errors
 
@@ -2922,12 +2923,14 @@ Follow this order for generation:
   * spec["CarDealership/CreateCarModel"] = { displayName: "Create Car Model", description: "...", icon: "mdi:plus-circle", ... }
   * spec["CarDealership/CreateCarModel.ui"] = { showOnDashboard: true, buttonText: "Create Car Model", ... }
   * spec["CarDealership/CreateCarModel.inputs"] = { dealerId: { inputType: "select", ... }, make: { inputType: "text", ... }, ... }
+- Additionally, there must be clicable HOME button to return to Dashboard screen from other screens.
 
 ### 3. ❌ NO JSON Dumps in Relationship Tables
 - **NEVER** use JSON.stringify() to show child entities
 - **ALWAYS** use DynamicTable component for relationships
 - RelationshipSection must render proper table with search + create
 - Use exact same table pattern as entity lists
+- Properly generate tables and verify they are properly created.
 
 ### 4. ✅ Table Search + Create Button TOGETHER
 - Search input and Create button MUST be side-by-side on right
