@@ -678,12 +678,32 @@ ${JSON.stringify(uiSpec, null, 2)}
 \`\`\`
 
 # GOAL
-Generate a complete, working React admin UI with:
-- Entity CRUD pages
-- Relationship tables (child entities shown in tables, NOT JSON)
-- Workflow execution dialogs
-- Dashboard with quick actions
-- Mock data for all entities
+Generate a complete, working, polished React admin UI that looks deployment-ready.
+
+# APPLICATION STRUCTURE
+
+**Navigation (Sidebar):**
+- **Home Button** → Dashboard page
+- **Entities Section** → List of all entities
+  * Click entity → Entity list page
+  * Click instance → Entity detail page (shows relationships if any)
+- **Workflows Section** → List of all workflows
+  * Click workflow → Opens workflow dialog
+
+**Dashboard:**
+- Stat cards (entity counts)
+- Quick Actions (workflow cards)
+- Recent activity/status
+
+**Entity Detail Page (when entity has relationships):**
+- Entity details at top
+- Embedded relationship tables below
+- Each relationship table has Search + Create button
+
+**Chatbot Bubble (floating, bottom-right):**
+- Click to open chat panel
+- Agent dropdown INSIDE chat panel header
+- Chat interface with message history
 
 # PHASE 1: GENERATE ALL FILES
 
@@ -957,9 +977,11 @@ export function useEntityData(model: string, entity: string) {
 
 ## Step 5: Dynamic Components
 
-Create **src/components/dynamic/DynamicTable.tsx**:
+Create **src/components/dynamic/DynamicTable.tsx** - Reusable table component:
+
+**CRITICAL - Header Layout:**
 \`\`\`typescript
-export function DynamicTable({ data, spec, onRowClick, onCreateClick }: Props) {
+export function DynamicTable({ data, spec, onRowClick, onCreateClick, showCreateButton = true }: Props) {
   // DEFENSIVE: Always validate array first
   const safeData = Array.isArray(data) ? data : [];
 
@@ -990,67 +1012,111 @@ export function DynamicTable({ data, spec, onRowClick, onCreateClick }: Props) {
   }, [sortedData, currentPage, pageSize]);
 
   if (safeData.length === 0) {
-    return <div>No data available</div>;
+    return (
+      <div className="text-center py-12 bg-gray-50 rounded-lg">
+        <Icon icon="mdi:database-off" className="text-4xl text-gray-400 mb-2" />
+        <p className="text-gray-600">No data available</p>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      {/* Header with search + create together */}
-      <div className="flex justify-between items-center p-4 border-b">
-        <h2 className="text-xl font-semibold">{spec.title}</h2>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-3 py-2 border rounded-lg w-64"
-          />
-          <button
-            onClick={onCreateClick}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            Create
-          </button>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* CRITICAL: Header with Search + Create Button TOGETHER on right */}
+      <div className="flex justify-between items-center p-4 border-b border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900">{spec.title}</h2>
+
+        {/* Search and Create together on the right */}
+        <div className="flex gap-3 items-center">
+          <div className="relative">
+            <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          {showCreateButton && (
+            <button
+              onClick={onCreateClick}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <Icon icon="mdi:plus" />
+              <span>Create</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Table */}
-      <table className="w-full">
-        <thead className="bg-gray-50">
-          <tr>
-            {spec.columns.map(col => (
-              <th key={col.key} className="px-4 py-3 text-left text-sm font-semibold">
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {paginatedData.map((row, idx) => (
-            <tr key={row.id || idx} onClick={() => onRowClick(row)} className="hover:bg-gray-50 cursor-pointer">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
               {spec.columns.map(col => (
-                <td key={col.key} className="px-4 py-3">
-                  {row[col.key]}
-                </td>
+                <th key={col.key} className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  {col.label}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {paginatedData.map((row, idx) => (
+              <tr
+                key={row.id || idx}
+                onClick={() => onRowClick(row)}
+                className="hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                {spec.columns.map(col => (
+                  <td key={col.key} className="px-6 py-4 text-sm text-gray-900">
+                    {row[col.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Pagination */}
-      <div className="flex justify-between items-center p-4 border-t">
-        <div>Showing {Math.min((currentPage - 1) * pageSize + 1, sortedData.length)}-{Math.min(currentPage * pageSize, sortedData.length)} of {sortedData.length}</div>
+      <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="text-sm text-gray-700">
+          Showing <span className="font-medium">{Math.min((currentPage - 1) * pageSize + 1, sortedData.length)}</span> to{' '}
+          <span className="font-medium">{Math.min(currentPage * pageSize, sortedData.length)}</span> of{' '}
+          <span className="font-medium">{sortedData.length}</span> results
+        </div>
         <div className="flex gap-2">
-          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>Prev</button>
-          <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage * pageSize >= sortedData.length}>Next</button>
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border border-gray-300 rounded-md hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setCurrentPage(p => p + 1)}
+            disabled={currentPage * pageSize >= sortedData.length}
+            className="px-3 py-1 border border-gray-300 rounded-md hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>
   );
 }
 \`\`\`
+
+**CRITICAL Requirements:**
+1. **Header Layout**: Title on left, Search + Create button on right (TOGETHER)
+2. **Create Button**: Always visible by default, can be hidden with \`showCreateButton={false}\`
+3. **Search Input**: Has search icon, placeholder "Search...", 256px width
+4. **Empty State**: Show nice empty state with icon and message
+5. **Pagination**: Show count and prev/next buttons
+6. **Hover**: Row hover effect with gray background
+7. **Defensive**: Always check \`Array.isArray(data)\` before operations
 
 Create **src/components/dynamic/DynamicForm.tsx** - Standard form with Formik
 Create **src/components/dynamic/DynamicCard.tsx** - Card layout for entity details
@@ -1060,31 +1126,39 @@ Create **src/components/dynamic/ComponentResolver.tsx** - Resolves spec referenc
 
 Create **src/components/entity/EntityList.tsx** - Uses DynamicTable to show entities
 
-Create **src/components/entity/EntityDetail.tsx**:
+Create **src/components/entity/EntityDetail.tsx** - Detail page with embedded relationship tables:
+
+**CRITICAL - Structure:**
 \`\`\`typescript
 export function EntityDetail() {
   const { model, entity, id } = useParams();
   const { data: item, loading } = useEntityDetail(model, entity, id);
 
-  // Get child relationships
+  // Get child relationships for this entity
   const relationships = getChildRelationships(\`\${model}/\${entity}\`);
 
   return (
-    <div>
-      {/* Entity instance details */}
-      <DynamicCard data={item} spec={getInstanceSpec(\`\${model}/\${entity}\`)} />
+    <div className="space-y-6 p-6">
+      {/* Entity Instance Details Card */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">{entity} Details</h2>
+        <DynamicCard data={item} spec={getInstanceSpec(\`\${model}/\${entity}\`)} />
+      </div>
 
-      {/* Child relationships - RENDER AS TABLES */}
+      {/* Child Relationships - EMBEDDED TABLES */}
       {relationships.map(rel => {
         const childData = useRelationshipData(rel, item.id);
         return (
-          <div key={rel.name} className="mt-6">
-            <h3 className="text-lg font-semibold mb-3">{rel.displayName}</h3>
+          <div key={rel.name} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">{rel.displayName}</h3>
+
+            {/* CRITICAL: DynamicTable with Create button */}
             <DynamicTable
-              data={childData}  {/* NOT JSON.stringify! */}
+              data={childData}  {/* NEVER JSON.stringify! Must be array */}
               spec={getDashboardSpec(rel.child)}
               onRowClick={(child) => navigate(\`/\${rel.child}/\${child.id}\`)}
               onCreateClick={() => openCreateDialog(rel.child)}
+              showCreateButton={true}  {/* CRITICAL: Show create button beside search */}
             />
           </div>
         );
@@ -1094,6 +1168,17 @@ export function EntityDetail() {
 }
 \`\`\`
 
+**CRITICAL Requirements:**
+1. **Entity Details**: Show in card at top with field labels and values
+2. **Relationship Tables**: Each relationship shown as DynamicTable (NOT JSON)
+3. **Create Button**: MUST appear beside search input in EACH relationship table
+   - Position: Top-right, next to search input
+   - Label: "Add {RelationshipName}" or "Create"
+   - Opens form dialog to create new child record
+4. **Click Behavior**: Clicking row navigates to child detail page
+5. **Spacing**: Each section in separate white card with border
+6. **No Relationships?**: If entity has no relationships, only show details card
+
 ## Step 7: Workflows
 
 Create **src/components/workflows/WorkflowDialog.tsx**:
@@ -1101,66 +1186,142 @@ Create **src/components/workflows/WorkflowDialog.tsx**:
 - Build dynamic form
 - Submit to POST /:model/:workflow endpoint
 
-Create **src/components/dashboard/QuickActions.tsx**:
+Create **src/components/dashboard/QuickActions.tsx** - Workflow cards for dashboard:
 \`\`\`typescript
+import { getWorkflows } from '@/utils/workflowParser';
+import { uiSpec } from '@/data/uiSpec';
+import { Icon } from '@iconify/react';
+import { useState } from 'react';
+import { WorkflowDialog } from '@/components/workflows/WorkflowDialog';
+
 export function QuickActions() {
-  const workflows = getWorkflows(uiSpec).filter(w => w.ui.showOnDashboard);
+  // Get workflows that should show on dashboard
+  const workflows = getWorkflows(uiSpec).filter(w => w.ui?.showOnDashboard === true);
+  const [selectedWorkflow, setSelectedWorkflow] = useState(null);
+
+  if (workflows.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <p>No quick actions configured</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-3 gap-4">
-      {workflows.map(workflow => (
-        <button
-          key={workflow.name}
-          onClick={() => openWorkflowDialog(workflow)}
-          className="p-4 border rounded-lg hover:border-blue-500"
-        >
-          <Icon icon={workflow.icon} className="text-2xl mb-2" />
-          <h3 className="font-semibold">{workflow.displayName}</h3>
-          <p className="text-sm text-gray-600">{workflow.description}</p>
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {workflows.map(workflow => (
+          <button
+            key={workflow.name}
+            onClick={() => setSelectedWorkflow(workflow)}
+            className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all text-left bg-white"
+          >
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <Icon icon={workflow.icon || 'mdi:lightning-bolt'} className="text-3xl text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">{workflow.displayName}</h3>
+                <p className="text-sm text-gray-600 line-clamp-2">{workflow.description}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Workflow Dialog */}
+      {selectedWorkflow && (
+        <WorkflowDialog
+          workflow={selectedWorkflow}
+          onClose={() => setSelectedWorkflow(null)}
+        />
+      )}
+    </>
   );
 }
 \`\`\`
 
-## Step 8: Dashboard Page (CRITICAL - Polished & Feature-Rich)
+**Requirements:**
+- Filter workflows where \`showOnDashboard === true\`
+- Grid layout: 3 columns on desktop, 2 on tablet, 1 on mobile
+- Each card: Icon + displayName + description
+- Click opens WorkflowDialog
+- Hover effect: border color change + shadow
+- Empty state if no workflows configured
 
-Create **src/pages/Dashboard.tsx** - Modern, polished dashboard:
+## Step 8: Dashboard Page (CRITICAL - Polished & Deployment-Ready)
+
+Create **src/pages/Dashboard.tsx** - Professional, polished dashboard:
 \`\`\`typescript
 export function Dashboard() {
   const entities = Object.keys(mockData);
 
   return (
-    <div className="space-y-6">
-      {/* Stat Cards - Show key entity counts */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {entities.slice(0, 4).map(entityKey => {
+    <div className="space-y-8 p-6">
+      {/* Welcome Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600 mt-1">Welcome back! Here's an overview of your system.</p>
+      </div>
+
+      {/* Stat Cards - Show ALL entity counts with icons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {entities.map(entityKey => {
           const count = Array.isArray(mockData[entityKey]) ? mockData[entityKey].length : 0;
           const entityName = entityKey.split('/')[1];
           return (
-            <div key={entityKey} className="bg-white rounded-lg shadow p-6">
+            <div key={entityKey} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">{entityName}</p>
-                  <p className="text-3xl font-semibold mt-1">{count}</p>
+                  <p className="text-sm font-medium text-gray-600">{entityName}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{count}</p>
+                  <p className="text-xs text-gray-500 mt-1">Total records</p>
                 </div>
-                <Icon icon="mdi:database" className="text-3xl text-blue-500" />
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <Icon icon="mdi:database" className="text-3xl text-blue-600" />
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Workflow Quick Actions */}
-      <QuickActions />
+      {/* Workflow Quick Actions Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Quick Actions</h2>
+          <p className="text-sm text-gray-600 mt-1">Execute workflows directly from the dashboard</p>
+        </div>
+        <QuickActions />
+      </div>
 
-      {/* Recent Activity or Charts (Optional) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Activity Overview</h3>
-          {/* Add Recharts bar/line chart here if time permits */}
-          <p className="text-gray-600">Recent activity will appear here</p>
+      {/* Recent Activity Section (Optional) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <Icon icon="mdi:check-circle" className="text-green-600 text-xl" />
+              <div>
+                <p className="text-sm font-medium text-gray-900">System ready</p>
+                <p className="text-xs text-gray-600">All services operational</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">System Status</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Database</span>
+              <span className="text-sm font-medium text-green-600">Connected</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Mock Mode</span>
+              <span className="text-sm font-medium text-blue-600">Active</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1169,26 +1330,84 @@ export function Dashboard() {
 \`\`\`
 
 **Dashboard Requirements:**
-- **Stat Cards**: Show total counts for top 4-6 entities with icons
-- **Workflow Quick Actions**: Grid of workflow cards (from QuickActions component)
-- **Charts** (if spec has data): Use Recharts for bar/line charts showing trends
-- **Clean Layout**: Card-based design with generous spacing (24-32px between sections)
-- **Icons**: Use @iconify/react with Material Design Icons (mdi:*)
+- **Professional Header**: Welcome message with page title
+- **Stat Cards**: Show ALL entities with:
+  * Entity count in large, bold text
+  * Icon in colored background circle
+  * "Total records" label
+  * Hover effect with shadow transition
+- **Quick Actions Section**:
+  * White card with border
+  * Section header with description
+  * Grid of workflow cards (3-4 per row)
+- **Recent Activity/Status**: Optional cards showing system info
+- **Spacing**: Generous spacing (32px between sections)
+- **Colors**: Professional palette (gray-900 text, blue-600 accents, subtle borders)
+- **Polish**: Shadows, borders, hover effects, icons in colored backgrounds
 
-## Step 9: Layout & Auth
+## Step 9: Layout & Navigation
 
-Create **src/components/layout/Sidebar.tsx** - Toggleable sidebar:
-- **Hamburger toggle button** (mdi:menu icon) in top-left
-- **Collapsible**: Click to collapse/expand, save state to localStorage
-- **Mobile responsive**: Overlay on mobile (< 768px), push content on desktop
-- **Smooth animation**: 200-300ms transition
-- **Navigation links**: Home/Dashboard + all entities + workflows section
+Create **src/components/layout/Sidebar.tsx** - Toggleable sidebar with clear structure:
 
-Create **src/components/layout/ChatbotBubble.tsx** - Floating chat bubble:
-- **Fixed position**: bottom-right corner (20px from edges)
-- **z-index**: Above all content
-- **Click to open**: Expand to chat interface
-- **Backend-powered**: Use \`/agents/:agentName/chat\` endpoint (backend handles LLM)
+**Structure (top to bottom):**
+1. **App Title/Logo** at top
+2. **Home Button** - Links to dashboard (\`/\`) with \`mdi:home\` icon
+3. **Entities Section**:
+   - Section header: "Entities"
+   - List ALL entities from spec
+   - Each entity: icon + name, links to \`/entity-list/:model/:entity\`
+   - When clicked, shows entity list view
+   - Clicking an entity instance → shows detail page with relationships
+4. **Workflows Section** (separate from entities):
+   - Section header: "Workflows"
+   - List ALL workflows from spec.workflows
+   - Each workflow: icon + displayName, opens WorkflowDialog on click
+   - Same workflows as dashboard Quick Actions
+
+**Behavior:**
+- **Hamburger toggle** (mdi:menu icon) at top - collapses/expands sidebar
+- **State persisted**: Save collapsed state to localStorage
+- **Mobile**: Hidden by default on mobile (< 768px), overlay when opened
+- **Desktop**: Side-by-side with content, collapsible
+- **Animation**: Smooth 200-300ms transition
+
+**Example Structure:**
+\`\`\`
+┌─────────────────┐
+│ App Name        │
+├─────────────────┤
+│ 🏠 Home         │ ← Links to dashboard
+├─────────────────┤
+│ ENTITIES        │
+│ 📦 Customers    │
+│ 📦 Orders       │
+│ 📦 Products     │
+├─────────────────┤
+│ WORKFLOWS       │
+│ ⚡ Create Order │ ← Opens dialog
+│ ⚡ Process Sale │
+└─────────────────┘
+\`\`\`
+
+Create **src/components/layout/ChatbotBubble.tsx** - Floating chat with agent selection:
+
+**CRITICAL - Agent Selection Inside Bubble:**
+- **Fixed position**: bottom-right corner (20px from right, 20px from bottom)
+- **z-index**: 9999 (above all content)
+- **Closed state**: Small circular button with chat icon (mdi:message)
+- **Opened state**: Expands to chat panel (400px width, 600px height)
+- **Agent Dropdown**: INSIDE the chat panel header
+  * Dropdown to select agent from spec.agents array
+  * Label: "Talk to:" or "Select Agent:"
+  * Default to first agent
+- **Chat Interface**:
+  * Messages area (scrollable)
+  * Input field at bottom
+  * Send button
+  * Backend-powered: POST to \`/agents/:agentName/chat\` with message
+- **Close button**: X button in chat panel header
+
+**DO NOT** put agent selection in sidebar - it belongs in the chatbot bubble!
 
 Create **src/components/ErrorBoundary.tsx** - Error boundary component
 
@@ -1377,15 +1596,40 @@ After generating ALL files above:
 
 6. **DO NOT run \`npm run dev\`** - Only verify build succeeds
 
-# CRITICAL RULES
+# CRITICAL RULES - READ BEFORE STARTING
 
-1. **Use Tailwind exclusively** - No inline styles, no CSS-in-JS
-2. **All tables must have**: search input + create button (together on right), pagination
-3. **Relationships must be tables**, never JSON dumps or stringified objects
-4. **Always validate arrays**: \`Array.isArray(data) ? data : []\` before spreading/mapping
-5. **Mock data required**: Create realistic sample data for ALL entities
-6. **Workflows from spec**: Read from spec.workflows array, access with spec[workflowName]
-7. **Build must succeed**: Fix all errors until \`npm run build\` passes
+## Navigation & Layout
+1. **Sidebar Structure**:
+   - Home button (links to dashboard)
+   - Entities section (only entities, NOT workflows)
+   - Workflows section (separate, below entities)
+   - Toggleable with localStorage persistence
+2. **Dashboard**: Stat cards + Quick Actions (workflows) + status cards
+3. **Entity Detail**: Show details card + embedded relationship tables (NOT JSON)
+4. **Chatbot**: Agent selection dropdown INSIDE chatbot panel, not in sidebar
+
+## Tables & Data
+5. **All tables MUST have**: Search input + Create button (TOGETHER on right), pagination
+6. **Relationship tables**: MUST have Create button beside search in each table
+7. **Never use JSON.stringify**: Always render relationships as DynamicTable
+8. **Always validate arrays**: \`Array.isArray(data) ? data : []\` before operations
+9. **Mock data**: Create 3-5 realistic records for ALL entities
+
+## Styling & Polish
+10. **Tailwind only**: No inline styles, no CSS-in-JS
+11. **Professional polish**: Borders, shadows, hover effects, spacing (24-32px)
+12. **Consistent colors**: Blue-600 primary, gray-900 text, gray-50 backgrounds
+13. **Icons**: Only Material Design Icons (mdi:*) via @iconify/react
+
+## Authentication
+14. **Login/SignUp MUST call**: \`mockApi.login()\` and \`mockApi.signUp()\`
+15. **Show mock credentials**: Display "Use admin@example.com / admin123" on login page
+16. **Handle responses**: Check \`result.status === 'success'\`, show errors
+
+## Build Requirements
+17. **Build must succeed**: Fix all errors until \`npm run build\` passes
+18. **NO dev server**: Only verify with \`tsc --noEmit\` and \`npm run build\`
+19. **Workflows from spec**: Read from spec.workflows array, access metadata with spec[workflowName]
 
 START NOW! Generate all files, then verify and fix any issues.`;
 }
