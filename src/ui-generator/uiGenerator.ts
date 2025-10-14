@@ -666,7 +666,6 @@ ${projectAnalysis.structure}
 ${isVagueRequest ? 'Start by reading and diagnosing, then fix the issues you find.' : "Focus on the user's specific request. Be surgical - only change what's necessary."}`;
   }
 
-
   return `
 You are a UI generation agent for creating React + TypeScript + Tailwind applications from AgentLang specs.
 
