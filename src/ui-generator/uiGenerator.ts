@@ -1021,31 +1021,44 @@ const StyledDiv = styled.div\`
   * Recent activity widgets
   * **Workflow Quick Actions Section** (CRITICAL - NEW COMPONENT):
     - Create \`src/components/dashboard/QuickActions.tsx\`
-    - Shows ALL workflows from spec in a grid (3-4 per row)
+    - **IMPORTANT**: Read workflows from spec.workflows array and corresponding spec metadata
+    - Shows workflows where spec["\${workflowName}.ui"].showOnDashboard === true
+    - Shows in a grid (3-4 per row)
     - Each workflow card:
-      * Icon (from workflow.ui.icon or default mdi:lightning-bolt)
-      * Display name (workflow.displayName)
-      * Description (workflow.description)
-      * Click to open WorkflowDialog with form
+      * Icon (from spec["\${workflowName}.ui"].icon or spec[workflowName].icon)
+      * Display name (from spec[workflowName].displayName)
+      * Description (from spec[workflowName].description)
+      * Click to open WorkflowDialog with form (inputs from spec["\${workflowName}.inputs"])
     - After submission: success toast + refresh data
     - Template:
     \`\`\`tsx
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {workflows.map((workflow) => (
-          <button
-            key={workflow.name}
-            onClick={() => openWorkflowDialog(workflow)}
-            className="p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 text-left transition"
-          >
-            <Icon icon={workflow.ui.icon} className="text-2xl mb-2 text-blue-500" />
-            <h3 className="font-semibold">{workflow.displayName}</h3>
-            <p className="text-sm text-gray-600 mt-1">{workflow.description}</p>
-          </button>
-        ))}
-      </div>
-    </div>
+    import { getWorkflows } from '@/utils/workflowParser';
+    import { uiSpec } from '@/data/uiSpec';
+
+    const QuickActions = () => {
+      // getWorkflows reads from spec.workflows array
+      const workflows = getWorkflows(uiSpec)
+        .filter(w => w.ui.showOnDashboard); // Only show if showOnDashboard is true
+
+      return (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {workflows.map((workflow) => (
+              <button
+                key={workflow.name}
+                onClick={() => openWorkflowDialog(workflow)}
+                className="p-4 border rounded-lg hover:border-blue-500 hover:bg-blue-50 text-left transition"
+              >
+                <Icon icon={workflow.icon} className="text-2xl mb-2 text-blue-500" />
+                <h3 className="font-semibold">{workflow.displayName}</h3>
+                <p className="text-sm text-gray-600 mt-1">{workflow.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
     \`\`\`
   * Charts and visualizations (use Recharts)
   * Helpful links/shortcuts
@@ -1873,14 +1886,26 @@ Workflows are **custom actions** that appear as buttons on entity pages and can 
 
 ### 1. Workflow Parser Utility (\`src/utils/workflowParser.ts\`):
 \`\`\`typescript
-// Get all workflows from spec
-function getWorkflows(spec: UISpec): Workflow[]
+// Get all workflows from spec.workflows array
+function getWorkflows(spec: UISpec): Workflow[] {
+  return (spec.workflows || []).map(workflowName => ({
+    name: workflowName,
+    displayName: spec[workflowName].displayName,
+    description: spec[workflowName].description,
+    icon: spec[workflowName].icon,
+    category: spec[workflowName].category,
+    permissions: spec[workflowName].permissions,
+    ui: spec[\`\${workflowName}.ui\`],
+    inputs: spec[\`\${workflowName}.inputs\`] || {}
+  }));
+}
 
 // Get workflows that should show on a specific page
-function getWorkflowsForPage(spec: UISpec, pagePath: string): Workflow[]
-
-// Extract workflows from agent tools if no workflows array exists
-function extractWorkflowsFromAgents(spec: UISpec): Workflow[]
+function getWorkflowsForPage(spec: UISpec, pagePath: string): Workflow[] {
+  return getWorkflows(spec).filter(w =>
+    w.ui.showOnPages && w.ui.showOnPages.includes(pagePath)
+  );
+}
 \`\`\`
 
 ### 2. Workflow Components:
@@ -2131,17 +2156,24 @@ Generate a COMPLETE, production-ready web application with ALL the following:
 
 ## 12. Workflows (ENHANCED)
    - **src/utils/workflowParser.ts** - Workflow parsing utilities:
-     * \`getWorkflows(spec)\` - Get all workflows from spec or extract from agent tools
-     * \`getWorkflowsForPage(spec, pagePath)\` - Get workflows for specific entity page
-     * \`extractWorkflowsFromAgents(spec)\` - Extract workflows from agent.tools
+     * \`getWorkflows(spec)\` - Get all workflows from spec.workflows array
+     * \`getWorkflowInputs(spec, workflowName)\` - Get input fields for workflow from spec["\${workflowName}.inputs"]
+     * Each workflow is defined in spec following this pattern:
+       - spec.workflows: string[] - Array of workflow names
+       - spec[workflowName]: { displayName, description, icon, category, permissions }
+       - spec["\${workflowName}.ui"]: { showOnDashboard, showInQuickActions, buttonText, icon, style, confirmationRequired }
+       - spec["\${workflowName}.inputs"]: { [inputName]: { inputType, required, validation, displayOptions, dataSource } }
    - **src/components/workflows/WorkflowButton.tsx** - Workflow action button:
      * Renders button with icon, style, position from workflow.ui
      * Triggers workflow dialog on click
    - **src/components/workflows/WorkflowDialog.tsx** - Workflow execution dialog:
-     * Dynamically builds form from workflow.inputs
-     * Handles entity reference selects (fetches options from entities)
-     * Validates and submits to workflow endpoint
-     * Shows confirmation if workflow.ui.confirmation is set
+     * **CRITICAL**: Reads workflow.inputs directly from spec["\${workflowName}.inputs"]
+     * Dynamically builds form from workflow.inputs specification
+     * Each input field has: inputType (text/number/select/textarea/datetime-local), required, validation, displayOptions
+     * For select inputs with dataSource: fetches options from dataSource.entity
+     * If no inputs found, show simple confirmation dialog
+     * Validates and submits to workflow endpoint: \`POST /<ModelName>/<WorkflowName>\`
+     * Shows success/error toast message
    - **src/components/workflows/WorkflowContainer.tsx** - Workflow button container:
      * Fetches workflows for current page using workflowParser
      * Renders all applicable WorkflowButton components
@@ -2271,12 +2303,13 @@ Generate a COMPLETE, production-ready web application with ALL the following:
    - Use validation patterns (email, minLength, pattern) in DynamicForm
 
 ✅ **Workflow Integration** (CRITICAL):
-   - Create \`src/utils/workflowParser.ts\` to extract workflows from spec
-   - If spec has \`workflows\` array, use it directly
-   - If not, extract workflows from \`agent.tools\` arrays
+   - Create \`src/utils/workflowParser.ts\` to read workflows from spec
+   - Read workflows from spec.workflows array
+   - Get workflow metadata from spec[workflowName], spec["\${workflowName}.ui"], spec["\${workflowName}.inputs"]
    - Show workflow buttons on entity pages based on \`ui.showOnPages\`
-   - WorkflowDialog dynamically builds form from \`workflow.inputs\`
-   - Handle entity reference selects (fetch options from entity endpoints)
+   - Show on dashboard if \`ui.showOnDashboard\` is true
+   - WorkflowDialog dynamically builds form from spec["\${workflowName}.inputs"]
+   - Handle entity reference selects with dataSource (fetch options from entity endpoints)
    - Submit workflows to: \`POST /<ModelName>/<WorkflowName>\`
 
 ✅ **Agent Chat with Backend Integration** (CRITICAL):
@@ -2343,10 +2376,50 @@ Follow this order for generation:
    - \`resolveComponentRef(componentRef)\`
    - \`getEntityFromPath(path)\`
    - \`parseComponentReference(ref)\`
-4. Generate **src/utils/workflowParser.ts** - Workflow parsing functions:
-   - \`getWorkflows(spec)\` - Get all workflows (from spec.workflows or extract from agent.tools)
-   - \`getWorkflowsForPage(spec, pagePath)\` - Filter workflows for specific page
-   - \`extractWorkflowsFromAgents(spec)\` - Extract workflows from agent tools
+4. Generate **src/utils/workflowParser.ts** - Workflow parsing functions (SIMPLE & CLEAN):
+
+   ⚠️ **WORKFLOW STRUCTURE IN SPEC** - Workflows follow the SAME pattern as entities:
+
+   Spec has:
+   - \`spec.workflows\` array: ["CarDealership/CreateCarModel", "CarDealership/MakeInquiry", ...]
+   - \`spec["CarDealership/CreateCarModel"]\`: Metadata (displayName, description, icon, category)
+   - \`spec["CarDealership/CreateCarModel.ui"]\`: UI config (showOnDashboard, buttonText, style, etc.)
+   - \`spec["CarDealership/CreateCarModel.inputs"]\`: Input fields (like form fields)
+
+   **Simple Parsing Logic**:
+   \`\`\`typescript
+   export function getWorkflows(spec: UISpec) {
+     return (spec.workflows || []).map(workflowName => {
+       const metadata = spec[workflowName];
+       const ui = spec[\`\${workflowName}.ui\`];
+       const inputs = spec[\`\${workflowName}.inputs\`] || {};
+
+       return {
+         name: workflowName,
+         displayName: metadata.displayName,
+         description: metadata.description,
+         icon: metadata.icon,
+         category: metadata.category,
+         permissions: metadata.permissions,
+         ui: ui,
+         inputs: inputs
+       };
+     });
+   }
+
+   export function getQuickActionWorkflows(spec: UISpec) {
+     return getWorkflows(spec).filter(w => w.ui?.showInQuickActions === true);
+   }
+
+   export function getDashboardWorkflows(spec: UISpec) {
+     return getWorkflows(spec).filter(w => w.ui?.showOnDashboard === true);
+   }
+   \`\`\`
+
+   Functions to export:
+   - \`getWorkflows(spec)\` - Get all workflows from spec.workflows array
+   - \`getQuickActionWorkflows(spec)\` - Get workflows where showInQuickActions=true
+   - \`getDashboardWorkflows(spec)\` - Get workflows where showOnDashboard=true
 5. Generate **src/types/index.ts** - TypeScript interfaces for all entities, workflows, and agents
 6. Generate **src/data/uiSpec.ts** - Export the full UI spec object
 7. Generate **src/data/mockData.ts** - Mock data for all entities + auth + mock conversation history
@@ -2836,9 +2909,19 @@ Follow this order for generation:
 
 ### 2. ✅ Dashboard MUST Have Quick Actions
 - Create QuickActions.tsx component
-- Shows ALL workflows in a grid (3 columns)
-- Each card shows icon, name, description
-- Clicking opens WorkflowDialog with input form
+- **Read workflows from spec.workflows array and spec[workflowName] metadata**
+- Filter workflows where spec["\${workflowName}.ui"].showOnDashboard === true
+- Shows workflows in a grid (3 columns)
+- Each card shows:
+  * icon from spec[workflowName].icon
+  * displayName from spec[workflowName].displayName
+  * description from spec[workflowName].description
+- Clicking opens WorkflowDialog with input form (from spec["\${workflowName}.inputs"])
+- Example workflow structure in spec:
+  * spec.workflows = ["CarDealership/CreateCarModel", "CarDealership/MakeInquiry", ...]
+  * spec["CarDealership/CreateCarModel"] = { displayName: "Create Car Model", description: "...", icon: "mdi:plus-circle", ... }
+  * spec["CarDealership/CreateCarModel.ui"] = { showOnDashboard: true, buttonText: "Create Car Model", ... }
+  * spec["CarDealership/CreateCarModel.inputs"] = { dealerId: { inputType: "select", ... }, make: { inputType: "text", ... }, ... }
 
 ### 3. ❌ NO JSON Dumps in Relationship Tables
 - **NEVER** use JSON.stringify() to show child entities
