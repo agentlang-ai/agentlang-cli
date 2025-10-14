@@ -444,7 +444,8 @@ export async function generateUI(
     console.log(chalk.cyan('\n📝 Next steps:'));
     console.log(chalk.white(`   cd ${projectDir}`));
     console.log(chalk.white('   npm install'));
-    console.log(chalk.white('   npm run dev'));
+    console.log(chalk.white('   npm run build    # Verify build succeeds'));
+    console.log(chalk.white('   npm run dev      # Start development server'));
   } catch (error) {
     spinner.fail('UI generation failed');
     throw error;
@@ -1161,6 +1162,52 @@ When buttons appear on card components:
 - Bulk action buttons: Only show when rows are selected, position in a context toolbar
 
 ## 2. TABLE REQUIREMENTS (MANDATORY)
+
+⚠️ **CRITICAL - DEFENSIVE CODING IN TABLES (PREVENTS CRASHES)**:
+
+**EVERY DynamicTable MUST start with these defensive checks**:
+\`\`\`typescript
+const DynamicTable = ({ data, spec, onRowClick, onCreateClick }: Props) => {
+  // 🔥 CRITICAL: ALWAYS validate data is array FIRST
+  const safeData = Array.isArray(data) ? data : [];
+
+  // State with safe defaults
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // 🔥 Filter with safety - ALWAYS check array first
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return safeData;
+    return safeData.filter((item) => {
+      return Object.values(item || {}).some(value =>
+        String(value || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+  }, [safeData, searchTerm]);
+
+  // 🔥 Sort with safety - NEVER spread without Array.isArray check
+  const sortedData = useMemo(() => {
+    if (!Array.isArray(filteredData)) return [];
+    return [...filteredData]; // NOW safe to spread
+  }, [filteredData]);
+
+  // 🔥 Pagination with safety
+  const paginatedData = useMemo(() => {
+    if (!Array.isArray(sortedData)) return [];
+    const start = (currentPage - 1) * pageSize;
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, currentPage, pageSize]);
+
+  // Early returns for safety
+  if (!spec) return <div>No table specification</div>;
+  if (safeData.length === 0) return <EmptyState />;
+
+  // Now safe to render table with paginatedData
+};
+\`\`\`
+
+**WHY THIS MATTERS**: Without these checks, you'll get "not iterable" errors when data is undefined/null.
 
 ⚠️ **EVERY TABLE MUST HAVE**:
 
@@ -2635,16 +2682,7 @@ Follow this order for generation:
 2. Generate configuration files:
    - **package.json** - Use "agentlang-ui" as package name
    - **tsconfig.json** and **tsconfig.node.json**
-   - **vite.config.ts** - IMPORTANT: Configure dev server port to 3000 (not default 5173):
-     \`\`\`typescript
-     export default defineConfig({
-       server: {
-         port: 3000,
-         host: true
-       },
-       // ... rest of config
-     });
-     \`\`\`
+   - **vite.config.ts** - Standard Vite configuration with React plugin
    - **index.html** - Use \`${uiSpec.appInfo.title}\` as title
    - **.env** - Set \`VITE_USE_MOCK_DATA=true\`, \`VITE_BACKEND_URL=http://localhost:8080/\`
    - **.env.example** - Same as .env (without API keys)
@@ -2782,6 +2820,60 @@ Follow this order for generation:
 ## Phase 11: Documentation
 44. Generate **README.md** - Setup instructions, backend configuration, feature list
 
+## Phase 12: Verification (CRITICAL - DO NOT SKIP)
+
+⚠️ **REQUIRED**: After generating all files, verify the build with these commands:
+
+### Step 1: Install Dependencies
+\`\`\`bash
+npm install
+\`\`\`
+
+### Step 2: TypeScript Type Checking (REQUIRED)
+\`\`\`bash
+npx tsc --noEmit
+\`\`\`
+**Expected**: No TypeScript errors. If errors occur, fix them before proceeding.
+
+**Common TypeScript errors to fix**:
+- Missing imports: Add proper import statements
+- Type mismatches: Add proper type annotations
+- Missing properties: Check interface definitions
+- Any usage: Replace with proper types
+
+### Step 3: Build Check (REQUIRED)
+\`\`\`bash
+npm run build
+\`\`\`
+**Expected**: Build succeeds without errors. If build fails, fix the errors.
+
+**Common build errors to fix**:
+- Import path issues: Check relative paths
+- Missing dependencies: Add to package.json
+- Syntax errors: Fix JavaScript/TypeScript syntax
+- Type errors: Fix TypeScript type issues
+
+### Step 4: ESLint Check (Optional but Recommended)
+\`\`\`bash
+npm run lint
+\`\`\`
+**Expected**: No critical errors (warnings are okay).
+
+### ⚠️ CRITICAL: DO NOT RUN DEV SERVER
+
+**DO NOT** run \`npm run dev\` or \`npm start\` because:
+1. It will keep the terminal occupied/blocked
+2. We only need to verify the build succeeds
+3. The user will run dev server themselves when ready
+4. We don't need browser testing during generation
+
+**ONLY verify**:
+- ✅ TypeScript compilation passes (\`tsc --noEmit\`)
+- ✅ Production build succeeds (\`npm run build\`)
+- ✅ No critical errors in output
+
+If both checks pass, the application is ready. The user can run \`npm run dev\` themselves to test in browser.
+
 ## IMPORTANT REMINDERS:
 
 ### To SPEED UP generation and PREVENT ERRORS:
@@ -2802,7 +2894,6 @@ Follow this order for generation:
 - **Agent routes** - Add agent listing and chat routes to App.tsx
 - **ChatbotBubble in App.tsx** - Must be in main layout
 - **Toggleable sidebar** - Save state to localStorage
-- **Port 3000** - Configure Vite dev server to use port 3000
 
 # SENSIBLE DEFAULTS - ALWAYS APPLY THESE (CRITICAL!)
 
@@ -3160,8 +3251,8 @@ Follow this order for generation:
 3. **Keep it simple** - Don't add unnecessary features
 4. **One create button per table** - No clutter
 5. **Auth pages are different** - Centered layout, no sidebar
-6. **Test after generation** - Run \`npm run dev\` to verify
-7. **Check for errors** - Browser console should be clean
+6. **Verify after generation** - Run \`tsc --noEmit\` and \`npm run build\` to verify
+7. **DO NOT run dev server** - Only verify build succeeds, don't leave server running
 
 **SPEED TIPS** (to reduce generation time):
 - Generate config files first (takes 30 seconds)
@@ -3174,15 +3265,14 @@ Follow this order for generation:
 **QUALITY CHECKLIST** (verify before completing):
 - [ ] Tailwind installed and configured
 - [ ] All layouts use Tailwind classes (NO inline styles)
-- [ ] No console errors
-- [ ] Sidebar toggles smoothly
-- [ ] ChatbotBubble visible on all pages
-- [ ] Forms work and validate
-- [ ] Tables have search/pagination
-- [ ] Mobile responsive (test at 375px)
-- [ ] All pages and functionality implemented
-- [ ] \`npm run build\` succeeds
-- [ ] \`npm run dev\` starts without errors
+- [ ] TypeScript compilation passes: \`tsc --noEmit\`
+- [ ] Production build succeeds: \`npm run build\`
+- [ ] No TypeScript errors in any file
+- [ ] All defensive patterns implemented (Array.isArray, optional chaining)
+- [ ] Mock data created for all entities
+- [ ] ErrorBoundary wraps app in main.tsx
+- [ ] All components have proper type definitions
+- [ ] All imports resolve correctly
 
 ## 🔥 FINAL CRITICAL REMINDERS (COMMON ISSUES):
 
@@ -3236,5 +3326,17 @@ Follow this order for generation:
 
 **Double-check these 5 issues before completing generation!**
 
-START NOW! Generate the complete application following this exact process. Work efficiently, use Tailwind, follow the patterns, and test as you go.`;
+## 🚨 FINAL WARNING - MOST COMMON FAILURE:
+
+**"TypeError: X is not iterable"** or **"Cannot read property of undefined"** means:
+- ❌ You forgot \`Array.isArray(data) ? data : []\` before spreading
+- ❌ You forgot \`(data || []).map()\` before mapping
+- ❌ You forgot \`item?.property || 'default'\` for nested access
+- ❌ useEntityData is returning undefined instead of empty array
+
+**FIX IMMEDIATELY**: Add defensive checks to ALL data-handling code, especially DynamicTable.tsx.
+
+---
+
+START NOW! Generate the complete application following this exact process. Work efficiently, use Tailwind, follow the defensive patterns, and verify with \`tsc --noEmit\` and \`npm run build\` (DO NOT run dev server).`;
 }
