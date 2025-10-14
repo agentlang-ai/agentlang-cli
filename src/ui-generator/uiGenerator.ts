@@ -903,6 +903,14 @@ export const mockApi = {
     await new Promise(resolve => setTimeout(resolve, 300));
     mockData[key] = (mockData[key] || []).filter(i => i.id !== id);
     return { status: 'success' };
+  },
+
+  // Workflow execution endpoint
+  async executeWorkflow(model: string, workflowName: string, inputs: any) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log(\`Executing workflow: \${model}/\${workflowName}\`, inputs);
+    // Mock successful execution
+    return { status: 'success', data: { message: 'Workflow executed successfully' } };
   }
 };
 \`\`\`
@@ -977,11 +985,11 @@ export function useEntityData(model: string, entity: string) {
 
 ## Step 5: Dynamic Components
 
-Create **src/components/dynamic/DynamicTable.tsx** - Reusable table component:
+Create **src/components/dynamic/DynamicTable.tsx** - Reusable table with row actions:
 
-**CRITICAL - Header Layout:**
+**CRITICAL - Must include Actions column:**
 \`\`\`typescript
-export function DynamicTable({ data, spec, onRowClick, onCreateClick, showCreateButton = true }: Props) {
+export function DynamicTable({ data, spec, onRowClick, onCreateClick, onEdit, onDelete, showCreateButton = true }: Props) {
   // DEFENSIVE: Always validate array first
   const safeData = Array.isArray(data) ? data : [];
 
@@ -1022,7 +1030,7 @@ export function DynamicTable({ data, spec, onRowClick, onCreateClick, showCreate
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      {/* CRITICAL: Header with Search + Create Button TOGETHER on right */}
+      {/* Header with Search + Create Button TOGETHER on right */}
       <div className="flex justify-between items-center p-4 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900">{spec.title}</h2>
 
@@ -1060,20 +1068,49 @@ export function DynamicTable({ data, spec, onRowClick, onCreateClick, showCreate
                   {col.label}
                 </th>
               ))}
+              {/* CRITICAL: Actions column header */}
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {paginatedData.map((row, idx) => (
-              <tr
-                key={row.id || idx}
-                onClick={() => onRowClick(row)}
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
-              >
+              <tr key={row.id || idx} className="hover:bg-gray-50 transition-colors">
                 {spec.columns.map(col => (
-                  <td key={col.key} className="px-6 py-4 text-sm text-gray-900">
+                  <td
+                    key={col.key}
+                    onClick={() => onRowClick(row)}
+                    className="px-6 py-4 text-sm text-gray-900 cursor-pointer"
+                  >
                     {row[col.key]}
                   </td>
                 ))}
+                {/* CRITICAL: Actions column with Edit and Delete buttons */}
+                <td className="px-6 py-4 text-right whitespace-nowrap">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(row);
+                      }}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit"
+                    >
+                      <Icon icon="mdi:pencil" className="text-lg" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(row);
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Icon icon="mdi:delete" className="text-lg" />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -1111,12 +1148,14 @@ export function DynamicTable({ data, spec, onRowClick, onCreateClick, showCreate
 
 **CRITICAL Requirements:**
 1. **Header Layout**: Title on left, Search + Create button on right (TOGETHER)
-2. **Create Button**: Always visible by default, can be hidden with \`showCreateButton={false}\`
-3. **Search Input**: Has search icon, placeholder "Search...", 256px width
-4. **Empty State**: Show nice empty state with icon and message
-5. **Pagination**: Show count and prev/next buttons
-6. **Hover**: Row hover effect with gray background
-7. **Defensive**: Always check \`Array.isArray(data)\` before operations
+2. **Actions Column**: MUST have "Actions" column at the end with Edit and Delete icon buttons
+3. **Edit Button**: Blue pencil icon (mdi:pencil), opens edit form dialog
+4. **Delete Button**: Red trash icon (mdi:delete), shows confirmation dialog then deletes
+5. **Stop Propagation**: Action buttons must call \`e.stopPropagation()\` to prevent row click
+6. **Search Input**: Has search icon, placeholder "Search...", 256px width
+7. **Empty State**: Show nice empty state with icon and message
+8. **Pagination**: Show count and prev/next buttons
+9. **Defensive**: Always check \`Array.isArray(data)\` before operations
 
 Create **src/components/dynamic/DynamicForm.tsx** - Standard form with Formik
 Create **src/components/dynamic/DynamicCard.tsx** - Card layout for entity details
@@ -1181,10 +1220,167 @@ export function EntityDetail() {
 
 ## Step 7: Workflows
 
-Create **src/components/workflows/WorkflowDialog.tsx**:
-- Read inputs from spec[\`\${workflowName}.inputs\`]
-- Build dynamic form
-- Submit to POST /:model/:workflow endpoint
+Create **src/components/workflows/WorkflowDialog.tsx** - Modal dialog for workflow execution:
+
+**CRITICAL - Must read form fields from spec:**
+\`\`\`typescript
+interface WorkflowDialogProps {
+  workflow: WorkflowInfo;  // Has name, displayName, description, icon, inputs
+  onClose: () => void;
+}
+
+export function WorkflowDialog({ workflow, onClose }: WorkflowDialogProps) {
+  const [formData, setFormData] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // CRITICAL: Read input fields from spec["WorkflowName.inputs"]
+  const inputFields = workflow.inputs || {};
+  const fieldNames = Object.keys(inputFields);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Extract model and workflow name
+      const [model, workflowName] = workflow.name.split('/');
+
+      // Submit to workflow endpoint
+      const useMock = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+      const result = useMock
+        ? await mockApi.executeWorkflow(model, workflowName, formData)
+        : await fetch(\`\${API_URL}/\${model}/\${workflowName}\`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+          }).then(r => r.json());
+
+      if (result.status === 'success') {
+        // Show success toast
+        toast.success('Workflow executed successfully!');
+        onClose();
+      } else {
+        setError(result.error || 'Workflow execution failed');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b">
+          <div className="flex items-center gap-3">
+            <Icon icon={workflow.icon || 'mdi:lightning-bolt'} className="text-3xl text-blue-600" />
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">{workflow.displayName}</h2>
+              <p className="text-sm text-gray-600">{workflow.description}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <Icon icon="mdi:close" className="text-2xl" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-4">
+            {fieldNames.map(fieldName => {
+              const field = inputFields[fieldName];
+              return (
+                <div key={fieldName}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {field.label || fieldName}
+                    {field.required && <span className="text-red-600">*</span>}
+                  </label>
+
+                  {/* Render input based on field type */}
+                  {field.inputType === 'select' || field.dataSource ? (
+                    <select
+                      required={field.required}
+                      value={formData[fieldName] || ''}
+                      onChange={(e) => setFormData({ ...formData, [fieldName]: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Select...</option>
+                      {/* Options from field.dataSource or field.options */}
+                    </select>
+                  ) : field.inputType === 'textarea' ? (
+                    <textarea
+                      required={field.required}
+                      value={formData[fieldName] || ''}
+                      onChange={(e) => setFormData({ ...formData, [fieldName]: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                    />
+                  ) : (
+                    <input
+                      type={field.inputType || 'text'}
+                      required={field.required}
+                      value={formData[fieldName] || ''}
+                      onChange={(e) => setFormData({ ...formData, [fieldName]: e.target.value })}
+                      placeholder={field.placeholder}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                  )}
+
+                  {field.helpText && (
+                    <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {loading && <Icon icon="mdi:loading" className="animate-spin" />}
+              Execute
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+\`\`\`
+
+**CRITICAL Requirements:**
+1. **Read inputs from spec**: workflow.inputs contains all form fields from spec["\${workflowName}.inputs"]
+2. **Dynamic form fields**: Render inputs based on field.inputType (text, select, textarea, number, etc.)
+3. **Required fields**: Show red asterisk, enforce with HTML5 required attribute
+4. **Field types**:
+   - \`inputType: 'text'\` → text input
+   - \`inputType: 'select'\` or \`dataSource\` → dropdown select
+   - \`inputType: 'textarea'\` → textarea
+   - \`inputType: 'number'\` → number input
+5. **Submit**: POST to \`/:model/:workflowName\` with form data
+6. **Show errors**: Display error message if execution fails
+7. **Success**: Show success toast and close dialog
+8. **Loading state**: Disable submit button, show spinner while executing
 
 Create **src/components/dashboard/QuickActions.tsx** - Workflow cards for dashboard:
 \`\`\`typescript
@@ -1351,17 +1547,25 @@ Create **src/components/layout/Sidebar.tsx** - Toggleable sidebar with clear str
 
 **Structure (top to bottom):**
 1. **App Title/Logo** at top
-2. **Home Button** - Links to dashboard (\`/\`) with \`mdi:home\` icon
-3. **Entities Section**:
+2. **User Menu** (at top):
+   - User avatar/icon (mdi:account-circle)
+   - User name from auth context
+   - Dropdown menu on click:
+     * "Profile" → Opens profile settings dialog
+     * "Logout" → Clears auth token, redirects to login
+3. **Home Button** - Links to dashboard (\`/\`) with \`mdi:home\` icon
+4. **Entities Section**:
    - Section header: "Entities"
    - List ALL entities from spec
    - Each entity: icon + name, links to \`/entity-list/:model/:entity\`
    - When clicked, shows entity list view
    - Clicking an entity instance → shows detail page with relationships
-4. **Workflows Section** (separate from entities):
+5. **Workflows Section** (separate from entities):
    - Section header: "Workflows"
    - List ALL workflows from spec.workflows
-   - Each workflow: icon + displayName, opens WorkflowDialog on click
+   - **CRITICAL**: Each workflow is a CLICKABLE button that opens WorkflowDialog
+   - Each workflow: icon + displayName
+   - onClick handler: Opens WorkflowDialog component with workflow data
    - Same workflows as dashboard Quick Actions
 
 **Behavior:**
@@ -1375,6 +1579,7 @@ Create **src/components/layout/Sidebar.tsx** - Toggleable sidebar with clear str
 \`\`\`
 ┌─────────────────┐
 │ App Name        │
+│ 👤 John Doe ▾   │ ← User menu (Profile/Logout)
 ├─────────────────┤
 │ 🏠 Home         │ ← Links to dashboard
 ├─────────────────┤
@@ -1384,10 +1589,21 @@ Create **src/components/layout/Sidebar.tsx** - Toggleable sidebar with clear str
 │ 📦 Products     │
 ├─────────────────┤
 │ WORKFLOWS       │
-│ ⚡ Create Order │ ← Opens dialog
-│ ⚡ Process Sale │
+│ ⚡ Create Order │ ← CLICKABLE button, opens WorkflowDialog
+│ ⚡ Process Sale │ ← CLICKABLE button, opens WorkflowDialog
 └─────────────────┘
 \`\`\`
+
+**User Profile Dialog:**
+- Modal/dialog that opens when "Profile" clicked
+- Shows user info: name, email, role
+- Allows editing name
+- "Save" and "Cancel" buttons
+
+**Logout:**
+- Clear localStorage token
+- Clear any auth context state
+- Redirect to \`/login\` page
 
 Create **src/components/layout/ChatbotBubble.tsx** - Floating chat with agent selection:
 
@@ -1600,36 +1816,55 @@ After generating ALL files above:
 
 ## Navigation & Layout
 1. **Sidebar Structure**:
+   - User menu at top (avatar + name + dropdown with Profile/Logout)
    - Home button (links to dashboard)
    - Entities section (only entities, NOT workflows)
-   - Workflows section (separate, below entities)
+   - **Workflows section (CLICKABLE buttons that open WorkflowDialog)**
    - Toggleable with localStorage persistence
 2. **Dashboard**: Stat cards + Quick Actions (workflows) + status cards
 3. **Entity Detail**: Show details card + embedded relationship tables (NOT JSON)
 4. **Chatbot**: Agent selection dropdown INSIDE chatbot panel, not in sidebar
 
 ## Tables & Data
-5. **All tables MUST have**: Search input + Create button (TOGETHER on right), pagination
-6. **Relationship tables**: MUST have Create button beside search in each table
-7. **Never use JSON.stringify**: Always render relationships as DynamicTable
-8. **Always validate arrays**: \`Array.isArray(data) ? data : []\` before operations
-9. **Mock data**: Create 3-5 realistic records for ALL entities
+5. **All tables MUST have**:
+   - Search input + Create button (TOGETHER on right)
+   - **Actions column with Edit and Delete icon buttons for EACH row**
+   - Pagination
+6. **Table Actions**:
+   - Edit button: Blue pencil icon, opens edit form
+   - Delete button: Red trash icon, shows confirmation then deletes
+   - Use \`e.stopPropagation()\` on action buttons to prevent row click
+7. **Relationship tables**: MUST have Create button beside search in each table
+8. **Never use JSON.stringify**: Always render relationships as DynamicTable
+9. **Always validate arrays**: \`Array.isArray(data) ? data : []\` before operations
+10. **Mock data**: Create 3-5 realistic records for ALL entities
 
-## Styling & Polish
-10. **Tailwind only**: No inline styles, no CSS-in-JS
-11. **Professional polish**: Borders, shadows, hover effects, spacing (24-32px)
-12. **Consistent colors**: Blue-600 primary, gray-900 text, gray-50 backgrounds
-13. **Icons**: Only Material Design Icons (mdi:*) via @iconify/react
+## Workflows
+11. **Sidebar workflows**: MUST be CLICKABLE buttons that open WorkflowDialog
+12. **WorkflowDialog MUST read**: \`workflow.inputs\` from spec["\${workflowName}.inputs"]
+13. **Dynamic form fields**: Render inputs based on \`inputType\` (text, select, textarea, number)
+14. **Submit workflow**: POST to \`/:model/:workflowName\` with form data
+
+## User Management
+15. **User menu**: Show in sidebar at top with avatar, name, dropdown
+16. **Logout**: Clear localStorage token, redirect to /login
+17. **Profile**: Opens dialog to edit user name, email (read-only), role (read-only)
 
 ## Authentication
-14. **Login/SignUp MUST call**: \`mockApi.login()\` and \`mockApi.signUp()\`
-15. **Show mock credentials**: Display "Use admin@example.com / admin123" on login page
-16. **Handle responses**: Check \`result.status === 'success'\`, show errors
+18. **Login/SignUp MUST call**: \`mockApi.login()\` and \`mockApi.signUp()\`
+19. **Show mock credentials**: Display "Use admin@example.com / admin123" on login page
+20. **Handle responses**: Check \`result.status === 'success'\`, show errors
+
+## Styling & Polish
+21. **Tailwind only**: No inline styles, no CSS-in-JS
+22. **Professional polish**: Borders, shadows, hover effects, spacing (24-32px)
+23. **Consistent colors**: Blue-600 primary, gray-900 text, gray-50 backgrounds
+24. **Icons**: Only Material Design Icons (mdi:*) via @iconify/react
 
 ## Build Requirements
-17. **Build must succeed**: Fix all errors until \`npm run build\` passes
-18. **NO dev server**: Only verify with \`tsc --noEmit\` and \`npm run build\`
-19. **Workflows from spec**: Read from spec.workflows array, access metadata with spec[workflowName]
+25. **Build must succeed**: Fix all errors until \`npm run build\` passes
+26. **NO dev server**: Only verify with \`tsc --noEmit\` and \`npm run build\`
+27. **Workflows from spec**: Read from spec.workflows array, access metadata with spec[workflowName]
 
 START NOW! Generate all files, then verify and fix any issues.`;
 }
