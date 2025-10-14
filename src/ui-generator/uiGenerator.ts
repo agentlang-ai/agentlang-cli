@@ -1627,24 +1627,90 @@ Create **src/components/layout/ChatbotBubble.tsx** - Floating chat with agent se
 
 Create **src/components/ErrorBoundary.tsx** - Error boundary component
 
-Create **src/components/auth/Login.tsx** - Modern login page:
-- **NO SIDEBAR** on auth pages
-- **Centered card** design with logo at top
-- **Clean form**: Email + password inputs with proper validation
-- **Link to Sign Up** page at bottom
-- **Forgot password** link
-- **Mock credentials shown**: Display "Use admin@example.com / admin123" in subtle text below form
-- **Loading state**: Show spinner on submit button during login
-- **CRITICAL**: Must call \`mockApi.login(email, password)\` on submit
+Create **src/components/auth/Login.tsx** - Modern login page with social auth:
+
+**Layout Structure:**
+1. **NO SIDEBAR** on auth pages
+2. **Centered card** design (max-width: 400px) with logo/app name at top
+3. **Social Sign-In Buttons** (top section):
+   - Google button: White background, Google logo, "Continue with Google"
+   - GitHub button: Dark background, GitHub logo, "Continue with GitHub"
+   - Microsoft button: White background, Microsoft logo, "Continue with Microsoft"
+   - Each button full-width, proper brand colors
+   - Click shows toast: "Social sign-in coming soon!" (not implemented yet)
+4. **Divider**: Horizontal line with "or" text in center
+5. **Email/Password Form**:
+   - Email input with icon
+   - Password input with show/hide toggle
+   - "Remember me" checkbox
+   - "Forgot password?" link
+6. **Sign In Button**: Primary button, full-width
+7. **Mock credentials**: Small text below: "Demo: admin@example.com / admin123"
+8. **Sign Up Link**: "Don't have an account? Sign up" at bottom
+
+**Code Example:**
+\`\`\`tsx
+<div className="space-y-4">
+  {/* Social Auth Buttons */}
+  <button
+    onClick={() => toast.info('Google sign-in coming soon!')}
+    className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+  >
+    <Icon icon="mdi:google" className="text-xl" />
+    <span className="font-medium">Continue with Google</span>
+  </button>
+
+  <button
+    onClick={() => toast.info('GitHub sign-in coming soon!')}
+    className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+  >
+    <Icon icon="mdi:github" className="text-xl" />
+    <span className="font-medium">Continue with GitHub</span>
+  </button>
+
+  {/* Divider */}
+  <div className="relative my-6">
+    <div className="absolute inset-0 flex items-center">
+      <div className="w-full border-t border-gray-300"></div>
+    </div>
+    <div className="relative flex justify-center text-sm">
+      <span className="px-2 bg-white text-gray-500">or continue with email</span>
+    </div>
+  </div>
+
+  {/* Email/Password Form */}
+  <form onSubmit={handleEmailLogin}>
+    {/* Email and password inputs */}
+  </form>
+</div>
+\`\`\`
+
+**CRITICAL Requirements:**
+- **Social buttons**: Google (white), GitHub (dark), Microsoft (white) - use \`mdi:google\`, \`mdi:github\`, \`mdi:microsoft\`
+- **Click behavior**: Show toast "Coming soon!" - NOT implemented yet
+- **Divider**: "or continue with email" between social and email form
+- **Email login**: Must call \`mockApi.login(email, password)\` on submit
 - **Handle response**: Check \`result.status === 'success'\`, store token, navigate to dashboard
 - **Show errors**: Display \`result.error\` if login fails
+- **Mock credentials**: Display "Demo: admin@example.com / admin123" below form
 
-Create **src/components/auth/SignUp.tsx** - Modern signup page:
-- **Similar design** to Login page
-- **Form fields**: Name, Email, Password, Confirm Password
-- **Link to Login** at bottom
-- **Validation**: Check password match, email format
-- **CRITICAL**: Must call \`mockApi.signUp(email, password, name)\` on submit
+Create **src/components/auth/SignUp.tsx** - Modern signup page with social auth:
+
+**Layout Structure:**
+1. **Similar design** to Login page
+2. **Social Sign-Up Buttons** (same as login):
+   - Google, GitHub, Microsoft buttons
+   - Click shows toast: "Social sign-up coming soon!"
+3. **Divider**: "or sign up with email"
+4. **Form fields**: Name, Email, Password, Confirm Password
+5. **Terms checkbox**: "I agree to Terms of Service and Privacy Policy"
+6. **Sign Up Button**: Primary button, full-width
+7. **Login Link**: "Already have an account? Sign in" at bottom
+
+**CRITICAL Requirements:**
+- **Social buttons**: Same styling as login page
+- **Form validation**: Check password match, email format, terms accepted
+- **Email signup**: Must call \`mockApi.signUp(email, password, name)\` on submit
 - **Handle response**: Check \`result.status === 'success'\`, store token, navigate to dashboard
 - **Show errors**: Display \`result.error\` if signup fails (e.g., "User already exists")
 
@@ -1851,20 +1917,23 @@ After generating ALL files above:
 17. **Profile**: Opens dialog to edit user name, email (read-only), role (read-only)
 
 ## Authentication
-18. **Login/SignUp MUST call**: \`mockApi.login()\` and \`mockApi.signUp()\`
-19. **Show mock credentials**: Display "Use admin@example.com / admin123" on login page
-20. **Handle responses**: Check \`result.status === 'success'\`, show errors
+18. **Social auth buttons**: Show Google, GitHub, Microsoft buttons (UI only, not functional yet)
+19. **Social button click**: Show toast "Coming soon!" - functionality to be added later
+20. **Email login/signup MUST call**: \`mockApi.login()\` and \`mockApi.signUp()\`
+21. **Show mock credentials**: Display "Demo: admin@example.com / admin123" on login page
+22. **Handle responses**: Check \`result.status === 'success'\`, show errors
+23. **Divider**: "or continue with email" between social buttons and email form
 
 ## Styling & Polish
-21. **Tailwind only**: No inline styles, no CSS-in-JS
-22. **Professional polish**: Borders, shadows, hover effects, spacing (24-32px)
-23. **Consistent colors**: Blue-600 primary, gray-900 text, gray-50 backgrounds
-24. **Icons**: Only Material Design Icons (mdi:*) via @iconify/react
+24. **Tailwind only**: No inline styles, no CSS-in-JS
+25. **Professional polish**: Borders, shadows, hover effects, spacing (24-32px)
+26. **Consistent colors**: Blue-600 primary, gray-900 text, gray-50 backgrounds
+27. **Icons**: Only Material Design Icons (mdi:*) via @iconify/react
 
 ## Build Requirements
-25. **Build must succeed**: Fix all errors until \`npm run build\` passes
-26. **NO dev server**: Only verify with \`tsc --noEmit\` and \`npm run build\`
-27. **Workflows from spec**: Read from spec.workflows array, access metadata with spec[workflowName]
+28. **Build must succeed**: Fix all errors until \`npm run build\` passes
+29. **NO dev server**: Only verify with \`tsc --noEmit\` and \`npm run build\`
+30. **Workflows from spec**: Read from spec.workflows array, access metadata with spec[workflowName]
 
 START NOW! Generate all files, then verify and fix any issues.`;
 }
