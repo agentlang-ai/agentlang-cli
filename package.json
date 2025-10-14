@@ -1,7 +1,7 @@
 {
   "name": "agentlangcli",
-  "version": "0.3.5",
-  "description": "A command-line interface tool for AgentLang",
+  "version": "0.3.6",
+  "description": "A command-line interface tool for Agentlang",
   "main": "out/main.js",
   "type": "module",
   "bin": {
@@ -36,7 +36,7 @@
     "swagger",
     "documentation"
   ],
-  "author": "AgentLang Team",
+  "author": "Agentlang Team",
   "license": "MIT",
   "repository": {
     "type": "git",
