@@ -1,15 +1,24 @@
 # Agentlang CLI
 
-A command-line interface tool for running, validating, and generating documentation for Agentlang programs. Agentlang is a programming language designed for building agent-based applications with built-in support for entities, events, and relationships.
+A command-line interface tool for running, validating, and generating
+documentation for Agentlang programs. Agentlang is a programming language
+designed for building agent-based applications with built-in support for
+entities, events, and relationships.
 
 ## Features
 
-- **Initialize Projects**: Quickly scaffold new Agentlang applications with the proper project structure
-- **Run Agentlang Programs**: Execute Agentlang modules with full runtime support
-- **Interactive REPL**: Test and debug your code with a live REPL environment with hot-reloading support
-- **Parse and Validate**: Check syntax and semantic correctness of Agentlang code
-- **Generate API Documentation**: Automatically generate OpenAPI/Swagger documentation from your Agentlang modules
-- **AI-Powered UI Generation**: Generate complete React + TypeScript + Vite applications from UI specifications using Claude AI
+- **Initialize Projects**: Quickly scaffold new Agentlang applications with the
+  proper project structure
+- **Run Agentlang Programs**: Execute Agentlang modules with full runtime
+  support
+- **Interactive REPL**: Test and debug your code with a live REPL environment
+  with hot-reloading support
+- **Parse and Validate**: Check syntax and semantic correctness of Agentlang
+  code
+- **Generate API Documentation**: Automatically generate OpenAPI/Swagger
+  documentation from your Agentlang modules
+- **AI-Powered UI Generation**: Generate complete React + TypeScript + Vite
+  applications from UI specifications using Claude AI
 
 ## Installation
 
@@ -147,7 +156,8 @@ This will generate a `docs/openapi-docs.yml` file in your project directory.
 
 ### 5. Interactive REPL
 
-Start an interactive Read-Eval-Print Loop for testing and debugging Agentlang code:
+Start an interactive Read-Eval-Print Loop for testing and debugging Agentlang
+code:
 
 ```bash
 agent repl [directory]
@@ -176,7 +186,8 @@ The REPL provides an interactive environment where you can:
 
 ### 6. Generate UI from Specification
 
-Generate a complete React + TypeScript + Vite application from a UI specification using Claude AI:
+Generate a complete React + TypeScript + Vite application from a UI
+specification using Claude AI:
 
 ```bash
 agent ui-gen [spec-file]
