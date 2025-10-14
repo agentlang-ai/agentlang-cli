@@ -1,29 +1,15 @@
-# AgentLang CLI
+# Agentlang CLI
 
-A command-line interface tool for running, validating, and generating
-documentation for AgentLang programs. AgentLang is a programming language
-designed for building agent-based applications with built-in support for
-entities, events, and relationships.
+A command-line interface tool for running, validating, and generating documentation for Agentlang programs. Agentlang is a programming language designed for building agent-based applications with built-in support for entities, events, and relationships.
 
 ## Features
 
-- **Initialize Projects**: Quickly scaffold new AgentLang applications with the
-  proper project structure
-- **Run AgentLang Programs**: Execute AgentLang modules with full runtime
-  support
-- **Interactive REPL**: Test and debug your code with a live REPL environment
-  with hot-reloading support
-- **Parse and Validate**: Check syntax and semantic correctness of AgentLang
-  code
-- **Generate API Documentation**: Automatically generate OpenAPI/Swagger
-  documentation from your AgentLang modules
-- **AI-Powered UI Generation**: Generate complete React + TypeScript + Vite
-  applications from UI specifications using Claude AI
-- **Database Support**: Built-in support for PostgreSQL, MySQL, and SQLite
-- **Authentication**: Integration with Okta and AWS Cognito authentication
-  services
-- **RBAC**: Role-based access control capabilities
-- **Audit Trail**: Comprehensive audit logging
+- **Initialize Projects**: Quickly scaffold new Agentlang applications with the proper project structure
+- **Run Agentlang Programs**: Execute Agentlang modules with full runtime support
+- **Interactive REPL**: Test and debug your code with a live REPL environment with hot-reloading support
+- **Parse and Validate**: Check syntax and semantic correctness of Agentlang code
+- **Generate API Documentation**: Automatically generate OpenAPI/Swagger documentation from your Agentlang modules
+- **AI-Powered UI Generation**: Generate complete React + TypeScript + Vite applications from UI specifications using Claude AI
 
 ## Installation
 
@@ -54,11 +40,11 @@ After installation, you can use the `agent` command:
 
 ## Usage
 
-The AgentLang CLI provides the following commands:
+The Agentlang CLI provides the following commands:
 
 ### 1. Initialize a New Application
 
-Create a new AgentLang application with the necessary project structure:
+Create a new Agentlang application with the necessary project structure:
 
 ```bash
 agent init <appname>
@@ -66,7 +52,7 @@ agent init <appname>
 
 **Description:**
 
-The `init` command creates a new AgentLang application with:
+The `init` command creates a new Agentlang application with:
 
 - `package.json` with your app name and version 0.0.1
 - `config.al` for application configuration (empty object by default)
@@ -99,9 +85,9 @@ Next steps:
   2. Run your app with: agent run
 ```
 
-### 2. Run AgentLang Programs
+### 2. Run Agentlang Programs
 
-Execute an AgentLang module with full runtime support:
+Execute an Agentlang module with full runtime support:
 
 ```bash
 agent run <file>
@@ -120,7 +106,7 @@ agent run myapp.al
 
 ### 3. Parse and Validate
 
-Check the syntax and semantic correctness of your AgentLang code:
+Check the syntax and semantic correctness of your Agentlang code:
 
 ```bash
 agent parseAndValidate <file>
@@ -138,7 +124,7 @@ agent parseAndValidate myapp.al
 
 ### 4. Generate API Documentation
 
-Generate OpenAPI/Swagger documentation from your AgentLang modules:
+Generate OpenAPI/Swagger documentation from your Agentlang modules:
 
 ```bash
 agent doc <file>
@@ -161,8 +147,7 @@ This will generate a `docs/openapi-docs.yml` file in your project directory.
 
 ### 5. Interactive REPL
 
-Start an interactive Read-Eval-Print Loop for testing and debugging AgentLang
-code:
+Start an interactive Read-Eval-Print Loop for testing and debugging Agentlang code:
 
 ```bash
 agent repl [directory]
@@ -184,15 +169,14 @@ agent repl . --watch         # Start in current dir with auto-reload
 
 The REPL provides an interactive environment where you can:
 
-- Execute AgentLang expressions in real-time
+- Execute Agentlang expressions in real-time
 - Test entity operations and workflows
 - Hot reload with `--watch` flag for rapid development
 - Access all loaded entities and functions
 
 ### 6. Generate UI from Specification
 
-Generate a complete React + TypeScript + Vite application from a UI
-specification using Claude AI:
+Generate a complete React + TypeScript + Vite application from a UI specification using Claude AI:
 
 ```bash
 agent ui-gen [spec-file]
@@ -397,7 +381,7 @@ export default {
 ## API Documentation Generation
 
 The `doc` command automatically generates OpenAPI documentation for your
-AgentLang modules. It includes:
+Agentlang modules. It includes:
 
 - **Entity Endpoints**: Full CRUD operations for all entities
 - **Relationship Endpoints**: Nested API endpoints for entity relationships
@@ -407,7 +391,7 @@ AgentLang modules. It includes:
 
 ### Generated Endpoints
 
-For each entity in your AgentLang module, the following endpoints are generated:
+For each entity in your Agentlang module, the following endpoints are generated:
 
 - `POST /api/{module}/{entity}` - Create entity
 - `GET /api/{module}/{entity}` - List entities
@@ -427,7 +411,7 @@ For relationships, additional nested endpoints are generated:
 
 ## File Extensions
 
-The CLI supports AgentLang files with the following extensions:
+The CLI supports Agentlang files with the following extensions:
 
 - `.al` (default)
 - `.agentlang`
@@ -455,13 +439,13 @@ The CLI provides clear error messages for:
 
 - **Configuration Errors**: Invalid configuration files or missing required
   fields
-- **Parse Errors**: Syntax errors in AgentLang code
-- **Validation Errors**: Semantic errors in AgentLang modules
+- **Parse Errors**: Syntax errors in Agentlang code
+- **Validation Errors**: Semantic errors in Agentlang modules
 - **Runtime Errors**: Errors during program execution
 
 ## Examples
 
-### Simple AgentLang Module
+### Simple Agentlang Module
 
 ```agentlang
 module UserManagement {
@@ -498,14 +482,14 @@ agent repl example/usermanagement --watch
 ### Full Development Workflow
 
 ```bash
-# 1. Initialize a new AgentLang application
+# 1. Initialize a new Agentlang application
 mkdir my-project && cd my-project
 agent init MyApp
 
 # 2. Add your application logic to src/core.al
 # ... edit src/core.al ...
 
-# 3. Run your AgentLang application
+# 3. Run your Agentlang application
 agent run
 
 # 4. Test interactively with REPL
