@@ -85,7 +85,8 @@ function isAppInitialized(targetDir: string): boolean {
 
 // Initialize a new Agentlang application
 export const initCommand = (appName: string): void => {
-  const targetDir = process.cwd();
+  const currentDir = process.cwd();
+  const targetDir = join(currentDir, appName);
 
   // Check if already initialized
   if (isAppInitialized(targetDir)) {
@@ -102,6 +103,8 @@ export const initCommand = (appName: string): void => {
     // eslint-disable-next-line no-console
     console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(appName)}\n`));
 
+    mkdirSync(targetDir);
+
     // Create package.json
     const packageJson = {
       name: appName,
@@ -111,8 +114,10 @@ export const initCommand = (appName: string): void => {
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
 
+    const config = { service: { port: 8080 } };
+
     // Create config.al
-    writeFileSync(join(targetDir, 'config.al'), '{}', 'utf-8');
+    writeFileSync(join(targetDir, 'config.al'), JSON.stringify(config, null, 2), 'utf-8');
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('config.al')}`);
 
