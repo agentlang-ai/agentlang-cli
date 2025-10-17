@@ -97,7 +97,8 @@ async function processAgentlang(code: string): Promise<string> {
 
         // Use the appropriate specific function based on the definition type
         if (isEntityDefinition(def) || isEventDefinition(def) || isRecordDefinition(def)) {
-          addSchemaFromDef(def, currentModule);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+          addSchemaFromDef(def as any, currentModule);
         } else if (isRelationshipDefinition(def)) {
           addRelationshipFromDef(def, currentModule);
         } else if (isWorkflowDefinition(def)) {
