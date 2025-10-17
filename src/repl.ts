@@ -25,12 +25,7 @@ import {
   removeEvent,
   removeModule,
 } from 'agentlang/out/runtime/module.js';
-import {
-  addFromDef,
-  addSchemaFromDef,
-  addRelationshipFromDef,
-  addWorkflowFromDef,
-} from 'agentlang/out/runtime/loader.js';
+import { addFromDef, addRelationshipFromDef, addWorkflowFromDef } from 'agentlang/out/runtime/loader.js';
 import { parseModule } from 'agentlang/out/language/parser.js';
 import {
   isEntityDefinition,
@@ -97,7 +92,7 @@ async function processAgentlang(code: string): Promise<string> {
 
         // Use the appropriate specific function based on the definition type
         if (isEntityDefinition(def) || isEventDefinition(def) || isRecordDefinition(def)) {
-          addSchemaFromDef(def, currentModule);
+          await addFromDef(def, currentModule);
         } else if (isRelationshipDefinition(def)) {
           addRelationshipFromDef(def, currentModule);
         } else if (isWorkflowDefinition(def)) {
