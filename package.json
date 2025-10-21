@@ -37,7 +37,7 @@
     "documentation"
   ],
   "author": "Agentlang Team",
-  "license": "MIT",
+  "license": "Sustainable Use License",
   "repository": {
     "type": "git",
     "url": "https://github.com/agentlang/agentlang-cli.git"
@@ -47,7 +47,7 @@
   },
   "homepage": "https://github.com/agentlang/agentlang-cli#readme",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.1",
