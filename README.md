@@ -1,12 +1,16 @@
 # Agentlang CLI
 
-> A powerful command-line interface for building, running, and managing Agentlang applications
+> A powerful command-line interface for building, running, and managing
+> Agentlang applications
 
 [![npm version](https://img.shields.io/npm/v/agentlangcli.svg)](https://www.npmjs.com/package/agentlangcli)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-Sustainable%20Use-blue.svg)](LICENSE)
 
-Agentlang is a programming language designed for building agent-based applications with built-in support for entities, events, and relationships. This CLI provides a complete toolkit for developing, testing, and deploying Agentlang applications.
+Agentlang is a programming language designed for building agent-based
+applications with built-in support for entities, events, and relationships. This
+CLI provides a complete toolkit for developing, testing, and deploying Agentlang
+applications.
 
 ## Table of Contents
 
@@ -26,12 +30,16 @@ Agentlang is a programming language designed for building agent-based applicatio
 
 ## Features
 
-- **🚀 Project Initialization** - Scaffold new Agentlang applications with proper structure
-- **▶️  Runtime Execution** - Run Agentlang programs with full runtime support
+- **🚀 Project Initialization** - Scaffold new Agentlang applications with
+  proper structure
+- **▶️ Runtime Execution** - Run Agentlang programs with full runtime support
 - **🔄 Interactive REPL** - Test and debug with hot-reloading support
-- **✅ Validation** - Parse and validate Agentlang code for syntax and semantic correctness
-- **📚 API Documentation** - Auto-generate OpenAPI/Swagger docs from your modules
-- **🎨 UI Generation** - Generate complete React + TypeScript + Vite apps using Claude AI
+- **✅ Validation** - Parse and validate Agentlang code for syntax and semantic
+  correctness
+- **📚 API Documentation** - Auto-generate OpenAPI/Swagger docs from your
+  modules
+- **🎨 UI Generation** - Generate complete React + TypeScript + Vite apps using
+  Claude AI
 
 ## Installation
 
@@ -93,9 +101,11 @@ agent init <appname>
 ```
 
 **Arguments:**
+
 - `<appname>` - Name of the application to initialize (required)
 
 **What it creates:**
+
 - `package.json` with your app name and version 0.0.1
 - `config.al` for application configuration
 - `src/core.al` with your application module
@@ -113,8 +123,10 @@ agent init MyShop
 agent init InventoryManagement
 ```
 
-**Behavior:**
-The command intelligently checks if a directory is already initialized by looking for existing `package.json` or `.al` files (excluding `config.al`). If found, it skips initialization to prevent overwriting your work.
+**Behavior:** The command intelligently checks if a directory is already
+initialized by looking for existing `package.json` or `.al` files (excluding
+`config.al`). If found, it skips initialization to prevent overwriting your
+work.
 
 ---
 
@@ -127,9 +139,12 @@ agent run [file]
 ```
 
 **Arguments:**
-- `[file]` - Path to Agentlang source file or directory (default: current directory)
+
+- `[file]` - Path to Agentlang source file or directory (default: current
+  directory)
 
 **Options:**
+
 - `-c, --config <file>` - Path to configuration file
 
 **Examples:**
@@ -148,8 +163,10 @@ agent run ./my-app -c config.json
 agent run ~/projects/erp-system
 ```
 
-**What it does:**
-Loads and executes your Agentlang module, starting the runtime environment and initializing all configured services, databases, and integrations. The application will start an HTTP server (default port: 8080) exposing REST APIs for your entities and workflows.
+**What it does:** Loads and executes your Agentlang module, starting the runtime
+environment and initializing all configured services, databases, and
+integrations. The application will start an HTTP server (default port: 8080)
+exposing REST APIs for your entities and workflows.
 
 ---
 
@@ -162,9 +179,11 @@ agent repl [directory]
 ```
 
 **Arguments:**
+
 - `[directory]` - Application directory (default: current directory)
 
 **Options:**
+
 - `-w, --watch` - Watch for file changes and reload automatically
 - `-q, --quiet` - Suppress startup messages
 
@@ -188,6 +207,7 @@ agent repl . --watch
 ```
 
 **Features:**
+
 - Execute Agentlang expressions in real-time
 - Test entity operations and workflows
 - Hot reload with `--watch` flag for rapid development
@@ -204,9 +224,12 @@ agent doc [file]
 ```
 
 **Arguments:**
-- `[file]` - Path to Agentlang source file or directory (default: current directory)
+
+- `[file]` - Path to Agentlang source file or directory (default: current
+  directory)
 
 **Options:**
+
 - `-h, --outputHtml <file>` - Generate HTML documentation
 - `-p, --outputPostman <file>` - Generate Postman collection
 
@@ -232,16 +255,22 @@ agent doc ./my-api -h api.html
 **Generated Endpoints:**
 
 For each entity in your module:
+
 - `POST /api/{module}/{entity}` - Create entity
 - `GET /api/{module}/{entity}` - List entities
 - `PUT /api/{module}/{entity}/{id}` - Update entity
 - `DELETE /api/{module}/{entity}/{id}` - Delete entity
 
 For relationships:
-- `POST /api/{module}/{entity}/{relationship}/{relatedEntity}` - Create related entity
-- `GET /api/{module}/{entity}/{relationship}/{relatedEntity}` - List related entities
-- `PUT /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Update related entity
-- `DELETE /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Delete related entity
+
+- `POST /api/{module}/{entity}/{relationship}/{relatedEntity}` - Create related
+  entity
+- `GET /api/{module}/{entity}/{relationship}/{relatedEntity}` - List related
+  entities
+- `PUT /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Update
+  related entity
+- `DELETE /api/{module}/{entity}/{relationship}/{relatedEntity}/{id}` - Delete
+  related entity
 
 ---
 
@@ -254,9 +283,11 @@ agent parseAndValidate <file>
 ```
 
 **Arguments:**
+
 - `<file>` - Path to Agentlang source file (required)
 
 **Options:**
+
 - `-d, --destination <dir>` - Output directory for generated files
 
 **Examples:**
@@ -273,6 +304,7 @@ agent parseAndValidate app.al && npm run deploy
 ```
 
 **Use Cases:**
+
 - Pre-deployment validation
 - CI/CD pipeline integration
 - Syntax checking during development
@@ -281,16 +313,19 @@ agent parseAndValidate app.al && npm run deploy
 
 ### ui-gen
 
-Generate a complete React + TypeScript + Vite application from a UI specification using Claude AI.
+Generate a complete React + TypeScript + Vite application from a UI
+specification using Claude AI.
 
 ```bash
 agent ui-gen [spec-file]
 ```
 
 **Arguments:**
+
 - `[spec-file]` - Path to ui-spec.json (auto-detects if omitted)
 
 **Options:**
+
 - `-d, --directory <dir>` - Target directory (default: current directory)
 - `-k, --api-key <key>` - Anthropic API key (or set `ANTHROPIC_API_KEY` env var)
 - `-p, --push` - Automatically commit and push changes to git
@@ -301,12 +336,14 @@ agent ui-gen [spec-file]
 You can provide the Anthropic API key in two ways:
 
 1. **Environment variable (recommended):**
+
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
 agent ui-gen
 ```
 
 2. **Command flag:**
+
 ```bash
 agent ui-gen --api-key sk-ant-...
 ```
@@ -339,9 +376,12 @@ agent ui-gen -m "Fix login form validation" -p
 
 The UI generator intelligently selects the appropriate mode:
 
-- **Fresh Generation** - No existing `ui/` directory → generates complete application
-- **Incremental Update** - Existing `ui/` directory → adds missing files based on spec
-- **User-Directed Update** - Using `-m` flag → makes targeted changes per instructions
+- **Fresh Generation** - No existing `ui/` directory → generates complete
+  application
+- **Incremental Update** - Existing `ui/` directory → adds missing files based
+  on spec
+- **User-Directed Update** - Using `-m` flag → makes targeted changes per
+  instructions
 
 **Generated Application Features:**
 
@@ -396,6 +436,7 @@ The generator expects a JSON file with the following structure:
 **Authentication Endpoints:**
 
 The generated application uses the following endpoints:
+
 - `POST /agentlang_auth/login` - User login
 - `POST /agentlang_auth/signUp` - User registration
 - `POST /agentlang_auth/forgotPassword` - Password recovery
@@ -409,13 +450,15 @@ VITE_BACKEND_URL=http://localhost:8080/
 VITE_USE_MOCK_DATA=true
 ```
 
-By default, mock data mode is enabled for immediate testing. Set `VITE_USE_MOCK_DATA=false` when your backend is ready.
+By default, mock data mode is enabled for immediate testing. Set
+`VITE_USE_MOCK_DATA=false` when your backend is ready.
 
 ---
 
 ## Configuration
 
-The CLI supports configuration through a `config.al` or custom configuration file.
+The CLI supports configuration through a `config.al` or custom configuration
+file.
 
 ### Basic Configuration
 
@@ -590,7 +633,8 @@ The CLI supports Agentlang files with the following extensions:
 
 The CLI provides clear error messages for common issues:
 
-- **Configuration Errors** - Invalid configuration files or missing required fields
+- **Configuration Errors** - Invalid configuration files or missing required
+  fields
 - **Parse Errors** - Syntax errors in Agentlang code with line numbers
 - **Validation Errors** - Semantic errors in Agentlang modules
 - **Runtime Errors** - Errors during program execution with stack traces
@@ -630,13 +674,16 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-- **Documentation**: [GitHub Repository](https://github.com/agentlang/agentlang-cli)
+- **Documentation**:
+  [GitHub Repository](https://github.com/agentlang/agentlang-cli)
 - **Issues**: [GitHub Issues](https://github.com/agentlang/agentlang-cli/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/agentlang/agentlang-cli/discussions)
+- **Discussions**:
+  [GitHub Discussions](https://github.com/agentlang/agentlang-cli/discussions)
 
 ## License
 
-This project is licensed under the [Sustainable Use License](LICENSE) - see the LICENSE file for details.
+This project is licensed under the [Sustainable Use License](LICENSE) - see the
+LICENSE file for details.
 
 ---
 
