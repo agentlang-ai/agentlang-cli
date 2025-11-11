@@ -440,13 +440,9 @@ ${chalk.bold.white('EXAMPLES')}
 }
 
 export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Config) {
-  console.log("runPostInitTasks")
   await initDatabase(config?.store);
-  console.log("initDatabase");
   await runInitFunctions();
-  console.log("runInitFunctions");
   await runStandaloneStatements();
-  console.log("runStandaloneStatements");
   if (appSpec) startServer(appSpec, config?.service?.port || 8080);
 }
 
