@@ -506,7 +506,6 @@ export const runModule = async (fileName: string): Promise<void> => {
     await loadOpenApiSpec(config.openapi);
   }
   try {
-    console.log("asdf")
     await load(fileName, undefined, async (appSpec?: ApplicationSpec) => {
       await runPostInitTasks(appSpec, config);
     });
