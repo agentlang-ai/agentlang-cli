@@ -35,8 +35,8 @@ Agentlang is a programming abstraction designed for building reliable AI Agents 
   correctness
 - **📚 API Documentation** - Auto-generate OpenAPI/Swagger docs from your
   modules
-- **🎨 UI Generation** - Generate complete React + TypeScript + Vite apps using
-  Claude AI
+- **🎨 UI Generation** - Generate complete React + TypeScript + Vite frontend
+  for your agentlang app (uses Claude AI)
 
 ## Installation
 
@@ -49,12 +49,6 @@ Agentlang is a programming abstraction designed for building reliable AI Agents 
 
 ```bash
 npm install -g agentlangcli
-```
-
-### Local Installation
-
-```bash
-npm install agentlangcli
 ```
 
 ### Using pnpm
