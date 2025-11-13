@@ -7,10 +7,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-Sustainable%20Use-blue.svg)](LICENSE)
 
-Agentlang is a programming language designed for building agent-based
-applications with built-in support for entities, events, and relationships. This
-CLI provides a complete toolkit for developing, testing, and deploying Agentlang
-applications.
+Agentlang is a programming abstraction designed for building reliable AI Agents and Agentic apps. This CLI provides a complete toolkit for developing, testing, and deploying Agentlang applications.
 
 ## Table of Contents
 
