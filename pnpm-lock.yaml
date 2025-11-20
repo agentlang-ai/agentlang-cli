@@ -24,8 +24,8 @@ importers:
         specifier: ^2.0.2
         version: 2.3.1(@opentelemetry/api@1.9.0)(ajv@8.17.1)(core-js@3.45.1)(encoding@0.1.13)
       agentlang:
-        specifier: ^0.5.1
-        version: 0.5.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3))
+        specifier: ^0.6.1
+        version: 0.6.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3))
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.4.1
@@ -1189,8 +1189,8 @@ packages:
     resolution: {integrity: sha512-kja8j7PjmncONqaTsB8fQ+wE2mSU2DJ9D4XKoJ5PFWIdRMa6SLSN1ff4mOr4jCbfRSsxR4keIiySJU0N9T5hIQ==}
     engines: {node: '>= 8.0.0'}
 
-  agentlang@0.5.1:
-    resolution: {integrity: sha512-QihT2qRJUtnK9/pNhHRuJR6R/W25YoeMXUqtntLFN6nAhJnbrXvFzZWFwDadjqrzpFYIIQ1W0jeNHdPF+B5wRA==}
+  agentlang@0.6.1:
+    resolution: {integrity: sha512-SWdxvLnhRNXnsadTa+WsHecDW4/jH8RE+5fNL8avs3kS/JSzMgb6F7kP86hoGr8UfSXg086QsfAQmjiYWNQJ7w==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -5244,7 +5244,7 @@ snapshots:
       humanize-ms: 1.2.1
     optional: true
 
-  agentlang@0.5.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3)):
+  agentlang@0.6.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3)):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.901.0
       '@aws-sdk/client-cognito-identity-provider': 3.901.0
