@@ -21,6 +21,7 @@ Agentlang is a programming abstraction designed for building reliable AI Agents 
   - [doc](#doc)
   - [parseAndValidate](#parseandvalidate)
   - [ui-gen](#ui-gen)
+  - [studio](#studio)
 - [Configuration](#configuration)
 - [Examples](#examples)
 - [License](#license)
@@ -37,6 +38,8 @@ Agentlang is a programming abstraction designed for building reliable AI Agents 
   modules
 - **🎨 UI Generation** - Generate complete React + TypeScript + Vite frontend
   for your agentlang app (uses Claude AI)
+- **🎨 Design Studio** - Visual editor for designing Agents, Data Models, and
+  Workflows locally
 
 ## Installation
 
@@ -443,6 +446,103 @@ VITE_USE_MOCK_DATA=true
 
 By default, mock data mode is enabled for immediate testing. Set
 `VITE_USE_MOCK_DATA=false` when your backend is ready.
+
+---
+
+### studio
+
+Start the Agentlang Design Studio locally for visual editing of your project.
+
+```bash
+agent studio [path]
+```
+
+**Arguments:**
+
+- `[path]` - Path to Agentlang project directory (default: current directory)
+
+**Options:**
+
+- `-p, --port <port>` - Port to run Studio server on (default: 4000)
+
+**What it does:**
+
+The `studio` command starts a local development environment that includes:
+
+1. **Agentlang Server** - Runs your Agentlang application in the background (via `agent run`)
+2. **Studio UI** - Serves the visual Design Studio interface
+3. **File System Access** - Provides API endpoints for reading and writing project files
+
+**Prerequisites:**
+
+Install `@agentlang/lstudio` as a development dependency in your project:
+
+```bash
+npm install --save-dev @agentlang/lstudio
+```
+
+The command will automatically find `@agentlang/lstudio` from:
+- Your project's `node_modules` (if installed locally)
+- Agentlang CLI's `node_modules` (fallback)
+
+**Examples:**
+
+```bash
+# Start Studio in current directory
+agent studio
+
+# Start Studio for specific project
+agent studio ./my-project
+
+# Start Studio on custom port
+agent studio --port 5000
+
+# Combine path and port options
+agent studio ./monitoring -p 5000
+```
+
+**Features:**
+
+- **Visual Editor** - Design Agents, Data Models, and Workflows visually
+- **Live File Sync** - Changes made in Studio are saved directly to your `.al` files
+- **Auto Browser** - Automatically opens your default browser to the Studio UI
+- **Background Server** - Agentlang API server runs in the background (default port: 8080)
+- **Hot Reload** - File changes are reflected immediately
+
+**Usage Workflow:**
+
+```bash
+# 1. Navigate to your Agentlang project
+cd my-agentlang-app
+
+# 2. Ensure @agentlang/lstudio is installed
+npm install --save-dev @agentlang/lstudio
+
+# 3. Start the Studio
+agent studio
+
+# 4. Browser opens automatically at http://localhost:4000
+# 5. Edit your project visually in the Studio UI
+# 6. Changes are saved directly to your source files
+```
+
+**Ports:**
+
+- **Studio UI**: Default port `4000` (configurable with `--port`)
+- **Agentlang API**: Default port `8080` (configured in `config.al`)
+
+**Troubleshooting:**
+
+If you see "Failed to find @agentlang/lstudio":
+
+```bash
+# Install it in your project
+npm install --save-dev @agentlang/lstudio
+
+# Or install it globally in agentlang-cli
+cd /path/to/agentlang-cli
+npm install @agentlang/lstudio
+```
 
 ---
 
