@@ -7,7 +7,9 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-Sustainable%20Use-blue.svg)](LICENSE)
 
-Agentlang is a programming abstraction designed for building reliable AI Agents and Agentic apps. This CLI provides a complete toolkit for developing, testing, and deploying Agentlang applications.
+Agentlang is a programming abstraction designed for building reliable AI Agents
+and Agentic apps. This CLI provides a complete toolkit for developing, testing,
+and deploying Agentlang applications.
 
 ## Table of Contents
 
@@ -469,9 +471,11 @@ agent studio [path]
 
 The `studio` command starts a local development environment that includes:
 
-1. **Agentlang Server** - Runs your Agentlang application in the background (via `agent run`)
+1. **Agentlang Server** - Runs your Agentlang application in the background (via
+   `agent run`)
 2. **Studio UI** - Serves the visual Design Studio interface
-3. **File System Access** - Provides API endpoints for reading and writing project files
+3. **File System Access** - Provides API endpoints for reading and writing
+   project files
 
 **Prerequisites:**
 
@@ -482,6 +486,7 @@ npm install --save-dev @agentlang/lstudio
 ```
 
 The command will automatically find `@agentlang/lstudio` from:
+
 - Your project's `node_modules` (if installed locally)
 - Agentlang CLI's `node_modules` (fallback)
 
@@ -504,9 +509,11 @@ agent studio ./monitoring -p 5000
 **Features:**
 
 - **Visual Editor** - Design Agents, Data Models, and Workflows visually
-- **Live File Sync** - Changes made in Studio are saved directly to your `.al` files
+- **Live File Sync** - Changes made in Studio are saved directly to your `.al`
+  files
 - **Auto Browser** - Automatically opens your default browser to the Studio UI
-- **Background Server** - Agentlang API server runs in the background (default port: 8080)
+- **Background Server** - Agentlang API server runs in the background (default
+  port: 8080)
 - **Hot Reload** - File changes are reflected immediately
 
 **Usage Workflow:**

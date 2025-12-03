@@ -651,10 +651,7 @@ export const generateUICommand = async (
 /* eslint-enable no-console */
 
 /* eslint-disable no-console */
-export const studioCommand = async (
-  projectPath?: string,
-  options?: { port?: string },
-): Promise<void> => {
+export const studioCommand = async (projectPath?: string, options?: { port?: string }): Promise<void> => {
   try {
     const port = parseInt(options?.port || '4000', 10);
     if (isNaN(port) || port < 1 || port > 65535) {
@@ -663,9 +660,7 @@ export const studioCommand = async (
     }
     await startStudio(projectPath || '.', port);
   } catch (error) {
-    console.error(
-      chalk.red(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`),
-    );
+    console.error(chalk.red(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 };
