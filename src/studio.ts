@@ -8,7 +8,8 @@ import { spawn, ChildProcess } from 'child_process';
 import chalk from 'chalk';
 import ora from 'ora';
 import open from 'open';
-import { flushAllAndLoad } from 'agentlang/out/runtime/loader.js';
+import { flushAllAndLoad, load } from 'agentlang/out/runtime/loader.js';
+import { runPreInitTasks } from './main.js';
 import fs from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -185,7 +186,39 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
   const spinner = ora('Starting Agent Studio...').start();
   const targetDir = path.resolve(process.cwd(), projectPath);
 
+  // Validate that the directory contains an agentlang project
+  spinner.text = 'Validating Agentlang project...';
+  try {
+    // Initialize runtime first
+    const preInitSuccess = await runPreInitTasks();
+    if (!preInitSuccess) {
+      spinner.fail(chalk.red('Failed to initialize Agentlang runtime'));
+      process.exit(1);
+    }
+
+    // Try to load the project to validate it's a valid agentlang project
+    await load(targetDir, undefined, async () => {
+      // Callback is called when loading completes successfully
+    });
+    spinner.succeed(chalk.green('Validated Agentlang project'));
+  } catch (error) {
+    spinner.fail(chalk.red('Failed to load Agentlang project'));
+    console.error(
+      chalk.red(
+        `The directory "${targetDir}" does not appear to contain a valid Agentlang project.\n` +
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    );
+    console.error(
+      chalk.yellow(
+        '\nPlease ensure the directory contains valid Agentlang (.al) files and try again.',
+      ),
+    );
+    process.exit(1);
+  }
+
   // Find @agentlang/lstudio
+  spinner.text = 'Finding @agentlang/lstudio...';
   const lstudioPath = findLStudioPath(targetDir);
   if (!lstudioPath) {
     spinner.fail(chalk.red('Failed to find @agentlang/lstudio'));
@@ -196,6 +229,7 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
     );
     process.exit(1);
   }
+  spinner.succeed(chalk.green('Found @agentlang/lstudio'));
 
   spinner.text = 'Starting Agentlang server...';
 
