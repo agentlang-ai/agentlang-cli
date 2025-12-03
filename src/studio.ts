@@ -209,11 +209,7 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
           `Error: ${error instanceof Error ? error.message : String(error)}`,
       ),
     );
-    console.error(
-      chalk.yellow(
-        '\nPlease ensure the directory contains valid Agentlang (.al) files and try again.',
-      ),
-    );
+    console.error(chalk.yellow('\nPlease ensure the directory contains valid Agentlang (.al) files and try again.'));
     process.exit(1);
   }
 
@@ -223,9 +219,7 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
   if (!lstudioPath) {
     spinner.fail(chalk.red('Failed to find @agentlang/lstudio'));
     console.error(
-      chalk.yellow(
-        'Please install @agentlang/lstudio in your project:\n  npm install --save-dev @agentlang/lstudio',
-      ),
+      chalk.yellow('Please install @agentlang/lstudio in your project:\n  npm install --save-dev @agentlang/lstudio'),
     );
     process.exit(1);
   }
@@ -275,7 +269,7 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
       agentProcess = null;
     });
 
-    agentProcess.on('exit', (code) => {
+    agentProcess.on('exit', code => {
       if (code !== null && code !== 0) {
         console.warn(chalk.yellow(`Agentlang server exited with code ${code}`));
       }
@@ -291,7 +285,6 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
   // Create Express app
   const app = express();
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   app.use(cors());
   app.use(express.json());
 
@@ -317,7 +310,7 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
   });
 
   // Start server
-  await new Promise<void>((resolve) => {
+  await new Promise<void>(resolve => {
     app.listen(studioPort, () => {
       spinner.succeed(chalk.green(`Studio server is running on http://localhost:${studioPort}`));
       console.log(chalk.blue(`Serving files from: ${targetDir}`));
@@ -362,4 +355,3 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
     });
   });
 }
-
