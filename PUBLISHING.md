@@ -1,6 +1,7 @@
 # Publishing Guide
 
-This guide explains how to compile and publish the `@agentlang/cli` package to npm.
+This guide explains how to compile and publish the `@agentlang/cli` package to
+npm.
 
 ## Quick Start
 
@@ -23,8 +24,10 @@ npm view @agentlang/cli
 
 1. **npm account**: You need an npm account to publish packages
 2. **npm login**: Make sure you're logged in to npm (`npm login`)
-3. **Package ownership**: Ensure you have access to publish to the `@agentlang` organization on npm
-4. **Organization access**: You must be a member of the `@agentlang` npm organization
+3. **Package ownership**: Ensure you have access to publish to the `@agentlang`
+   organization on npm
+4. **Organization access**: You must be a member of the `@agentlang` npm
+   organization
 
 ## Pre-publishing Checklist
 
@@ -159,9 +162,11 @@ The package is configured with:
 - **Package name**: `@agentlang/cli`
 - **Entry point**: `out/main.js`
 - **Binary**: `bin/cli.js` (creates `agent` command)
-- **Files included**: `out/`, `bin/`, `.pnpmrc`, `README.md`, `LICENSE` (defined in `package.json` `files` field)
-- **Files excluded**: Source files (`src/`), dev files, build configs, `node_modules/`, etc.
-- **Build process**: 
+- **Files included**: `out/`, `bin/`, `.pnpmrc`, `README.md`, `LICENSE` (defined
+  in `package.json` `files` field)
+- **Files excluded**: Source files (`src/`), dev files, build configs,
+  `node_modules/`, etc.
+- **Build process**:
   - TypeScript compilation (`tsc -b tsconfig.src.json`)
   - ESBuild bundling (`node esbuild.mjs`)
   - Output: `out/*.js` and `out/*.js.map` files
@@ -191,22 +196,26 @@ node esbuild.mjs
 ### Complete Build Command
 
 The `npm run build` command runs:
+
 1. `tsc -b tsconfig.src.json` - TypeScript compilation
 2. `node esbuild.mjs` - ESBuild bundling
 
 ### Prepublish Hook
 
-The `prepublishOnly` script automatically runs `npm run build` before publishing, ensuring the package is always built with the latest code.
+The `prepublishOnly` script automatically runs `npm run build` before
+publishing, ensuring the package is always built with the latest code.
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Organization access denied**: Ensure you're a member of the `@agentlang` npm organization
+1. **Organization access denied**: Ensure you're a member of the `@agentlang`
+   npm organization
 2. **Build fails**: Check TypeScript compilation and esbuild
 3. **CLI not found**: Ensure `bin/cli.js` has correct shebang and permissions
 4. **Missing dependencies**: Check `package.json` dependencies
-5. **Publish fails**: Make sure you're logged in with `npm login` and have 2FA enabled if required
+5. **Publish fails**: Make sure you're logged in with `npm login` and have 2FA
+   enabled if required
 
 ### Testing Before Publishing
 
