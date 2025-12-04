@@ -4,7 +4,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import chalk from 'chalk';
 import ora from 'ora';
 import open from 'open';
@@ -82,6 +82,27 @@ class FileService {
       return {};
     }
   }
+
+  async getCurrentBranch(): Promise<string> {
+    try {
+      // Check if .git directory exists
+      const gitDir = path.join(this.targetDir, '.git');
+      if (!existsSync(gitDir)) {
+        return 'main'; // Default branch if not a git repo
+      }
+
+      // Get current branch using git command
+      const branch = execSync('git rev-parse --abbrev-ref HEAD', {
+        cwd: this.targetDir,
+        encoding: 'utf-8',
+      }).trim();
+
+      return branch || 'main';
+    } catch (error) {
+      console.warn('Failed to get current branch:', error);
+      return 'main'; // Default to main if git command fails
+    }
+  }
 }
 
 class FileController {
@@ -130,6 +151,15 @@ class FileController {
     const info = await this.fileService.getPackageInfo();
     return res.json(info);
   };
+
+  getBranch = async (_req: Request, res: Response) => {
+    try {
+      const branch = await this.fileService.getCurrentBranch();
+      return res.json({ branch });
+    } catch {
+      return res.status(500).json({ error: 'Failed to get current branch' });
+    }
+  };
 }
 
 function createRoutes(targetDir: string): Router {
@@ -144,6 +174,7 @@ function createRoutes(targetDir: string): Router {
   router.get('/file', fileController.getFile);
   router.post('/file', fileController.saveFile);
   router.get('/info', fileController.getInfo);
+  router.get('/branch', fileController.getBranch);
 
   router.get('/test', (_req, res) => {
     return res.json({ message: 'Hello from agent studio!' });
@@ -302,6 +333,7 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
       req.path.startsWith('/file') ||
       req.path.startsWith('/test') ||
       req.path.startsWith('/info') ||
+      req.path.startsWith('/branch') ||
       req.path.startsWith('/env-config.js')
     ) {
       return next();
