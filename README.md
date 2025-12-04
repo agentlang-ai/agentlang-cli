@@ -3,7 +3,7 @@
 > A powerful command-line interface for building, running, and managing
 > Agentlang applications
 
-[![npm version](https://img.shields.io/npm/v/agentlangcli.svg)](https://www.npmjs.com/package/agentlangcli)
+[![npm version](https://img.shields.io/npm/v/@agentlang/cli.svg)](https://www.npmjs.com/package/@agentlang/cli)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
 [![License](https://img.shields.io/badge/License-Sustainable%20Use-blue.svg)](LICENSE)
 
@@ -53,13 +53,19 @@ and deploying Agentlang applications.
 ### Global Installation
 
 ```bash
-npm install -g agentlangcli
+npm install -g @agentlang/cli
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm install -g agentlangcli
+pnpm install -g @agentlang/cli
+```
+
+### Using yarn
+
+```bash
+yarn global add @agentlang/cli
 ```
 
 After installation, the `agent` command will be available globally.
