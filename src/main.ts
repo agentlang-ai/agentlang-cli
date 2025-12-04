@@ -21,6 +21,7 @@ import { startRepl } from './repl.js';
 import { generateUI } from './ui-generator/uiGenerator.js';
 import { loadUISpec } from './ui-generator/specLoader.js';
 import { findSpecFile } from './ui-generator/specFinder.js';
+import { startStudio } from './studio.js';
 import { Config } from 'agentlang/out/runtime/state.js';
 import { prepareIntegrations } from 'agentlang/out/runtime/integrations.js';
 import { isNodeEnv } from 'agentlang/out/utils/runtime.js';
@@ -206,6 +207,12 @@ function customHelp(): string {
         ${chalk.cyan('-k, --api-key')} ${chalk.dim('<key>')}      Anthropic API key
         ${chalk.cyan('-p, --push')}               Commit and push to git
         ${chalk.cyan('-m, --message')} ${chalk.dim('<text>')}     Update instructions
+
+    ${chalk.cyan.bold('studio')} ${chalk.dim('[path]')}
+      ${chalk.white('▸')} Start Agentlang Studio with local server
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-p, --port')} ${chalk.dim('<port>')}        Port to run Studio server on (default: 4000)
 
   ${chalk.bold.white('GLOBAL OPTIONS')}
     ${chalk.cyan('-h, --help')}       Display help information
@@ -436,6 +443,39 @@ ${chalk.bold.white('EXAMPLES')}
     )
     .action(generateUICommand);
 
+  program
+    .command('studio')
+    .argument('[path]', 'Path to Agentlang project directory (default: current directory)', '.')
+    .option('-p, --port <port>', 'Port to run Studio server on', '4000')
+    .description('Start Agentlang Studio with local server')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Starts the Agentlang Design Studio locally for your project. This command:
+    • Starts the Agentlang server (via 'agent run')
+    • Serves the Studio UI on a local web server
+    • Provides file system access for editing your project files
+
+  The Studio UI allows you to visually edit Agents, Data Models, and Workflows,
+  with changes saved directly to your project files (.al files, package.json, etc.).
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Start Studio in current directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent studio')}
+
+  ${chalk.dim('Start Studio for specific project')}
+  ${chalk.dim('$')} ${chalk.cyan('agent studio ./my-project')}
+
+  ${chalk.dim('Start Studio on custom port')}
+  ${chalk.dim('$')} ${chalk.cyan('agent studio --port 5000')}
+
+  ${chalk.dim('Start Studio with path and custom port')}
+  ${chalk.dim('$')} ${chalk.cyan('agent studio ./monitoring -p 5000')}
+`,
+    )
+    .action(studioCommand);
+
   program.parse(process.argv);
 }
 
@@ -443,7 +483,9 @@ export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Confi
   await initDatabase(config?.store);
   await runInitFunctions();
   await runStandaloneStatements();
-  if (appSpec) startServer(appSpec, config?.service?.port || 8080);
+  if (appSpec) {
+    void startServer(appSpec, config?.service?.port || 8080);
+  }
 }
 
 export async function runPreInitTasks(): Promise<boolean> {
@@ -603,6 +645,22 @@ export const generateUICommand = async (
     console.log(chalk.green('\n✅ UI generation completed successfully!'));
   } catch (error) {
     console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+};
+/* eslint-enable no-console */
+
+/* eslint-disable no-console */
+export const studioCommand = async (projectPath?: string, options?: { port?: string }): Promise<void> => {
+  try {
+    const port = parseInt(options?.port || '4000', 10);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      console.error(chalk.red('Invalid port number. Port must be between 1 and 65535.'));
+      process.exit(1);
+    }
+    await startStudio(projectPath || '.', port);
+  } catch (error) {
+    console.error(chalk.red(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
 };
