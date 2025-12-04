@@ -35,12 +35,13 @@ class FileService {
     await flushAllAndLoad(this.targetDir);
   }
 
-  async getFileTree(dirPath: string = this.targetDir, relativePath = ''): Promise<FileTreeNode[]> {
+  async getFileTree(dirPath: string = this.targetDir, relativePath = '', skipIgnored = false): Promise<FileTreeNode[]> {
     const dirents = await fs.readdir(dirPath, { withFileTypes: true });
     const files: FileTreeNode[] = [];
 
     for (const dirent of dirents) {
-      if (ignoredPaths.has(dirent.name)) {
+      // Skip ignored paths unless we're explicitly fetching from node_modules
+      if (!skipIgnored && ignoredPaths.has(dirent.name)) {
         continue;
       }
       const newRelativePath = path.join(relativePath, dirent.name);
@@ -49,7 +50,7 @@ class FileService {
           name: dirent.name,
           path: newRelativePath,
           type: 'directory',
-          children: await this.getFileTree(path.join(dirPath, dirent.name), newRelativePath),
+          children: await this.getFileTree(path.join(dirPath, dirent.name), newRelativePath, skipIgnored),
         });
       } else {
         files.push({
@@ -117,11 +118,31 @@ class FileController {
     this.fileService = fileService;
   }
 
-  getFiles = async (_req: Request, res: Response) => {
+  getFiles = async (req: Request, res: Response) => {
     try {
-      const fileTree = await this.fileService.getFileTree();
-      return res.json(fileTree);
-    } catch {
+      const pathParam = req.query.path as string | undefined;
+      if (pathParam) {
+        // Fetch file tree for a specific path (e.g., node_modules/depName)
+        // Skip ignored paths when fetching from node_modules
+        const fullPath = path.join(this.fileService['targetDir'], pathParam);
+        const skipIgnored = pathParam.startsWith('node_modules');
+        const fileTree = await this.fileService.getFileTree(fullPath, '', skipIgnored);
+        return res.json(fileTree);
+      } else {
+        // Fetch root file tree
+        const fileTree = await this.fileService.getFileTree();
+        return res.json(fileTree);
+      }
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof (error as { code: unknown }).code === 'string' &&
+        (error as { code: string }).code === 'ENOENT'
+      ) {
+        return res.status(404).json({ error: 'Path not found' });
+      }
       return res.status(500).json({ error: 'Failed to read file tree' });
     }
   };
