@@ -50,7 +50,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@agentlang/lstudio": "^0.0.3",
+    "@agentlang/lstudio": "^0.0.4",
     "@anthropic-ai/claude-agent-sdk": "^0.1.1",
     "@anthropic-ai/sdk": "^0.65.0",
     "@asteasolutions/zod-to-openapi": "7.3.4",
