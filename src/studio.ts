@@ -87,8 +87,13 @@ class FileService {
     try {
       // Check if .git directory exists
       const gitDir = path.join(this.targetDir, '.git');
-      if (!existsSync(gitDir)) {
-        return 'main'; // Default branch if not a git repo
+      try {
+        const stat = await fs.stat(gitDir);
+        if (!stat.isDirectory()) {
+          return 'main'; // Default branch if not a git repo
+        }
+      } catch {
+        return 'main'; // Default branch if .git doesn't exist
       }
 
       // Get current branch using git command
