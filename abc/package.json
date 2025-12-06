@@ -1,0 +1,13 @@
+{
+  "name": "abc",
+  "version": "0.0.1",
+  "dependencies": {
+    "agentlang": "*"
+  },
+  "devDependencies": {
+    "@agentlang/lstudio": "*"
+  }
+
+
+
+}

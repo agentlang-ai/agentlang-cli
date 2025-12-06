@@ -110,6 +110,12 @@ export const initCommand = (appName: string): void => {
     const packageJson = {
       name: appName,
       version: '0.0.1',
+      dependencies: {
+        'agentlang': '*',
+      },
+      devDependencies: {
+        '@agentlang/lstudio': '*',
+      },
     };
     writeFileSync(join(targetDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
     // eslint-disable-next-line no-console
