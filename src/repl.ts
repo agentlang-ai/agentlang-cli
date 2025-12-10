@@ -35,7 +35,7 @@ import {
   isWorkflowDefinition,
 } from 'agentlang/out/language/generated/ast.js';
 import { Config, setAppConfig } from 'agentlang/out/runtime/state.js';
-import { runPreInitTasks, runPostInitTasks } from './main.js';
+import { runPreInitTasks, runPostInitTasks } from 'agentlang/out/cli/main.js';
 import { lookupAllInstances, parseAndEvaluateStatement } from 'agentlang/out/runtime/interpreter.js';
 
 export interface ReplOptions {

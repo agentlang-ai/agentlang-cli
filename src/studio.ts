@@ -9,7 +9,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import open from 'open';
 import { flushAllAndLoad, load } from 'agentlang/out/runtime/loader.js';
-import { runPreInitTasks } from './main.js';
+import { runPreInitTasks } from 'agentlang/out/cli/main.js';
 import fs from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);

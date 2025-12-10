@@ -7,8 +7,6 @@ import {
   internModule,
   load,
   loadAppConfig,
-  loadCoreModules,
-  runStandaloneStatements,
 } from 'agentlang/out/runtime/loader.js';
 import { NodeFileSystem } from 'langium/node';
 import { extractDocument } from 'agentlang/out/runtime/loader.js';
@@ -27,13 +25,10 @@ import { prepareIntegrations } from 'agentlang/out/runtime/integrations.js';
 import { isNodeEnv } from 'agentlang/out/utils/runtime.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
 import { registerOpenApiModule } from 'agentlang/out/runtime/openapi.js';
-import { initDatabase } from 'agentlang/out/runtime/resolvers/sqldb/database.js';
-import { runInitFunctions } from 'agentlang/out/runtime/util.js';
-import { startServer } from 'agentlang/out/api/http.js';
 import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-
+import { runPreInitTasks, runPostInitTasks } from 'agentlang/out/cli/main.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -483,28 +478,6 @@ ${chalk.bold.white('EXAMPLES')}
     .action(studioCommand);
 
   program.parse(process.argv);
-}
-
-export async function runPostInitTasks(appSpec?: ApplicationSpec, config?: Config) {
-  await initDatabase(config?.store);
-  await runInitFunctions();
-  await runStandaloneStatements();
-  if (appSpec) {
-    void startServer(appSpec, config?.service?.port || 8080);
-  }
-}
-
-export async function runPreInitTasks(): Promise<boolean> {
-  let result = true;
-  await loadCoreModules().catch((reason: unknown) => {
-    const msg = `Failed to load core modules - ${String(reason)}`;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    logger.error(msg);
-    // eslint-disable-next-line no-console
-    console.log(chalk.red(msg));
-    result = false;
-  });
-  return result;
 }
 
 /**
