@@ -116,7 +116,30 @@ export const initCommand = (appName: string): void => {
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
 
-    const config = { service: { port: 8080 } };
+    const config = {
+      service: {
+        port: 8080,
+      },
+      rbac: {
+        enabled: false,
+      },
+      auth: {
+        enabled: false,
+      },
+      auditTrail: {
+        enabled: true,
+      },
+      monitoring: {
+        enabled: true,
+      },
+      llm: {
+        name: 'llm01',
+        service: 'openai',
+        config: {
+          model: 'gpt-4o',
+        },
+      },
+    };
 
     // Create config.al
     writeFileSync(join(targetDir, 'config.al'), JSON.stringify(config, null, 2), 'utf-8');
