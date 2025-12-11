@@ -2,12 +2,7 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { AgentlangLanguageMetaData } from 'agentlang/out/language/generated/module.js';
 import { createAgentlangServices } from 'agentlang/out/language/agentlang-module.js';
-import {
-  ApplicationSpec,
-  internModule,
-  load,
-  loadAppConfig,
-} from 'agentlang/out/runtime/loader.js';
+import { ApplicationSpec, internModule, load, loadAppConfig } from 'agentlang/out/runtime/loader.js';
 import { NodeFileSystem } from 'langium/node';
 import { extractDocument } from 'agentlang/out/runtime/loader.js';
 import * as path from 'node:path';
@@ -106,7 +101,7 @@ export const initCommand = (appName: string): void => {
       name: appName,
       version: '0.0.1',
       dependencies: {
-        'agentlang': '*',
+        agentlang: '*',
       },
       devDependencies: {
         '@agentlang/lstudio': '*',
@@ -116,33 +111,33 @@ export const initCommand = (appName: string): void => {
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
 
-    const config = {
-      service: {
-        port: 8080,
-      },
-      rbac: {
-        enabled: false,
-      },
-      auth: {
-        enabled: false,
-      },
-      auditTrail: {
-        enabled: true,
-      },
-      monitoring: {
-        enabled: true,
-      },
-      llm: {
-        name: 'llm01',
-        service: 'openai',
-        config: {
-          model: 'gpt-4o',
-        },
-      },
-    };
+    // Create config.al with Agentlang syntax for LLM and JSON for the rest
+    const configAlContent = `{agentlang.ai/LLM {
+    name "llm01",
+    service "openai",
+    config
+    {"model": "gpt-4o"}
+}}
 
-    // Create config.al
-    writeFileSync(join(targetDir, 'config.al'), JSON.stringify(config, null, 2), 'utf-8');
+{
+  "service": {
+    "port": 8080
+  },
+  "rbac": {
+    "enabled": false
+  },
+  "auth": {
+    "enabled": false
+  },
+  "auditTrail": {
+    "enabled": true
+  },
+  "monitoring": {
+    "enabled": true
+  }
+}`;
+
+    writeFileSync(join(targetDir, 'config.al'), configAlContent, 'utf-8');
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('config.al')}`);
 
