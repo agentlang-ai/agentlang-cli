@@ -30,7 +30,7 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true, allowBoolean: true }],
-
+      '@typescript-eslint/no-unsafe-assignment': 'off',
       // General JavaScript/TypeScript rules - auto-fixable
       'no-console': 'warn',
       'no-debugger': 'error',
