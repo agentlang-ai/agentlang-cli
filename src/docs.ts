@@ -384,7 +384,7 @@ async function generatePostmanCollection(
       // eslint-disable-next-line no-console, @typescript-eslint/no-unsafe-member-access
       console.log('Could not convert', conversionResult.reason);
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const collection = conversionResult.output?.[0]?.data;
       void fs.writeFile(`${docDir}/docs/postman.json`, JSON.stringify(collection, null, 2), { encoding: 'utf-8' });
       // eslint-disable-next-line no-console

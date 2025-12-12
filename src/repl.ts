@@ -264,7 +264,6 @@ function createReplHelpers() {
     const statement = `{${currentModule}/${entityName} {${fields}}}`;
 
     // Parse and evaluate the statement
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result = await parseAndEvaluateStatement(statement);
     return result;
   };
@@ -624,7 +623,6 @@ async function loadApplication(appDir: string): Promise<void> {
 
   await load(appDir, undefined, async (appSpec?: ApplicationSpec) => {
     if (replState) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       replState.appSpec = appSpec;
       if (appSpec && 'name' in appSpec) {
         // eslint-disable-next-line no-console

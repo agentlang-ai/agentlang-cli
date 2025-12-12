@@ -1,29 +1,54 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
-import { AgentlangLanguageMetaData } from 'agentlang/out/language/generated/module.js';
-import { createAgentlangServices } from 'agentlang/out/language/agentlang-module.js';
-import { ApplicationSpec, internModule, load, loadAppConfig } from 'agentlang/out/runtime/loader.js';
 import { NodeFileSystem } from 'langium/node';
-import { extractDocument } from 'agentlang/out/runtime/loader.js';
 import * as path from 'node:path';
-import { logger } from 'agentlang/out/runtime/logger.js';
-import { Module } from 'agentlang/out/runtime/module.js';
-import { ModuleDefinition } from 'agentlang/out/language/generated/ast.js';
+
+let agPath = 'agentlang';
+// Check if ./node_modules/agentlang exists in the current directory, add to agPath
+const nodeModulesPath = path.resolve(process.cwd(), 'node_modules/agentlang');
+
+if (existsSync(nodeModulesPath)) {
+  agPath = nodeModulesPath;
+}
+
+const modAgentlangLanguageMetaData: typeof import('agentlang/out/language/generated/module.js') = await import(
+  `${agPath}/out/language/generated/module.js`
+);
+const { AgentlangLanguageMetaData } = modAgentlangLanguageMetaData;
+const modCreateAgentlangServices: typeof import('agentlang/out/language/agentlang-module.js') = await import(
+  `${agPath}/out/language/agentlang-module.js`
+);
+const { createAgentlangServices } = modCreateAgentlangServices;
+const modLoader: typeof import('agentlang/out/runtime/loader.js') = await import(`${agPath}/out/runtime/loader.js`);
+const { internModule, load, loadAppConfig, extractDocument } = modLoader;
+import type { ApplicationSpec } from 'agentlang/out/runtime/loader.js';
+const modLogger: typeof import('agentlang/out/runtime/logger.js') = await import(`${agPath}/out/runtime/logger.js`);
+const { logger } = modLogger;
+import type { Config } from 'agentlang/out/runtime/state.js';
+const modIntegrations: typeof import('agentlang/out/runtime/integrations.js') = await import(
+  `${agPath}/out/runtime/integrations.js`
+);
+const { prepareIntegrations } = modIntegrations;
+const modRuntime: typeof import('agentlang/out/utils/runtime.js') = await import(`${agPath}/out/utils/runtime.js`);
+const { isNodeEnv } = modRuntime;
+const modOpenApi: typeof import('agentlang/out/runtime/openapi.js') = await import(`${agPath}/out/runtime/openapi.js`);
+const { registerOpenApiModule } = modOpenApi;
+const modCli: typeof import('agentlang/out/cli/main.js') = await import(`${agPath}/out/cli/main.js`);
+const { runPreInitTasks, runPostInitTasks } = modCli;
+
+import type { Module } from 'agentlang/out/runtime/module.js';
+import type { ModuleDefinition } from 'agentlang/out/language/generated/ast.js';
+
 import { generateSwaggerDoc } from './docs.js';
 import { startRepl } from './repl.js';
 import { generateUI } from './ui-generator/uiGenerator.js';
 import { loadUISpec } from './ui-generator/specLoader.js';
 import { findSpecFile } from './ui-generator/specFinder.js';
 import { startStudio } from './studio.js';
-import { Config } from 'agentlang/out/runtime/state.js';
-import { prepareIntegrations } from 'agentlang/out/runtime/integrations.js';
-import { isNodeEnv } from 'agentlang/out/utils/runtime.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
-import { registerOpenApiModule } from 'agentlang/out/runtime/openapi.js';
 import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { runPreInitTasks, runPostInitTasks } from 'agentlang/out/cli/main.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
