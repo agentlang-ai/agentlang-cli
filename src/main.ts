@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { NodeFileSystem } from 'langium/node';
 import * as path from 'node:path';
+import { generateApp } from './app-generator/index.js';
 
 let agPath = 'agentlang';
 // Check if ./node_modules/agentlang exists in the current directory, add to agPath
@@ -98,12 +99,10 @@ function isAppInitialized(targetDir: string): boolean {
   const hasAgentlangFiles = findAgentlangFiles(targetDir).length > 0;
   return hasPackageJson || hasAgentlangFiles;
 }
-
 // Initialize a new Agentlang application
-export const initCommand = (appName: string): void => {
+export const initCommand = async (appName: string, options?: { prompt?: string }): Promise<void> => {
   const currentDir = process.cwd();
   const targetDir = join(currentDir, appName);
-
   // Check if already initialized
   if (isAppInitialized(targetDir)) {
     // eslint-disable-next-line no-console
@@ -170,8 +169,17 @@ export const initCommand = (appName: string): void => {
     const srcDir = join(targetDir, 'src');
     mkdirSync(srcDir, { recursive: true });
 
-    // Create src/core.al
-    const coreContent = `module ${appName}.core`;
+    let coreContent: string;
+    if (options?.prompt) {
+      // eslint-disable-next-line no-console
+      console.log(chalk.dim('Generating app template via AI'));
+      coreContent = await generateApp(options.prompt);
+      // eslint-disable-next-line no-console
+      console.log(`${chalk.green('✓')} Finished generating app template via AI`);
+    } else {
+      // Create src/core.al with optional prompt/description
+      coreContent = `module ${appName}.core`;
+    }
     writeFileSync(join(srcDir, 'core.al'), coreContent, 'utf-8');
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
@@ -184,6 +192,10 @@ export const initCommand = (appName: string): void => {
     console.log(chalk.dim('  1. Add your application logic to src/core.al'));
     // eslint-disable-next-line no-console
     console.log(chalk.dim('  2. Run your app with: ') + chalk.cyan('agent run'));
+
+    if (options?.prompt) {
+      process.exit(0);
+    }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(chalk.red('❌ Error initializing application:'), error instanceof Error ? error.message : error);
@@ -216,6 +228,8 @@ function customHelp(): string {
     ${chalk.cyan.bold('init')} ${chalk.dim('<appname>')}
       ${chalk.white('▸')} Initialize a new Agentlang application
       ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-p, --prompt')} ${chalk.dim('<description>')}  Description or prompt for the application
 
     ${chalk.cyan.bold('run')} ${chalk.dim('[file]')}
       ${chalk.white('▸')} Load and execute an Agentlang module
@@ -295,6 +309,7 @@ export default function (): void {
   program
     .command('init')
     .argument('<appname>', 'Name of the application to initialize')
+    .option('-p, --prompt <description>', 'Description or prompt for the application')
     .description('Initialize a new Agentlang application')
     .addHelpText(
       'after',
@@ -318,6 +333,9 @@ ${chalk.bold.white('EXAMPLES')}
 
   ${chalk.dim('Initialize with multiple words (use PascalCase)')}
   ${chalk.dim('$')} ${chalk.cyan('agent init InventoryManagement')}
+
+  ${chalk.dim('Initialize with a description/prompt')}
+  ${chalk.dim('$')} ${chalk.cyan('agent init ShowroomApp --prompt "a showroom app"')}
 `,
     )
     .action(initCommand);

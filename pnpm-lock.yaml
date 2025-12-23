@@ -11,6 +11,9 @@ importers:
 
   .:
     dependencies:
+      '@agentlang/agentgen':
+        specifier: 0.0.1
+        version: 0.0.1
       '@agentlang/lstudio':
         specifier: ^0.0.7
         version: 0.0.7
@@ -27,8 +30,8 @@ importers:
         specifier: ^2.0.2
         version: 2.3.1(@opentelemetry/api@1.9.0)(ajv@8.17.1)(core-js@3.45.1)(encoding@0.1.13)
       agentlang:
-        specifier: ^0.7.0
-        version: 0.7.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3))
+        specifier: ^0.7.8
+        version: 0.7.8(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3))
       better-sqlite3:
         specifier: ^12.4.1
         version: 12.4.1
@@ -122,6 +125,9 @@ importers:
         version: 8.46.0(eslint@9.37.0)(typescript@5.8.3)
 
 packages:
+
+  '@agentlang/agentgen@0.0.1':
+    resolution: {integrity: sha512-Qh52N4mb04Mctk+5/Qm9WtinP6RF5PeokGZqkxZ2Y/dDozxEieUlhTCmVQrI2vPiQTh5uyWCdGYJ89/wxZJMYw==}
 
   '@agentlang/lstudio@0.0.7':
     resolution: {integrity: sha512-CIXqX2Imr5OMZQW72VYKVFKHWmGWZrrLen8ZGl8wlD8fADGvJyRmMJX3HVSnlbKc30ORheytGvIGMYKsWehcmg==}
@@ -1211,8 +1217,8 @@ packages:
     resolution: {integrity: sha512-kja8j7PjmncONqaTsB8fQ+wE2mSU2DJ9D4XKoJ5PFWIdRMa6SLSN1ff4mOr4jCbfRSsxR4keIiySJU0N9T5hIQ==}
     engines: {node: '>= 8.0.0'}
 
-  agentlang@0.7.1:
-    resolution: {integrity: sha512-pzQvBZmba7OpRl8QP/wQJvdFX+V5AqS+Oxk4FaRbaHWTPyF5FGYFVogtyE0fkg5vsuMp/FN65tWwvh5L7d8XIg==}
+  agentlang@0.7.8:
+    resolution: {integrity: sha512-O37wYezh3gJRcrQyhHmztT11FzSE00czgF/0y98jfMaC9qRDTc10m1ziU94YfPBKYRD2PW2cYwChEPILivaMYw==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -3874,6 +3880,8 @@ packages:
 
 snapshots:
 
+  '@agentlang/agentgen@0.0.1': {}
+
   '@agentlang/lstudio@0.0.7': {}
 
   '@anthropic-ai/claude-agent-sdk@0.1.10(zod@3.25.76)':
@@ -5415,7 +5423,7 @@ snapshots:
       humanize-ms: 1.2.1
     optional: true
 
-  agentlang@0.7.1(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3)):
+  agentlang@0.7.8(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.12.2)(better-sqlite3@12.4.1)(encoding@0.1.13)(js-yaml@4.1.0)(openai@5.23.2(zod@3.25.76))(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@24.7.0)(typescript@5.8.3)):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.901.0
       '@aws-sdk/client-cognito-identity-provider': 3.901.0
