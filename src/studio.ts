@@ -239,8 +239,8 @@ function findLStudioPath(projectDir: string): string | null {
   return null;
 }
 
-export async function startStudio(projectPath = '.', studioPort = 4000): Promise<void> {
-  const spinner = ora('Starting Agent Studio...').start();
+export async function startStudio(projectPath = '.', studioPort = 4000, serverOnly = false): Promise<void> {
+  const spinner = ora(serverOnly ? 'Starting Studio backend server...' : 'Starting Agent Studio...').start();
   const targetDir = path.resolve(process.cwd(), projectPath);
 
   // Validate that the directory contains an agentlang project
@@ -270,17 +270,20 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
     process.exit(1);
   }
 
-  // Find @agentlang/lstudio
-  spinner.text = 'Finding @agentlang/lstudio...';
-  const lstudioPath = findLStudioPath(targetDir);
-  if (!lstudioPath) {
-    spinner.fail(chalk.red('Failed to find @agentlang/lstudio'));
-    console.error(
-      chalk.yellow('Please install @agentlang/lstudio in your project:\n  npm install --save-dev @agentlang/lstudio'),
-    );
-    process.exit(1);
+  // Find @agentlang/lstudio (skip in server-only mode)
+  let lstudioPath: string | null = null;
+  if (!serverOnly) {
+    spinner.text = 'Finding @agentlang/lstudio...';
+    lstudioPath = findLStudioPath(targetDir);
+    if (!lstudioPath) {
+      spinner.fail(chalk.red('Failed to find @agentlang/lstudio'));
+      console.error(
+        chalk.yellow('Please install @agentlang/lstudio in your project:\n  npm install --save-dev @agentlang/lstudio'),
+      );
+      process.exit(1);
+    }
+    spinner.succeed(chalk.green('Found @agentlang/lstudio'));
   }
-  spinner.succeed(chalk.green('Found @agentlang/lstudio'));
 
   spinner.text = 'Starting Agentlang server...';
 
@@ -345,27 +348,29 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
   app.use(cors());
   app.use(express.json());
 
-  // Serve static files from @agentlang/lstudio/dist
-  app.use(express.static(lstudioPath));
-
   // Setup Routes
   app.use('/', createRoutes(targetDir));
 
-  // Handle client-side routing
-  app.get('*', (req, res, next) => {
-    // Skip if handled by API routes
-    if (
-      req.path.startsWith('/files') ||
-      req.path.startsWith('/file') ||
-      req.path.startsWith('/test') ||
-      req.path.startsWith('/info') ||
-      req.path.startsWith('/branch') ||
-      req.path.startsWith('/env-config.js')
-    ) {
-      return next();
-    }
-    res.sendFile(path.join(lstudioPath, 'index.html'));
-  });
+  // Serve static files from @agentlang/lstudio/dist (skip in server-only mode)
+  if (!serverOnly && lstudioPath) {
+    app.use(express.static(lstudioPath));
+
+    // Handle client-side routing
+    app.get('*', (req, res, next) => {
+      // Skip if handled by API routes
+      if (
+        req.path.startsWith('/files') ||
+        req.path.startsWith('/file') ||
+        req.path.startsWith('/test') ||
+        req.path.startsWith('/info') ||
+        req.path.startsWith('/branch') ||
+        req.path.startsWith('/env-config.js')
+      ) {
+        return next();
+      }
+      res.sendFile(path.join(lstudioPath, 'index.html'));
+    });
+  }
 
   // Start server
   await new Promise<void>(resolve => {
@@ -373,24 +378,35 @@ export async function startStudio(projectPath = '.', studioPort = 4000): Promise
       spinner.succeed(chalk.green(`Studio server is running on http://localhost:${studioPort}`));
       console.log(chalk.blue(`Serving files from: ${targetDir}`));
       const studioUrl = `http://localhost:${studioPort}`;
-      console.log(chalk.blue(`Studio UI is available at: ${studioUrl}`));
+
+      if (serverOnly) {
+        console.log(chalk.blue(`Backend API available at: ${studioUrl}`));
+        console.log(chalk.dim('Endpoints: /files, /file, /info, /branch, /test'));
+        console.log(chalk.yellow('\nServer-only mode: UI not served.'));
+        console.log(chalk.dim('To connect a UI, set VITE_CLI_URL and run the studio frontend separately.'));
+      } else {
+        console.log(chalk.blue(`Studio UI is available at: ${studioUrl}`));
+      }
+
       if (agentProcess) {
         console.log(chalk.dim('Agentlang server is running in the background'));
       }
 
-      // Open browser automatically (fire and forget)
-      open(studioUrl)
-        .then(() => {
-          console.log(chalk.green(`✓ Opened browser at ${studioUrl}`));
-        })
-        .catch((error: unknown) => {
-          console.warn(
-            chalk.yellow(
-              `⚠ Could not open browser automatically: ${error instanceof Error ? error.message : String(error)}`,
-            ),
-          );
-          console.log(chalk.dim(`   Please open ${studioUrl} manually in your browser`));
-        });
+      // Open browser automatically (skip in server-only mode)
+      if (!serverOnly) {
+        open(studioUrl)
+          .then(() => {
+            console.log(chalk.green(`✓ Opened browser at ${studioUrl}`));
+          })
+          .catch((error: unknown) => {
+            console.warn(
+              chalk.yellow(
+                `⚠ Could not open browser automatically: ${error instanceof Error ? error.message : String(error)}`,
+              ),
+            );
+            console.log(chalk.dim(`   Please open ${studioUrl} manually in your browser`));
+          });
+      }
 
       // Handle cleanup on exit
       process.on('SIGINT', () => {
