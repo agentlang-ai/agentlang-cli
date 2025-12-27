@@ -509,6 +509,7 @@ ${chalk.bold.white('EXAMPLES')}
     .command('studio')
     .argument('[path]', 'Path to Agentlang project directory (default: current directory)', '.')
     .option('-p, --port <port>', 'Port to run Studio server on', '4000')
+    .option('--server-only', 'Start only the backend server without opening the UI')
     .description('Start Agentlang Studio with local server')
     .addHelpText(
       'after',
@@ -534,6 +535,9 @@ ${chalk.bold.white('EXAMPLES')}
 
   ${chalk.dim('Start Studio with path and custom port')}
   ${chalk.dim('$')} ${chalk.cyan('agent studio ./monitoring -p 5000')}
+
+  ${chalk.dim('Start only the backend server (for development)')}
+  ${chalk.dim('$')} ${chalk.cyan('agent studio --server-only')}
 `,
     )
     .action(studioCommand);
@@ -691,14 +695,17 @@ export const generateUICommand = async (
 /* eslint-enable no-console */
 
 /* eslint-disable no-console */
-export const studioCommand = async (projectPath?: string, options?: { port?: string }): Promise<void> => {
+export const studioCommand = async (
+  projectPath?: string,
+  options?: { port?: string; serverOnly?: boolean },
+): Promise<void> => {
   try {
     const port = parseInt(options?.port || '4000', 10);
     if (isNaN(port) || port < 1 || port > 65535) {
       console.error(chalk.red('Invalid port number. Port must be between 1 and 65535.'));
       process.exit(1);
     }
-    await startStudio(projectPath || '.', port);
+    await startStudio(projectPath || '.', port, options?.serverOnly);
   } catch (error) {
     console.error(chalk.red(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
@@ -718,6 +725,9 @@ async function loadOpenApiSpec(openApiConfig: OpenApiConfigItem[]) {
     await api.init();
     const client = await api.getClient();
     client.defaults.baseURL = cfg.baseUrl ?? cfg.specUrl.substring(0, cfg.specUrl.lastIndexOf('/'));
+    // Type assertion needed because openapi-client-axios is installed in both
+    // agentlang-cli and agentlang node_modules, causing TypeScript to see them as incompatible
+
     const n = await registerOpenApiModule(cfg.name, { api, client });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     logger.info(`OpenAPI module '${n}' registered`);
