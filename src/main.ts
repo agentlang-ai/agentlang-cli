@@ -102,7 +102,31 @@ function isAppInitialized(targetDir: string): boolean {
 // Initialize a new Agentlang application
 export const initCommand = async (appName: string, options?: { prompt?: string }): Promise<void> => {
   const currentDir = process.cwd();
-  const targetDir = join(currentDir, appName);
+
+  // If using --prompt, generate the app first to extract the module name
+  let finalAppName = appName;
+  let coreContent: string;
+
+  if (options?.prompt) {
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('Generating app template via AI...'));
+    coreContent = await generateApp(options.prompt);
+    // eslint-disable-next-line no-console
+    console.log(`${chalk.green('✓')} Finished generating app template via AI`);
+
+    // Extract the module name from "module <something>.core" (case-insensitive)
+    const moduleMatch = coreContent.match(/^module\s+(\S+)\.core/im);
+    if (moduleMatch) {
+      finalAppName = moduleMatch[1];
+      // eslint-disable-next-line no-console
+      console.log(chalk.dim(`   Detected module name: ${chalk.cyan(finalAppName)}\n`));
+    }
+  } else {
+    coreContent = `module ${appName}.core`;
+  }
+
+  const targetDir = join(currentDir, finalAppName);
+
   // Check if already initialized
   if (isAppInitialized(targetDir)) {
     // eslint-disable-next-line no-console
@@ -116,13 +140,13 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
 
   try {
     // eslint-disable-next-line no-console
-    console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(appName)}\n`));
+    console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(finalAppName)}\n`));
 
     mkdirSync(targetDir);
 
     // Create package.json
     const packageJson = {
-      name: appName,
+      name: finalAppName,
       version: '0.0.1',
       dependencies: {
         agentlang: '*',
@@ -169,17 +193,6 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     const srcDir = join(targetDir, 'src');
     mkdirSync(srcDir, { recursive: true });
 
-    let coreContent: string;
-    if (options?.prompt) {
-      // eslint-disable-next-line no-console
-      console.log(chalk.dim('Generating app template via AI'));
-      coreContent = await generateApp(options.prompt);
-      // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Finished generating app template via AI`);
-    } else {
-      // Create src/core.al with optional prompt/description
-      coreContent = `module ${appName}.core`;
-    }
     writeFileSync(join(srcDir, 'core.al'), coreContent, 'utf-8');
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
