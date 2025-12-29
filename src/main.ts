@@ -136,29 +136,35 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
 
     // Create config.al with Agentlang syntax for LLM and JSON for the rest
-    const configAlContent = `{agentlang.ai/LLM {
-    name "llm01",
-    service "openai",
-    config
-    {"model": "gpt-4o"}
-}}
-
-{
-  "service": {
-    "port": 8080
+    const configAlContent = `{
+  "agentlang": {
+    "service": {
+      "port": 8080
+    },
+    "rbac": {
+      "enabled": false
+    },
+    "auth": {
+      "enabled": false
+    },
+    "auditTrail": {
+      "enabled": true
+    },
+    "monitoring": {
+      "enabled": true
+    }
   },
-  "rbac": {
-    "enabled": false
-  },
-  "auth": {
-    "enabled": false
-  },
-  "auditTrail": {
-    "enabled": true
-  },
-  "monitoring": {
-    "enabled": true
-  }
+  "agentlang.ai": [
+    {
+      "agentlang.ai/LLM": {
+        "name": "llm01",
+        "service": "openai",
+        "config": {
+          "model": "gpt-4o"
+        }
+      }
+    }
+  ]
 }`;
 
     writeFileSync(join(targetDir, 'config.al'), configAlContent, 'utf-8');
