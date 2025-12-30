@@ -17,10 +17,14 @@ process.
    - Updated `CHANGELOG.md` with all commits since the last tag
    - Updated `package-lock.json` (via `npm install`)
    - Updated `pnpm-lock.yaml` (via `pnpm install`)
+   - Formatted and linted code
    - Links to all commits with author mentions
-3. **Review & Merge**: Review the PR and merge it to apply the changes
-4. **Publish**: The publish workflow handles npm publishing automatically when
-   the tag exists
+3. **Review & Merge**: Review the PR and merge it
+4. **Automatic Publish**: When the PR is merged, the publish workflow
+   automatically:
+   - Builds the package
+   - Publishes to npm
+   - Creates a GitHub Release
 
 ### Quick Start
 
@@ -30,9 +34,10 @@ git tag 0.8.9
 git push origin 0.8.9
 
 # 2. Wait for automated PR creation (~1-2 minutes)
-# 3. Review the auto-generated PR with CHANGELOG and version updates
-# 4. Merge the PR
-# 5. Package automatically publishes to npm
+
+# 3. Review and merge the auto-generated PR
+
+# 4. Package automatically publishes to npm and creates GitHub Release
 ```
 
 ### Benefits
@@ -97,20 +102,14 @@ Review the PR to ensure:
 
 #### 5. Merge the Pull Request
 
-Once approved, merge the PR. This will:
+Once approved, merge the PR. This will automatically trigger the publish
+workflow which:
 
-- Update the repository with the new version
-- Update the CHANGELOG
-- Ensure lock files are in sync
-
-#### 6. Publishing to npm
-
-The `publish.yml` workflow handles publishing to npm automatically when:
-
-- A tag is pushed (which you already did in step 2)
-- A GitHub release is published
-
-The package will be published as `@agentlang/cli` on npm.
+- Installs dependencies
+- Builds the package
+- Publishes to npm
+- Creates a GitHub Release
+- The package will be available as `@agentlang/cli` on npm
 
 ### CHANGELOG Format
 
@@ -150,8 +149,9 @@ git push origin 0.9.0
 
 # 5. Merge the PR after review
 
-# 6. The publish workflow automatically publishes to npm
-#    Check: https://www.npmjs.com/package/@agentlang/cli
+# 6. The publish workflow automatically runs, publishes to npm, and creates GitHub Release
+#    Check npm: https://www.npmjs.com/package/@agentlang/cli
+#    Check releases: https://github.com/agentlang/agentlang-cli/releases
 ```
 
 ### Troubleshooting
