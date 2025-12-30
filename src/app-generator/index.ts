@@ -6,7 +6,7 @@ import { BUILDER_MODULE_DEFINITION } from '@agentlang/agentgen';
 import { runStandaloneStatements, parseAndIntern } from 'agentlang/src/runtime/loader';
 import { runPreInitTasks } from 'agentlang/src/cli/main';
 
-export const generateApp = async (prompt: string): Promise<string> => {
+export const generateApp = async (prompt: string, appName: string): Promise<string> => {
   await runPreInitTasks();
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -21,7 +21,11 @@ export const generateApp = async (prompt: string): Promise<string> => {
     await initDatabase(undefined);
     await runInitFunctions();
     await runStandaloneStatements();
-    generatedSchema = await evaluateAsEvent('AgentCraft', 'generateAgentlang', { requirements: prompt });
+    // Include the appName in the requirements so the AI workflow preserves it
+    const requirementsWithAppName = `IMPORTANT: You MUST use the exact module name "${appName}.Core" (preserve the exact casing). ${prompt}`;
+    generatedSchema = await evaluateAsEvent('AgentCraft', 'generateAgentlang', {
+      requirements: requirementsWithAppName,
+    });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (generatedSchema['code']) return generatedSchema['code'] as string;
     else throw new Error('Failed to generate app');

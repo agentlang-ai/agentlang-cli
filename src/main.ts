@@ -103,29 +103,19 @@ function isAppInitialized(targetDir: string): boolean {
 export const initCommand = async (appName: string, options?: { prompt?: string }): Promise<void> => {
   const currentDir = process.cwd();
 
-  // If using --prompt, generate the app first to extract the module name
-  let finalAppName = appName;
+  const targetDir = join(currentDir, appName);
+
   let coreContent: string;
 
   if (options?.prompt) {
     // eslint-disable-next-line no-console
     console.log(chalk.dim('Generating app template via AI...'));
-    coreContent = await generateApp(options.prompt);
+    coreContent = await generateApp(options.prompt, appName);
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Finished generating app template via AI`);
-
-    // Extract the module name from "module <something>.core" (case-insensitive)
-    const moduleMatch = coreContent.match(/^module\s+(\S+)\.core/im);
-    if (moduleMatch) {
-      finalAppName = moduleMatch[1];
-      // eslint-disable-next-line no-console
-      console.log(chalk.dim(`   Detected module name: ${chalk.cyan(finalAppName)}\n`));
-    }
   } else {
     coreContent = `module ${appName}.core`;
   }
-
-  const targetDir = join(currentDir, finalAppName);
 
   // Check if already initialized
   if (isAppInitialized(targetDir)) {
@@ -140,13 +130,13 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
 
   try {
     // eslint-disable-next-line no-console
-    console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(finalAppName)}\n`));
+    console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(appName)}\n`));
 
     mkdirSync(targetDir);
 
     // Create package.json
     const packageJson = {
-      name: finalAppName,
+      name: appName,
       version: '0.0.1',
       dependencies: {
         agentlang: '*',
