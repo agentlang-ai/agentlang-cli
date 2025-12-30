@@ -1,6 +1,6 @@
 {
   "name": "@agentlang/cli",
-  "version": "0.8.4",
+  "version": "0.8.8",
   "description": "A command-line interface tool for Agentlang",
   "main": "out/main.js",
   "type": "module",
@@ -16,8 +16,8 @@
   ],
   "scripts": {
     "build": "tsc -b tsconfig.src.json && node esbuild.mjs",
-    "start": "ts-node src/index.ts",
-    "dev": "ts-node src/index.ts",
+    "start": "tsx src/main.ts",
+    "dev": "tsx src/main.ts",
     "prepublishOnly": "npm run build",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
@@ -50,13 +50,13 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@agentlang/lstudio": "^0.0.7",
+    "@agentlang/agentgen": "^0.0.2",
+    "@agentlang/lstudio": "^0.2.3",
     "@anthropic-ai/claude-agent-sdk": "^0.1.1",
     "@anthropic-ai/sdk": "^0.65.0",
     "@asteasolutions/zod-to-openapi": "7.3.4",
     "@redocly/cli": "^2.0.2",
-    "agentlang": "^0.7.9",
-    "@agentlang/agentgen": "0.0.1",
+    "agentlang": "^0.8.2",
     "better-sqlite3": "^12.4.1",
     "chalk": "^5.4.1",
     "chokidar": "^4.0.3",
@@ -95,6 +95,7 @@
     "eslint": "^9.32.0",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "5.8.3",
     "typescript-eslint": "^8.38.0"
   }

@@ -102,7 +102,21 @@ function isAppInitialized(targetDir: string): boolean {
 // Initialize a new Agentlang application
 export const initCommand = async (appName: string, options?: { prompt?: string }): Promise<void> => {
   const currentDir = process.cwd();
+
   const targetDir = join(currentDir, appName);
+
+  let coreContent: string;
+
+  if (options?.prompt) {
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('Generating app template via AI...'));
+    coreContent = await generateApp(options.prompt, appName);
+    // eslint-disable-next-line no-console
+    console.log(`${chalk.green('✓')} Finished generating app template via AI`);
+  } else {
+    coreContent = `module ${appName}.core`;
+  }
+
   // Check if already initialized
   if (isAppInitialized(targetDir)) {
     // eslint-disable-next-line no-console
@@ -175,17 +189,6 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     const srcDir = join(targetDir, 'src');
     mkdirSync(srcDir, { recursive: true });
 
-    let coreContent: string;
-    if (options?.prompt) {
-      // eslint-disable-next-line no-console
-      console.log(chalk.dim('Generating app template via AI'));
-      coreContent = await generateApp(options.prompt);
-      // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Finished generating app template via AI`);
-    } else {
-      // Create src/core.al with optional prompt/description
-      coreContent = `module ${appName}.core`;
-    }
     writeFileSync(join(srcDir, 'core.al'), coreContent, 'utf-8');
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
