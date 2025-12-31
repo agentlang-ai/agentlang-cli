@@ -22,6 +22,7 @@ process.
 3. **Review & Merge**: Review the PR and merge it
 4. **Automatic Publish**: When the PR is merged, the publish workflow
    automatically:
+   - Updates `agentlang` and `@agentlang/*` packages to their latest versions
    - Builds the package
    - Publishes to npm
    - Creates a GitHub Release
@@ -45,6 +46,7 @@ git push origin 0.8.9
 - Automatic CHANGELOG generation from git commits
 - Automatic version bumping in package.json
 - Automatic lock file updates (both npm and pnpm)
+- **Automatic update of `agentlang` and `@agentlang/*` to latest versions**
 - Automatic npm publishing
 - GitHub Release creation with formatted release notes
 - Reduced human error and manual steps
@@ -106,6 +108,8 @@ Once approved, merge the PR. This will automatically trigger the publish
 workflow which:
 
 - Installs dependencies
+- **Updates `agentlang` and `@agentlang/*` packages to their latest versions**
+  (ensures CLI always ships with latest core packages)
 - Builds the package
 - Publishes to npm
 - Creates a GitHub Release
@@ -192,6 +196,32 @@ git push origin 0.9.0
 Since this repository previously had no git tags, the first release will include
 ALL commits in the repository history. For subsequent releases, the CHANGELOG
 will only include commits between tags.
+
+### Dependency Management
+
+**Important**: The `@agentlang/cli` package is designed to always ship with the
+latest versions of `agentlang` and `@agentlang/*` packages.
+
+During the publish workflow, all agentlang dependencies are automatically
+updated to their latest versions using both npm and pnpm:
+
+- `agentlang` - Core language runtime
+- `@agentlang/agentgen` - Code generation tools
+- `@agentlang/lstudio` - Studio interface
+
+The update process:
+
+1. Runs `npm update` to update `package.json` and `package-lock.json`
+2. Runs `pnpm update --latest` to update `pnpm-lock.yaml`
+
+This ensures:
+
+- Both lock files are in sync with the latest versions
+- Users always get the most recent features and bug fixes
+- No manual dependency management needed
+
+**Developer Note**: Don't manually update these dependencies in `package.json`.
+The publish workflow handles this automatically for both package managers.
 
 ---
 
