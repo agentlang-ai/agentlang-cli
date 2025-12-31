@@ -109,6 +109,52 @@ class FileService {
       return 'main'; // Default to main if git command fails
     }
   }
+
+  installDependencies(githubUsername?: string, githubToken?: string): void {
+    try {
+      // Configure git to use credentials if provided
+      // Use local config (scoped to this directory) instead of global to avoid affecting other repos
+      if (githubUsername && githubToken) {
+        const gitConfig = [
+          `url.https://${githubUsername}:${githubToken}@github.com/.insteadOf https://github.com/`,
+          `url.https://${githubUsername}:${githubToken}@github.com/.insteadOf git+https://github.com/`,
+        ];
+
+        for (const config of gitConfig) {
+          try {
+            execSync(`git config --local ${config}`, {
+              cwd: this.targetDir,
+              stdio: 'pipe',
+            });
+          } catch {
+            // If local config fails (e.g., not a git repo), try global as fallback
+            try {
+              execSync(`git config --global ${config}`, {
+                stdio: 'pipe',
+              });
+            } catch (globalConfigError) {
+              // Ignore config errors, continue with npm install
+              console.warn('Failed to set git config:', globalConfigError);
+            }
+          }
+        }
+      }
+
+      execSync('npm install', {
+        cwd: this.targetDir,
+        stdio: 'pipe',
+        env: {
+          ...process.env,
+          // Set GIT_ASKPASS to avoid interactive prompts
+          GIT_ASKPASS: 'echo',
+          GIT_TERMINAL_PROMPT: '0',
+        },
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to install dependencies: ${errorMessage}`);
+    }
+  }
 }
 
 class FileController {
@@ -186,6 +232,17 @@ class FileController {
       return res.status(500).json({ error: 'Failed to get current branch' });
     }
   };
+
+  installDependencies = (req: Request, res: Response) => {
+    try {
+      const { githubUsername, githubToken } = (req.body as { githubUsername?: string; githubToken?: string }) || {};
+      this.fileService.installDependencies(githubUsername, githubToken);
+      return res.json({ message: 'Dependencies installed successfully' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return res.status(500).json({ error: errorMessage });
+    }
+  };
 }
 
 function createRoutes(targetDir: string): Router {
@@ -201,6 +258,7 @@ function createRoutes(targetDir: string): Router {
   router.post('/file', fileController.saveFile);
   router.get('/info', fileController.getInfo);
   router.get('/branch', fileController.getBranch);
+  router.post('/install', fileController.installDependencies);
 
   router.get('/test', (_req, res) => {
     return res.json({ message: 'Hello from agent studio!' });
@@ -364,11 +422,16 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
         req.path.startsWith('/test') ||
         req.path.startsWith('/info') ||
         req.path.startsWith('/branch') ||
+        req.path.startsWith('/install') ||
         req.path.startsWith('/env-config.js')
       ) {
         return next();
       }
-      res.sendFile(path.join(lstudioPath, 'index.html'));
+      if (lstudioPath) {
+        res.sendFile(path.join(lstudioPath, 'index.html'));
+      } else {
+        res.status(404).json({ error: 'Studio UI not found' });
+      }
     });
   }
 
