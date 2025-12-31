@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.8.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.8.8...0.8.9) (2025-12-31)
+
+### Changes
+
+- Update agentlang packages as well when releasing new version
+  ([8060583](https://github.com/agentlang-ai/agentlang-cli/commit/8060583cdde37e24bbedacb64ff26c2fc1de6dc3)) -
+  @pratik
+- Fix version conflict on lint CI
+  ([ec68bde](https://github.com/agentlang-ai/agentlang-cli/commit/ec68bde589c424a5d76b851fd3808fb9db419913)) -
+  @pratik
+- Don't set pnpm version on CI, it must use package.json version
+  ([f5dd7f0](https://github.com/agentlang-ai/agentlang-cli/commit/f5dd7f05fa50be1294903f7cda856af36759cd07)) -
+  @pratik
+- Only run publish CI when release PR is merged
+  ([b09101e](https://github.com/agentlang-ai/agentlang-cli/commit/b09101e4d65dbe04201c7fc1a315c535b2d2fb1a)) -
+  @pratik
+
+---
+
 ## [0.8.8](https://github.com/agentlang-ai/agentlang-cli/compare/6472067eadb6ef99ceb93d2078c93079d0141bbd...0.8.8) (2025-12-30)
 
 ### Changes
