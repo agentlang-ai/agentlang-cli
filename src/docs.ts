@@ -1,11 +1,24 @@
 import { z } from 'zod';
 import yaml from 'yaml';
 import { OpenApiGeneratorV3, OpenAPIRegistry, extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
-import { getUserModuleNames, fetchModule, Entity, Event } from 'agentlang/out/runtime/module.js';
 import * as fs from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import * as path from 'node:path';
 import Converter from 'openapi-to-postmanv2';
 import { execSync } from 'child_process';
+import type { Entity, Event } from 'agentlang/out/runtime/module.js';
+
+let agPath = 'agentlang';
+const nodeModulesPath = path.resolve(process.cwd(), 'node_modules/agentlang');
+
+if (existsSync(nodeModulesPath)) {
+  agPath = nodeModulesPath;
+}
+
+const modRuntimeModule: typeof import('agentlang/out/runtime/module.js') = await import(
+  `${agPath}/out/runtime/module.js`
+);
+const { getUserModuleNames, fetchModule } = modRuntimeModule;
 
 extendZodWithOpenApi(z);
 

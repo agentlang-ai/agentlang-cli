@@ -2,8 +2,21 @@ import * as readline from 'node:readline';
 import * as path from 'node:path';
 import * as chokidar from 'chokidar';
 import chalk from 'chalk';
-import { ApplicationSpec, load, loadRawConfig, parseAndIntern } from 'agentlang/out/runtime/loader.js';
-import {
+import { existsSync } from 'node:fs';
+import type { ApplicationSpec } from 'agentlang/out/runtime/loader.js';
+import type { Config } from 'agentlang/out/runtime/state.js';
+
+let agPath = 'agentlang';
+const nodeModulesPath = path.resolve(process.cwd(), 'node_modules/agentlang');
+
+if (existsSync(nodeModulesPath)) {
+  agPath = nodeModulesPath;
+}
+
+const modLoader: typeof import('agentlang/out/runtime/loader.js') = await import(`${agPath}/out/runtime/loader.js`);
+const { load, loadRawConfig, parseAndIntern, addFromDef, addRelationshipFromDef, addWorkflowFromDef } = modLoader;
+const modModule: typeof import('agentlang/out/runtime/module.js') = await import(`${agPath}/out/runtime/module.js`);
+const {
   addModule,
   getActiveModuleName,
   fetchModule,
@@ -24,19 +37,22 @@ import {
   addEvent,
   removeEvent,
   removeModule,
-} from 'agentlang/out/runtime/module.js';
-import { addFromDef, addRelationshipFromDef, addWorkflowFromDef } from 'agentlang/out/runtime/loader.js';
-import { parseModule } from 'agentlang/out/language/parser.js';
-import {
-  isEntityDefinition,
-  isEventDefinition,
-  isRecordDefinition,
-  isRelationshipDefinition,
-  isWorkflowDefinition,
-} from 'agentlang/out/language/generated/ast.js';
-import { Config, setAppConfig } from 'agentlang/out/runtime/state.js';
-import { runPreInitTasks, runPostInitTasks } from 'agentlang/out/cli/main.js';
-import { lookupAllInstances, parseAndEvaluateStatement } from 'agentlang/out/runtime/interpreter.js';
+} = modModule;
+const modParser: typeof import('agentlang/out/language/parser.js') = await import(`${agPath}/out/language/parser.js`);
+const { parseModule } = modParser;
+const modAst: typeof import('agentlang/out/language/generated/ast.js') = await import(
+  `${agPath}/out/language/generated/ast.js`
+);
+const { isEntityDefinition, isEventDefinition, isRecordDefinition, isRelationshipDefinition, isWorkflowDefinition } =
+  modAst;
+const modState: typeof import('agentlang/out/runtime/state.js') = await import(`${agPath}/out/runtime/state.js`);
+const { setAppConfig } = modState;
+const modCli: typeof import('agentlang/out/cli/main.js') = await import(`${agPath}/out/cli/main.js`);
+const { runPreInitTasks, runPostInitTasks } = modCli;
+const modInterpreter: typeof import('agentlang/out/runtime/interpreter.js') = await import(
+  `${agPath}/out/runtime/interpreter.js`
+);
+const { lookupAllInstances, parseAndEvaluateStatement } = modInterpreter;
 
 export interface ReplOptions {
   watch?: boolean;
