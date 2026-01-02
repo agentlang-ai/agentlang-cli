@@ -1,6 +1,6 @@
 {
   "name": "@agentlang/cli",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "A command-line interface tool for Agentlang",
   "main": "out/main.js",
   "type": "module",

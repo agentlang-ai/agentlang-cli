@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.1...0.9.2) (2026-01-02)
+
+### Changes
+
+- import fix in repl and studio
+  ([da08a81](https://github.com/agentlang-ai/agentlang-cli/commit/da08a812a141009018cecdf16dec83bdde862ad5)) -
+  @muazzam
+
+---
+
 ## [0.9.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.8.9...0.9.1) (2026-01-02)
 
 ### Changes
