@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.8.9...0.9.1) (2026-01-02)
+
+### Changes
+
+- Update pnpm-lock file
+  ([bc8e3c1](https://github.com/agentlang-ai/agentlang-cli/commit/bc8e3c1972e136633fc82558d2ce7c747a8877f8)) -
+  @pratik
+- Bump CLI version
+  ([c5188cf](https://github.com/agentlang-ai/agentlang-cli/commit/c5188cfb15efd4038e3a93e167d2e0277fe232bf)) -
+  @pratik
+- compile lock file
+  ([02440e1](https://github.com/agentlang-ai/agentlang-cli/commit/02440e13795ca0faf47a3887b81205fd1f57efbc)) -
+  @mhamzachippa
+- Bump version
+  ([6a71b5a](https://github.com/agentlang-ai/agentlang-cli/commit/6a71b5a6cba4ea7c312f74b75a92761589b3f978)) -
+  @mhamzachippa
+- Bump agentlang and lstudio version
+  ([05f59e2](https://github.com/agentlang-ai/agentlang-cli/commit/05f59e233a4e055783126dd8344d5dd782bc1c2b)) -
+  @mhamzachippa
+- chore: release 0.8.9
+  ([b5f6ce7](https://github.com/agentlang-ai/agentlang-cli/commit/b5f6ce70f2117f2d3992b2b767d5545fb8c2f8cc)) -
+  @pratik-fractl
+
+---
+
 ## [0.8.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.8.8...0.8.9) (2025-12-31)
 
 ### Changes
