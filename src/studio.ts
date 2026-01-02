@@ -8,8 +8,19 @@ import { spawn, ChildProcess, execSync } from 'child_process';
 import chalk from 'chalk';
 import ora from 'ora';
 import open from 'open';
-import { flushAllAndLoad, load } from 'agentlang/out/runtime/loader.js';
-import { runPreInitTasks } from 'agentlang/out/cli/main.js';
+
+let agPath = 'agentlang';
+const nodeModulesPath = path.resolve(process.cwd(), 'node_modules/agentlang');
+
+if (existsSync(nodeModulesPath)) {
+  agPath = nodeModulesPath;
+}
+
+const modLoader: typeof import('agentlang/out/runtime/loader.js') = await import(`${agPath}/out/runtime/loader.js`);
+const { flushAllAndLoad, load } = modLoader;
+const modCli: typeof import('agentlang/out/cli/main.js') = await import(`${agPath}/out/cli/main.js`);
+const { runPreInitTasks } = modCli;
+
 import fs from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
