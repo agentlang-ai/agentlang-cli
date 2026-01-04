@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.3](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.2...0.9.3) (2026-01-04)
+
+### Changes
+
+- Compile lock file
+  ([9e1b725](https://github.com/agentlang-ai/agentlang-cli/commit/9e1b7251c58a3facc7ad257c19ac30b882797919)) -
+  @mhamzachippa
+- Bump lstudio version
+  ([d9e397f](https://github.com/agentlang-ai/agentlang-cli/commit/d9e397f4622cf04e3ba28c9f028fe240f365d787)) -
+  @mhamzachippa
+- Added stat endpoint for better mechanism of initializing local mode in studio
+  ([927ad5b](https://github.com/agentlang-ai/agentlang-cli/commit/927ad5b2598bae3d396dcc072667fc3fc27efdaa)) -
+  @mhamzachippa
+- chore: release 0.9.2 (#39)
+  ([dbb3efd](https://github.com/agentlang-ai/agentlang-cli/commit/dbb3efd5e9d7b9973324728f3881bbdd69a474e0)) -
+  @github-actions[bot]
+
+---
+
 ## [0.9.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.1...0.9.2) (2026-01-02)
 
 ### Changes
