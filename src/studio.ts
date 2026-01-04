@@ -84,6 +84,16 @@ class FileService {
     await fs.writeFile(fullPath, content, 'utf-8');
   }
 
+  async stat(filePath: string): Promise<{ type: 'file' | 'directory'; size: number; mtime: Date }> {
+    const fullPath = path.join(this.targetDir, filePath);
+    const stats = await fs.stat(fullPath);
+    return {
+      type: stats.isDirectory() ? 'directory' : 'file',
+      size: stats.size,
+      mtime: stats.mtime,
+    };
+  }
+
   async getPackageInfo(): Promise<Record<string, unknown>> {
     try {
       const packageJsonPath = path.join(this.targetDir, 'package.json');
@@ -206,14 +216,50 @@ class FileController {
 
   getFile = async (req: Request, res: Response) => {
     const filePath = req.query.path as string;
+    const includeMetadata = req.query.metadata === 'true';
     if (!filePath) {
       return res.status(400).json({ error: 'File path is required' });
     }
     try {
       const content = await this.fileService.readFile(filePath);
+      if (includeMetadata) {
+        const stats = await this.fileService.stat(filePath);
+        return res.json({ content, type: stats.type, size: stats.size, mtime: stats.mtime });
+      }
       return res.json({ content });
-    } catch {
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof (error as { code: unknown }).code === 'string' &&
+        (error as { code: string }).code === 'ENOENT'
+      ) {
+        return res.status(404).json({ error: 'File not found' });
+      }
       return res.status(500).json({ error: `Failed to read file: ${filePath}` });
+    }
+  };
+
+  getStat = async (req: Request, res: Response) => {
+    const filePath = req.query.path as string;
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path is required' });
+    }
+    try {
+      const stats = await this.fileService.stat(filePath);
+      return res.json(stats);
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        typeof (error as { code: unknown }).code === 'string' &&
+        (error as { code: string }).code === 'ENOENT'
+      ) {
+        return res.status(404).json({ error: 'Path not found' });
+      }
+      return res.status(500).json({ error: `Failed to get stat for: ${filePath}` });
     }
   };
 
@@ -266,6 +312,7 @@ function createRoutes(targetDir: string): Router {
 
   router.get('/files', fileController.getFiles);
   router.get('/file', fileController.getFile);
+  router.get('/stat', fileController.getStat);
   router.post('/file', fileController.saveFile);
   router.get('/info', fileController.getInfo);
   router.get('/branch', fileController.getBranch);
