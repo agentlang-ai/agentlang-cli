@@ -1,5 +1,59 @@
 # Changelog
 
+## [0.9.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.1...0.9.2) (2026-01-02)
+
+### Changes
+
+- import fix in repl and studio
+  ([da08a81](https://github.com/agentlang-ai/agentlang-cli/commit/da08a812a141009018cecdf16dec83bdde862ad5)) -
+  @muazzam
+
+---
+
+## [0.9.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.8.9...0.9.1) (2026-01-02)
+
+### Changes
+
+- Update pnpm-lock file
+  ([bc8e3c1](https://github.com/agentlang-ai/agentlang-cli/commit/bc8e3c1972e136633fc82558d2ce7c747a8877f8)) -
+  @pratik
+- Bump CLI version
+  ([c5188cf](https://github.com/agentlang-ai/agentlang-cli/commit/c5188cfb15efd4038e3a93e167d2e0277fe232bf)) -
+  @pratik
+- compile lock file
+  ([02440e1](https://github.com/agentlang-ai/agentlang-cli/commit/02440e13795ca0faf47a3887b81205fd1f57efbc)) -
+  @mhamzachippa
+- Bump version
+  ([6a71b5a](https://github.com/agentlang-ai/agentlang-cli/commit/6a71b5a6cba4ea7c312f74b75a92761589b3f978)) -
+  @mhamzachippa
+- Bump agentlang and lstudio version
+  ([05f59e2](https://github.com/agentlang-ai/agentlang-cli/commit/05f59e233a4e055783126dd8344d5dd782bc1c2b)) -
+  @mhamzachippa
+- chore: release 0.8.9
+  ([b5f6ce7](https://github.com/agentlang-ai/agentlang-cli/commit/b5f6ce70f2117f2d3992b2b767d5545fb8c2f8cc)) -
+  @pratik-fractl
+
+---
+
+## [0.8.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.8.8...0.8.9) (2025-12-31)
+
+### Changes
+
+- Update agentlang packages as well when releasing new version
+  ([8060583](https://github.com/agentlang-ai/agentlang-cli/commit/8060583cdde37e24bbedacb64ff26c2fc1de6dc3)) -
+  @pratik
+- Fix version conflict on lint CI
+  ([ec68bde](https://github.com/agentlang-ai/agentlang-cli/commit/ec68bde589c424a5d76b851fd3808fb9db419913)) -
+  @pratik
+- Don't set pnpm version on CI, it must use package.json version
+  ([f5dd7f0](https://github.com/agentlang-ai/agentlang-cli/commit/f5dd7f05fa50be1294903f7cda856af36759cd07)) -
+  @pratik
+- Only run publish CI when release PR is merged
+  ([b09101e](https://github.com/agentlang-ai/agentlang-cli/commit/b09101e4d65dbe04201c7fc1a315c535b2d2fb1a)) -
+  @pratik
+
+---
+
 ## [0.8.8](https://github.com/agentlang-ai/agentlang-cli/compare/6472067eadb6ef99ceb93d2078c93079d0141bbd...0.8.8) (2025-12-30)
 
 ### Changes

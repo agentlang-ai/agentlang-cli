@@ -37,8 +37,6 @@ jobs:
       # Step 2: Setup pnpm
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: latest
 
       # Step 3: Setup Node.js
       - name: Setup Node.js
@@ -57,17 +55,31 @@ jobs:
             echo -e "\ny\ny\n" | pnpm approve-builds || true
           fi
 
-      # Step 5: Build package
+      # Step 5: Update @agentlang/* packages and agentlang to latest versions
+      - name: Update agentlang dependencies to latest
+        run: |
+          echo "Updating @agentlang/* packages and agentlang to latest versions..."
+
+          # Update with npm (updates package.json and package-lock.json)
+          npm update agentlang @agentlang/agentgen @agentlang/lstudio
+
+          # Update with pnpm (updates pnpm-lock.yaml)
+          pnpm update agentlang @agentlang/agentgen @agentlang/lstudio --latest
+
+          echo "Updated dependencies:"
+          pnpm list agentlang @agentlang/agentgen @agentlang/lstudio
+
+      # Step 6: Build package
       - name: Build package
         run: pnpm run build
 
-      # Step 6: Publish to npm Registry
+      # Step 7: Publish to npm Registry
       - name: Publish to npm
         run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Step 7: Extract version from branch name
+      # Step 8: Extract version from branch name
       - name: Extract version
         if: github.event_name == 'pull_request'
         id: extract_version
@@ -77,7 +89,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
 
-      # Step 8: Create GitHub Release (when triggered by PR merge)
+      # Step 9: Create GitHub Release (when triggered by PR merge)
       - name: Create GitHub Release
         if: github.event_name == 'pull_request'
         uses: softprops/action-gh-release@v2
