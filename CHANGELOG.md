@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.4](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.3...0.9.4) (2026-01-06)
+
+### Changes
+
+- Bump deps
+  ([1a0ee40](https://github.com/agentlang-ai/agentlang-cli/commit/1a0ee40c62218d7422b97f5b8dddad0096ca9b7c)) -
+  @pratik
+
+---
+
 ## [0.9.3](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.2...0.9.3) (2026-01-04)
 
 ### Changes
