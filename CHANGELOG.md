@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.9.6](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.5...0.9.6) (2026-01-08)
+
+### Changes
+
+- Create store in config.al while creating the app
+  ([e76423d](https://github.com/agentlang-ai/agentlang-cli/commit/e76423da0c14c3d0b4eaabddcb8566be7e15946f)) -
+  @mhamzachippa
+- Add update to changelog
+  ([3b4364c](https://github.com/agentlang-ai/agentlang-cli/commit/3b4364cea8e1879e83686b45d937aabc4fd72037)) -
+  @pratik
+
+---
+
 ## [0.9.5](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.4...0.9.5) (2026-01-08)
 
 ### Changes
