@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.7](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.6...0.9.7) (2026-01-08)
+
+### Changes
+
+- Navigate to directory of app and install dependencies too on agent init
+  ([e4cb465](https://github.com/agentlang-ai/agentlang-cli/commit/e4cb46579ae7f1639269290591ce407ec4259c36)) -
+  @mhamzachippa
+
+---
+
 ## [0.9.6](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.5...0.9.6) (2026-01-08)
 
 ### Changes
