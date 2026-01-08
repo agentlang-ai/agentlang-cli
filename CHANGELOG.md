@@ -4,6 +4,8 @@
 
 ### Changes
 
+- Maintenance release to bump dependency versions
+
 ---
 
 ## [0.9.4](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.3...0.9.4) (2026-01-06)
