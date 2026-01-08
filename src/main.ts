@@ -155,6 +155,10 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     "service": {
       "port": 8080
     },
+    "store": {
+      "type": "sqlite",
+      "dbname": "${appName}.db"
+    },
     "rbac": {
       "enabled": false
     },
