@@ -48,6 +48,7 @@ import { findSpecFile } from './ui-generator/specFinder.js';
 import { startStudio } from './studio.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
 import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execSync } from 'child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
@@ -197,6 +198,23 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     // eslint-disable-next-line no-console
     console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
 
+    // Install dependencies
+    // eslint-disable-next-line no-console
+    console.log(chalk.cyan('\n📦 Installing dependencies...'));
+    try {
+      execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
+      // eslint-disable-next-line no-console
+      console.log(`${chalk.green('✓')} Dependencies installed`);
+    } catch {
+      // eslint-disable-next-line no-console
+      console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run npm install manually.'));
+    }
+
+    // Change to the app directory
+    process.chdir(targetDir);
+    // eslint-disable-next-line no-console
+    console.log(chalk.cyan(`\n📂 Changed directory to ${chalk.bold(appName)}`));
+
     // eslint-disable-next-line no-console
     console.log(chalk.green('\n✨ Successfully initialized Agentlang application!'));
     // eslint-disable-next-line no-console
@@ -205,6 +223,8 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     console.log(chalk.dim('  1. Add your application logic to src/core.al'));
     // eslint-disable-next-line no-console
     console.log(chalk.dim('  2. Run your app with: ') + chalk.cyan('agent run'));
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('  3. Or start Studio UI with: ') + chalk.cyan('agent studio'));
 
     if (options?.prompt) {
       process.exit(0);
