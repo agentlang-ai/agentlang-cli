@@ -2,6 +2,8 @@
 
 ## [0.9.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.8...0.9.9) (2026-01-13)
 
+- sync versions
+
 ### Changes
 
 - chore: release 0.9.8 (#50)
