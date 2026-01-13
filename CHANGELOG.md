@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.8...0.9.9) (2026-01-13)
+
+### Changes
+
+- chore: release 0.9.8 (#50)
+  ([8b03e4b](https://github.com/agentlang-ai/agentlang-cli/commit/8b03e4bfeaec2b88002a34df9212898496140a82)) -
+  @github-actions[bot]
+
+---
+
 ## [0.9.8](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.7...0.9.8) (2026-01-09)
 
 ### Changes
