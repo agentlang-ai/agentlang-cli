@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.10](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.9...0.9.10) (2026-01-14)
+
+### Changes
+
+- Update CHANGELOG and bump versions
+  ([3dd65ef](https://github.com/agentlang-ai/agentlang-cli/commit/3dd65efbda7c9f86dc5e028767f7265b413418f2)) -
+  @pratik
+
+---
+
 ## [0.9.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.8...0.9.9) (2026-01-13)
 
 - sync versions
