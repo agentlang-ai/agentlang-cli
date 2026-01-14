@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.11](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.10...0.9.11) (2026-01-14)
+
+### Changes
+
+- Bump versions of agentlang packages
+  ([a2d6367](https://github.com/agentlang-ai/agentlang-cli/commit/a2d63676b009094b1cd8fb3cb472605f96baa418)) -
+  @pratik
+- Serve environment variables to the browser
+  ([00d39b4](https://github.com/agentlang-ai/agentlang-cli/commit/00d39b4ab0e6d31fdb692d5f87a153ef8268f88f)) -
+  @pratik
+- Update CHANGELOG and package-lock
+  ([3060b95](https://github.com/agentlang-ai/agentlang-cli/commit/3060b950de12d70d4d85758ea9f2bbbc491fb7a6)) -
+  @pratik
+
+---
+
 ## [0.9.10](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.9...0.9.10) (2026-01-14)
 
 ### Changes
