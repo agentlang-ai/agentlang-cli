@@ -7,18 +7,19 @@
 - Update CHANGELOG and bump versions
   ([3dd65ef](https://github.com/agentlang-ai/agentlang-cli/commit/3dd65efbda7c9f86dc5e028767f7265b413418f2)) -
   @pratik
+- sync versions
 
 ---
 
 ## [0.9.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.8...0.9.9) (2026-01-13)
-
-- sync versions
 
 ### Changes
 
 - chore: release 0.9.8 (#50)
   ([8b03e4b](https://github.com/agentlang-ai/agentlang-cli/commit/8b03e4bfeaec2b88002a34df9212898496140a82)) -
   @github-actions[bot]
+
+- sync versions
 
 ---
 
