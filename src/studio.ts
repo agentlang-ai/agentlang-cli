@@ -322,6 +322,22 @@ function createRoutes(targetDir: string): Router {
     return res.json({ message: 'Hello from agent studio!' });
   });
 
+  // Serve environment variables to the browser
+  router.get('/env-config.js', (_req, res) => {
+    // Only expose allowed environment variables - never expose all process.env
+    const allowedEnvVars = {
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+    };
+
+    // Create a JavaScript file that sets window.__ENV__
+    const jsContent = `window.__ENV__ = ${JSON.stringify(allowedEnvVars)};`;
+
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(jsContent);
+  });
+
   return router;
 }
 
