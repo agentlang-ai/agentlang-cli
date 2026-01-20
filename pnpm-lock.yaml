@@ -12,11 +12,11 @@ importers:
   .:
     dependencies:
       '@agentlang/agentgen':
-        specifier: ^0.0.4
-        version: 0.0.4
+        specifier: ^0.0.5
+        version: 0.0.5
       '@agentlang/lstudio':
-        specifier: ^0.3.4
-        version: 0.3.4
+        specifier: ^0.4.2
+        version: 0.4.2
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.1.1
         version: 0.1.10(zod@3.25.76)
@@ -129,11 +129,11 @@ importers:
 
 packages:
 
-  '@agentlang/agentgen@0.0.4':
-    resolution: {integrity: sha512-7YVgop4b/e3Y+H+7kTuoxUspH1P7BmefQuPkhX6dGRm8bsuh4G1Ill7FtcdLMwxWyfeXWQpTSoD9cyyE8tS1cA==}
+  '@agentlang/agentgen@0.0.5':
+    resolution: {integrity: sha512-jL8f8mj1AIL0fcRXxikB0jtccJ4tQE0PxktgvLPYKCTKa90/G1I5ss32D9J/dGrwHfx9IkdbPqJDjIINr+q6lQ==}
 
-  '@agentlang/lstudio@0.3.4':
-    resolution: {integrity: sha512-MYt7+U11SBVsZrhiWIJhzOXmJo+czgPC7k+LycZylhM/Hb8zYKEuDUg2Ad+FTaKN9gTiYTpeQyC4mB5uOgqYaQ==}
+  '@agentlang/lstudio@0.4.2':
+    resolution: {integrity: sha512-5tYpa47WRY1i/GKmp+7SlxRPBlIafu0r8cRpJbbldohRCxRcL6T3Hb0ErdpmWQlF6Kg1FWLHk5O8JRFlnjzdFQ==}
 
   '@anthropic-ai/claude-agent-sdk@0.1.10':
     resolution: {integrity: sha512-FDcJ0VI4x5u8/QRNJsYn+UnNqbVZMaf/DTHwJSaq+v3CqW8m+rW529H/DzGraw2F8YT9WqnJ9LCQdtPf9J5BNQ==}
@@ -4059,9 +4059,9 @@ packages:
 
 snapshots:
 
-  '@agentlang/agentgen@0.0.4': {}
+  '@agentlang/agentgen@0.0.5': {}
 
-  '@agentlang/lstudio@0.3.4': {}
+  '@agentlang/lstudio@0.4.2': {}
 
   '@anthropic-ai/claude-agent-sdk@0.1.10(zod@3.25.76)':
     dependencies:
