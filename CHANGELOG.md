@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.0...0.10.1) (2026-01-20)
+
+### Changes
+
+- Fix config reading for agent builder
+  ([1d3ae3b](https://github.com/agentlang-ai/agentlang-cli/commit/1d3ae3b51ce0d525263c0b212168edfe29c86fba)) -
+  @pratik
+- Update agentgen package version and update lockfiles
+  ([8975227](https://github.com/agentlang-ai/agentlang-cli/commit/8975227e8976781ad5836531466dd08fff023295)) -
+  @pratik
+
+---
+
 ## [0.10.0](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.12...0.10.0) (2026-01-19)
 
 ### Changes
