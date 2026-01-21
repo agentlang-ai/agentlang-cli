@@ -3,7 +3,7 @@ import express, { Router, Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync, statSync } from 'fs';
 import { spawn, ChildProcess, execSync } from 'child_process';
 import chalk from 'chalk';
 import ora from 'ora';
@@ -17,7 +17,7 @@ if (existsSync(nodeModulesPath)) {
 }
 
 const modLoader: typeof import('agentlang/out/runtime/loader.js') = await import(`${agPath}/out/runtime/loader.js`);
-const { flushAllAndLoad, load } = modLoader;
+const { flushAllAndLoad } = modLoader;
 const modCli: typeof import('agentlang/out/cli/main.js') = await import(`${agPath}/out/cli/main.js`);
 const { runPreInitTasks } = modCli;
 
@@ -42,8 +42,19 @@ class FileService {
     this.targetDir = targetDir;
   }
 
+  setTargetDir(targetDir: string) {
+    this.targetDir = targetDir;
+  }
+
+  getTargetDir() {
+    return this.targetDir;
+  }
+
   async loadProject(): Promise<void> {
-    await flushAllAndLoad(this.targetDir);
+    // Only load if it looks like a valid project to avoid errors in dashboard mode
+    if (existsSync(path.join(this.targetDir, 'package.json'))) {
+      await flushAllAndLoad(this.targetDir);
+    }
   }
 
   async getFileTree(dirPath: string = this.targetDir, relativePath = '', skipIgnored = false): Promise<FileTreeNode[]> {
@@ -97,10 +108,14 @@ class FileService {
   async getPackageInfo(): Promise<Record<string, unknown>> {
     try {
       const packageJsonPath = path.join(this.targetDir, 'package.json');
+      if (!existsSync(packageJsonPath)) {
+        return {};
+      }
       const content = await fs.readFile(packageJsonPath, 'utf-8');
       return JSON.parse(content) as Record<string, unknown>;
-    } catch (error) {
-      console.warn('Failed to read package.json:', error);
+    } catch {
+      // Silently return empty object if package.json doesn't exist or can't be read
+      // This is expected in Dashboard Mode where root directory may not have package.json
       return {};
     }
   }
@@ -191,7 +206,8 @@ class FileController {
       if (pathParam) {
         // Fetch file tree for a specific path (e.g., node_modules/depName)
         // Skip ignored paths when fetching from node_modules
-        const fullPath = path.join(this.fileService['targetDir'], pathParam);
+        // Use FileService's current targetDir
+        const fullPath = path.join(this.fileService.getTargetDir(), pathParam);
         const skipIgnored = pathParam.startsWith('node_modules');
         const fileTree = await this.fileService.getFileTree(fullPath, '', skipIgnored);
         return res.json(fileTree);
@@ -302,14 +318,129 @@ class FileController {
   };
 }
 
-function createRoutes(targetDir: string): Router {
+interface AppInfo {
+  name: string;
+  path: string;
+}
+
+class StudioServer {
+  private rootDir: string;
+  private fileService: FileService;
+  private currentAppPath: string | null = null;
+  private agentProcess: ChildProcess | null = null;
+
+  constructor(rootDir: string, fileService: FileService) {
+    this.rootDir = rootDir;
+    this.fileService = fileService;
+  }
+
+  discoverApps(): AppInfo[] {
+    const apps: AppInfo[] = [];
+    try {
+      const files = readdirSync(this.rootDir);
+      for (const file of files) {
+        const fullPath = path.join(this.rootDir, file);
+        try {
+          const stat = statSync(fullPath);
+          if (stat.isDirectory() && !ignoredPaths.has(file)) {
+            // Check for package.json or .al files
+            if (existsSync(path.join(fullPath, 'package.json'))) {
+              apps.push({ name: file, path: fullPath });
+              continue;
+            }
+
+            // Check for .al files
+            const subFiles = readdirSync(fullPath);
+            if (subFiles.some(f => f.endsWith('.al'))) {
+              apps.push({ name: file, path: fullPath });
+            }
+          }
+        } catch {
+          // Ignore access errors
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to discover apps:', error);
+    }
+    return apps;
+  }
+
+  async launchApp(appPath: string): Promise<void> {
+    console.log(chalk.blue(`\nLaunching app: ${appPath}`));
+
+    // 1. Stop existing app if any
+    this.stopApp(false); // false = don't reset to root yet, we are switching
+
+    // 2. Set new target
+    this.currentAppPath = appPath;
+    this.fileService.setTargetDir(appPath);
+
+    // 3. Load Project (Runtime)
+    try {
+      await this.fileService.loadProject();
+    } catch (error) {
+      console.error(chalk.red('Failed to load project runtime:'), error);
+      // Continue anyway to allow editing
+    }
+
+    // 4. Start Agent Process
+    try {
+      const cliPath = path.join(__dirname, '..', 'bin', 'cli.js');
+      const spawnArgs = ['run', appPath];
+      const spawnOptions = {
+        stdio: 'pipe' as const,
+        shell: false,
+        cwd: appPath,
+      };
+
+      if (existsSync(cliPath)) {
+        this.agentProcess = spawn('node', [cliPath, ...spawnArgs], spawnOptions);
+      } else {
+        this.agentProcess = spawn('agent', spawnArgs, { ...spawnOptions, shell: true });
+      }
+
+      if (this.agentProcess) {
+        this.agentProcess.stdout?.on('data', (data: Buffer) => {
+          process.stdout.write(chalk.dim(`[Agent ${path.basename(appPath)}] ${data.toString()}`));
+        });
+        this.agentProcess.stderr?.on('data', (data: Buffer) => {
+          process.stderr.write(chalk.dim(`[Agent ${path.basename(appPath)}] ${data.toString()}`));
+        });
+
+        console.log(chalk.green(`✓ Agent process started (PID: ${this.agentProcess.pid})`));
+      }
+    } catch (error) {
+      console.error(chalk.red('Failed to spawn agent process:'), error);
+    }
+  }
+
+  stopApp(resetToRoot = true): void {
+    if (this.agentProcess) {
+      console.log(chalk.yellow('\nStopping active app...'));
+      this.agentProcess.kill();
+      this.agentProcess = null;
+    }
+
+    if (resetToRoot) {
+      this.currentAppPath = null;
+      this.fileService.setTargetDir(this.rootDir);
+      console.log(chalk.green('✓ Returned to Dashboard Mode'));
+    }
+  }
+
+  getCurrentApp() {
+    return this.currentAppPath;
+  }
+}
+
+function createRoutes(targetDir: string, studioServer: StudioServer, fileService: FileService): Router {
   const router = Router();
-  const fileService = new FileService(targetDir);
   const fileController = new FileController(fileService);
 
-  // Initialize project load
+  // Initialize project load if not in dashboard mode initially
   fileService.loadProject().catch(console.error);
 
+  // File Routes
   router.get('/files', fileController.getFiles);
   router.get('/file', fileController.getFile);
   router.get('/stat', fileController.getStat);
@@ -317,6 +448,36 @@ function createRoutes(targetDir: string): Router {
   router.get('/info', fileController.getInfo);
   router.get('/branch', fileController.getBranch);
   router.post('/install', fileController.installDependencies);
+
+  // App Management Routes
+  router.get('/apps', (_req, res) => {
+    const apps = studioServer.discoverApps();
+    res.json(apps);
+  });
+
+  router.post('/app/launch', async (req, res) => {
+    const { path: appPath } = req.body as { path?: string };
+    if (!appPath) {
+      res.status(400).json({ error: 'App path required' });
+      return;
+    }
+
+    try {
+      await studioServer.launchApp(appPath);
+      res.json({ success: true, currentApp: appPath });
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
+  router.post('/app/stop', (_req, res) => {
+    try {
+      studioServer.stopApp(true);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
 
   router.get('/test', (_req, res) => {
     return res.json({ message: 'Hello from agent studio!' });
@@ -357,115 +518,57 @@ function findLStudioPath(projectDir: string): string | null {
 
 export async function startStudio(projectPath = '.', studioPort = 4000, serverOnly = false): Promise<void> {
   const spinner = ora(serverOnly ? 'Starting Studio backend server...' : 'Starting Agent Studio...').start();
-  const targetDir = path.resolve(process.cwd(), projectPath);
+  const rootDir = path.resolve(process.cwd(), projectPath);
 
-  // Validate that the directory contains an agentlang project
-  spinner.text = 'Validating Agentlang project...';
-  try {
-    // Initialize runtime first
-    const preInitSuccess = await runPreInitTasks();
-    if (!preInitSuccess) {
-      spinner.fail(chalk.red('Failed to initialize Agentlang runtime'));
+  // Initialize Services
+  const fileService = new FileService(rootDir);
+  const studioServer = new StudioServer(rootDir, fileService);
+
+  // Check Mode
+  const isDirectApp =
+    existsSync(path.join(rootDir, 'package.json')) ||
+    (await fileService.getFileTree(rootDir)).some(f => f.name.endsWith('.al'));
+
+  if (isDirectApp) {
+    spinner.text = 'Validating Agentlang project...';
+    try {
+      const preInitSuccess = await runPreInitTasks();
+      if (!preInitSuccess) {
+        spinner.fail(chalk.red('Failed to initialize Agentlang runtime'));
+        process.exit(1);
+      }
+
+      await studioServer.launchApp(rootDir);
+      spinner.succeed(chalk.green('Validated Agentlang project'));
+    } catch {
+      spinner.fail(chalk.red('Failed to load Agentlang project'));
+      console.error(chalk.yellow('Ensure the directory contains valid Agentlang files.'));
       process.exit(1);
     }
-
-    // Try to load the project to validate it's a valid agentlang project
-    await load(targetDir, undefined, async () => {
-      // Callback is called when loading completes successfully
-    });
-    spinner.succeed(chalk.green('Validated Agentlang project'));
-  } catch (error) {
-    spinner.fail(chalk.red('Failed to load Agentlang project'));
-    console.error(
-      chalk.red(
-        `The directory "${targetDir}" does not appear to contain a valid Agentlang project.\n` +
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-      ),
-    );
-    console.error(chalk.yellow('\nPlease ensure the directory contains valid Agentlang (.al) files and try again.'));
-    process.exit(1);
+  } else {
+    console.log(chalk.blue('ℹ  Starting in Dashboard Mode (No direct app found)'));
+    console.log(chalk.dim('   Select an app from the UI to launch it.'));
+    spinner.succeed(chalk.green('Studio Dashboard Ready'));
   }
 
   // Find @agentlang/lstudio (skip in server-only mode)
   let lstudioPath: string | null = null;
   if (!serverOnly) {
-    spinner.text = 'Finding @agentlang/lstudio...';
-    lstudioPath = findLStudioPath(targetDir);
+    lstudioPath = findLStudioPath(rootDir);
     if (!lstudioPath) {
-      spinner.fail(chalk.red('Failed to find @agentlang/lstudio'));
-      console.error(
-        chalk.yellow('Please install @agentlang/lstudio in your project:\n  npm install --save-dev @agentlang/lstudio'),
-      );
-      process.exit(1);
+      // Only error if we really can't find it, but in dev mode it might differ.
+      // Warn instead of exit in case we are just using API
+      console.warn(chalk.yellow('Warning: Could not find @agentlang/lstudio UI files.'));
     }
-    spinner.succeed(chalk.green('Found @agentlang/lstudio'));
   }
-
-  spinner.text = 'Starting Agentlang server...';
-
-  // Start agentlang server in background
-  // We'll run it in a separate process to avoid blocking
-  let agentProcess: ChildProcess | null = null;
-  try {
-    // Determine the path to the agent CLI
-    const cliPath = path.join(__dirname, '..', 'bin', 'cli.js');
-
-    // Use spawn to run agent run command
-    if (existsSync(cliPath)) {
-      // Use direct path to cli.js
-      agentProcess = spawn('node', [cliPath, 'run', targetDir], {
-        stdio: 'pipe', // Use pipe instead of inherit to avoid mixing output
-        shell: false,
-        cwd: targetDir,
-      });
-    } else {
-      // Fallback to agent command if available in PATH
-      agentProcess = spawn('agent', ['run', targetDir], {
-        stdio: 'pipe',
-        shell: true,
-        cwd: targetDir,
-      });
-    }
-
-    // Handle process output
-    if (agentProcess.stdout) {
-      agentProcess.stdout.on('data', (data: Buffer) => {
-        process.stdout.write(chalk.dim(`[Agent] ${data.toString()}`));
-      });
-    }
-    if (agentProcess.stderr) {
-      agentProcess.stderr.on('data', (data: Buffer) => {
-        process.stderr.write(chalk.dim(`[Agent] ${data.toString()}`));
-      });
-    }
-
-    agentProcess.on('error', (err: Error) => {
-      spinner.warn(chalk.yellow('Could not start agentlang server in background'));
-      console.warn(chalk.dim(`Error: ${err.message}`));
-      agentProcess = null;
-    });
-
-    agentProcess.on('exit', code => {
-      if (code !== null && code !== 0) {
-        console.warn(chalk.yellow(`Agentlang server exited with code ${code}`));
-      }
-    });
-  } catch (error: unknown) {
-    spinner.warn(chalk.yellow('Could not start agentlang server in background, continuing anyway...'));
-    console.warn(chalk.dim(error instanceof Error ? error.message : String(error)));
-    agentProcess = null;
-  }
-
-  spinner.text = 'Starting Studio server...';
 
   // Create Express app
   const app = express();
-
   app.use(cors());
   app.use(express.json());
 
   // Setup Routes
-  app.use('/', createRoutes(targetDir));
+  app.use('/', createRoutes(rootDir, studioServer, fileService));
 
   // Serve static files from @agentlang/lstudio/dist (skip in server-only mode)
   if (!serverOnly && lstudioPath) {
@@ -481,7 +584,9 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
         req.path.startsWith('/info') ||
         req.path.startsWith('/branch') ||
         req.path.startsWith('/install') ||
-        req.path.startsWith('/env-config.js')
+        req.path.startsWith('/env-config.js') ||
+        req.path.startsWith('/apps') || // new
+        req.path.startsWith('/app/') // new
       ) {
         return next();
       }
@@ -497,54 +602,31 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
   await new Promise<void>(resolve => {
     app.listen(studioPort, () => {
       spinner.succeed(chalk.green(`Studio server is running on http://localhost:${studioPort}`));
-      console.log(chalk.blue(`Serving files from: ${targetDir}`));
       const studioUrl = `http://localhost:${studioPort}`;
 
       if (serverOnly) {
         console.log(chalk.blue(`Backend API available at: ${studioUrl}`));
-        console.log(chalk.dim('Endpoints: /files, /file, /info, /branch, /test'));
-        console.log(chalk.yellow('\nServer-only mode: UI not served.'));
-        console.log(chalk.dim('To connect a UI, set VITE_CLI_URL and run the studio frontend separately.'));
+        console.log(chalk.dim('Endpoints: /files, /file, /info, /branch, /test, /apps, /app/launch'));
       } else {
         console.log(chalk.blue(`Studio UI is available at: ${studioUrl}`));
       }
 
-      if (agentProcess) {
-        console.log(chalk.dim('Agentlang server is running in the background'));
-      }
-
       // Open browser automatically (skip in server-only mode)
       if (!serverOnly) {
-        open(studioUrl)
-          .then(() => {
-            console.log(chalk.green(`✓ Opened browser at ${studioUrl}`));
-          })
-          .catch((error: unknown) => {
-            console.warn(
-              chalk.yellow(
-                `⚠ Could not open browser automatically: ${error instanceof Error ? error.message : String(error)}`,
-              ),
-            );
-            console.log(chalk.dim(`   Please open ${studioUrl} manually in your browser`));
-          });
+        void open(studioUrl).catch(() => {
+          // Ignore errors when opening browser
+        });
       }
 
       // Handle cleanup on exit
-      process.on('SIGINT', () => {
+      const cleanup = () => {
         console.log(chalk.yellow('\nShutting down...'));
-        if (agentProcess) {
-          agentProcess.kill();
-        }
+        studioServer.stopApp(false);
         process.exit(0);
-      });
+      };
 
-      process.on('SIGTERM', () => {
-        console.log(chalk.yellow('\nShutting down...'));
-        if (agentProcess) {
-          agentProcess.kill();
-        }
-        process.exit(0);
-      });
+      process.on('SIGINT', cleanup);
+      process.on('SIGTERM', cleanup);
 
       resolve();
     });
