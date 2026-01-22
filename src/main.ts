@@ -2,6 +2,9 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import { NodeFileSystem } from 'langium/node';
 import * as path from 'node:path';
+import { createInterface } from 'node:readline/promises';
+import os from 'node:os';
+import { simpleGit, type SimpleGit } from 'simple-git';
 import { generateApp } from './app-generator/index.js';
 
 let agPath = 'agentlang';
@@ -48,7 +51,7 @@ import { findSpecFile } from './ui-generator/specFinder.js';
 import { startStudio } from './studio.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
 import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
-import { execSync } from 'child_process';
+//import { execSync } from 'child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
@@ -99,6 +102,138 @@ function isAppInitialized(targetDir: string): boolean {
   const hasPackageJson = existsSync(packageJsonPath);
   const hasAgentlangFiles = findAgentlangFiles(targetDir).length > 0;
   return hasPackageJson || hasAgentlangFiles;
+}
+
+const defaultGitignoreContent = `node_modules/
+dist/
+build/
+tmp/
+temp/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+.DS_Store
+*.sqlite
+*.db
+`;
+
+function writeGitignore(targetDir: string): void {
+  const gitignorePath = join(targetDir, '.gitignore');
+  if (existsSync(gitignorePath)) {
+    return;
+  }
+
+  writeFileSync(gitignorePath, defaultGitignoreContent, 'utf-8');
+  // eslint-disable-next-line no-console
+  console.log(`${chalk.green('✓')} Created ${chalk.cyan('.gitignore')}`);
+}
+
+async function initializeGitRepository(targetDir: string): Promise<SimpleGit | null> {
+  try {
+    const git = simpleGit(targetDir);
+    const isRepo = await git.checkIsRepo();
+
+    if (!isRepo) {
+      await git.init();
+      await git.checkoutLocalBranch('main');
+      // eslint-disable-next-line no-console
+      console.log(`${chalk.green('✓')} Initialized ${chalk.cyan('git')} repository`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(chalk.dim('ℹ️  Git repository already initialized.'));
+    }
+
+    return git;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.log(
+      chalk.yellow(`⚠️  Skipping git initialization: ${error instanceof Error ? error.message : String(error)}`),
+    );
+    return null;
+  }
+}
+
+function getDefaultRepoUrl(appName: string): string {
+  const username = os.userInfo().username || 'username';
+  const repoName = appName.replace(/\s+/g, '');
+  return `https://github.com/${username}/${repoName}.git`;
+}
+
+async function promptAndPushRepository(git: SimpleGit, appName: string): Promise<void> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    // eslint-disable-next-line no-console
+    console.log(chalk.dim('Skipping git push prompt (non-interactive terminal).'));
+    return;
+  }
+
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    const pushAnswer = (await rl.question(chalk.cyan('Would you like to push this repo now? (y/N) ')))
+      .trim()
+      .toLowerCase();
+
+    if (pushAnswer !== 'y' && pushAnswer !== 'yes') {
+      return;
+    }
+
+    const defaultRepoUrl = getDefaultRepoUrl(appName);
+    const repoUrlInputPromise = rl.question(chalk.cyan('Repository URL: '));
+    rl.write(defaultRepoUrl);
+
+    const repoUrlInput = await repoUrlInputPromise;
+    const repoUrl = repoUrlInput.trim() || defaultRepoUrl;
+
+    const remotes = await git.getRemotes(true);
+    const hasOrigin = remotes.some(remote => remote.name === 'origin');
+    if (hasOrigin) {
+      await git.remote(['set-url', 'origin', repoUrl]);
+    } else {
+      await git.addRemote('origin', repoUrl);
+    }
+
+    const currentBranch = (await git.branch()).current || 'main';
+    await git.push(['-u', 'origin', currentBranch]);
+    // eslint-disable-next-line no-console
+    console.log(`${chalk.green('✓')} Pushed to ${chalk.cyan(repoUrl)}`);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.log(
+      chalk.yellow(`⚠️  Skipped pushing repository: ${error instanceof Error ? error.message : String(error)}`),
+    );
+  } finally {
+    rl.close();
+  }
+}
+
+async function setupGitRepository(targetDir: string, appName: string): Promise<void> {
+  writeGitignore(targetDir);
+
+  const git = await initializeGitRepository(targetDir);
+  if (!git) {
+    return;
+  }
+
+  try {
+    await git.add('.');
+    const status = await git.status();
+    if (status.files.length > 0) {
+      await git.commit('chore: initial Agentlang app scaffold');
+      // eslint-disable-next-line no-console
+      console.log(`${chalk.green('✓')} Created initial git commit`);
+    }
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.log(chalk.yellow(`⚠️  Skipping commit: ${error instanceof Error ? error.message : String(error)}`));
+  }
+
+  await promptAndPushRepository(git, appName);
 }
 // Initialize a new Agentlang application
 export const initCommand = async (appName: string, options?: { prompt?: string }): Promise<void> => {
@@ -202,7 +337,7 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     // eslint-disable-next-line no-console
     console.log(chalk.cyan('\n📦 Installing dependencies...'));
     try {
-      execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
+      // execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
       // eslint-disable-next-line no-console
       console.log(`${chalk.green('✓')} Dependencies installed`);
     } catch {
@@ -225,6 +360,8 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     console.log(chalk.dim('  2. Run your app with: ') + chalk.cyan('agent run'));
     // eslint-disable-next-line no-console
     console.log(chalk.dim('  3. Or start Studio UI with: ') + chalk.cyan('agent studio'));
+
+    await setupGitRepository(targetDir, appName);
 
     if (options?.prompt) {
       process.exit(0);
