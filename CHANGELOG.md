@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.10.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.1...0.10.2) (2026-01-22)
+
+### Changes
+
+- agent init: git init and push repo (#60)
+  ([1c3ca86](https://github.com/agentlang-ai/agentlang-cli/commit/1c3ca86ea798917176225ba4d87ead112da99ec6)) -
+  @muazzam0x48
+
+---
+
 ## [0.10.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.0...0.10.1) (2026-01-20)
 
 ### Changes
