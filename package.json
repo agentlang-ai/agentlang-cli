@@ -71,6 +71,7 @@
     "openapi-client-axios": "^7.7.0",
     "openapi-to-postmanv2": "^5.0.1",
     "ora": "^8.0.1",
+    "simple-git": "^3.30.0",
     "tmp": "^0.2.3",
     "yaml": "^2.8.1",
     "zod": "^3.25.0"
