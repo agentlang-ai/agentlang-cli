@@ -1,5 +1,127 @@
 # Changelog
 
+## [0.10.4](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.3...0.10.4) (2026-01-23)
+
+### Changes
+
+- bump agentlang version to 0.9.2
+  ([dc5f127](https://github.com/agentlang-ai/agentlang-cli/commit/dc5f127d3c41fb29e93850f3dba528a262d9d58e)) -
+  @muazzam
+
+---
+
+## [0.10.3](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.2...0.10.3) (2026-01-23)
+
+### Changes
+
+- bump agentlang to 0.9.1 (#62)
+  ([d372d1c](https://github.com/agentlang-ai/agentlang-cli/commit/d372d1c8e7396cd9cbf554fb587b171a15030139)) -
+  @muazzam0x48
+
+---
+
+## [0.10.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.1...0.10.2) (2026-01-22)
+
+### Changes
+
+- agent init: git init and push repo (#60)
+  ([1c3ca86](https://github.com/agentlang-ai/agentlang-cli/commit/1c3ca86ea798917176225ba4d87ead112da99ec6)) -
+  @muazzam0x48
+
+---
+
+## [0.10.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.0...0.10.1) (2026-01-20)
+
+### Changes
+
+- Fix config reading for agent builder
+  ([1d3ae3b](https://github.com/agentlang-ai/agentlang-cli/commit/1d3ae3b51ce0d525263c0b212168edfe29c86fba)) -
+  @pratik
+- Update agentgen package version and update lockfiles
+  ([8975227](https://github.com/agentlang-ai/agentlang-cli/commit/8975227e8976781ad5836531466dd08fff023295)) -
+  @pratik
+
+---
+
+## [0.10.0](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.12...0.10.0) (2026-01-19)
+
+### Changes
+
+- chore: release 0.9.12 (#55)
+  ([635920b](https://github.com/agentlang-ai/agentlang-cli/commit/635920b2ab7f69344a3bb84411b5d480a1e3d566)) -
+  @github-actions[bot]
+
+---
+
+## [0.9.12](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.11...0.9.12) (2026-01-19)
+
+### Changes
+
+- bump agentlang to 0.8.10
+  ([da1a499](https://github.com/agentlang-ai/agentlang-cli/commit/da1a499efbd0c8ca2c5f58ec8d7c3f437e68ba45)) -
+  @muazzam
+
+---
+
+## [0.9.11](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.10...0.9.11) (2026-01-14)
+
+### Changes
+
+- Bump versions of agentlang packages
+  ([a2d6367](https://github.com/agentlang-ai/agentlang-cli/commit/a2d63676b009094b1cd8fb3cb472605f96baa418)) -
+  @pratik
+- Serve environment variables to the browser
+  ([00d39b4](https://github.com/agentlang-ai/agentlang-cli/commit/00d39b4ab0e6d31fdb692d5f87a153ef8268f88f)) -
+  @pratik
+- Update CHANGELOG and package-lock
+  ([3060b95](https://github.com/agentlang-ai/agentlang-cli/commit/3060b950de12d70d4d85758ea9f2bbbc491fb7a6)) -
+  @pratik
+
+---
+
+## [0.9.10](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.9...0.9.10) (2026-01-14)
+
+### Changes
+
+- Update CHANGELOG and bump versions
+  ([3dd65ef](https://github.com/agentlang-ai/agentlang-cli/commit/3dd65efbda7c9f86dc5e028767f7265b413418f2)) -
+  @pratik
+- sync versions
+
+---
+
+## [0.9.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.8...0.9.9) (2026-01-13)
+
+### Changes
+
+- chore: release 0.9.8 (#50)
+  ([8b03e4b](https://github.com/agentlang-ai/agentlang-cli/commit/8b03e4bfeaec2b88002a34df9212898496140a82)) -
+  @github-actions[bot]
+
+- sync versions
+
+---
+
+## [0.9.8](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.7...0.9.8) (2026-01-09)
+
+### Changes
+
+- update agentlang version
+  ([a40d365](https://github.com/agentlang-ai/agentlang-cli/commit/a40d3656a92b2cb1dd39fb3a670fe2633738898e)) -
+  @muazzam
+
+---
+
+## [0.9.7](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.6...0.9.7) (2026-01-08)
+
+### Changes
+
+- Navigate to directory of app and install dependencies too on agent init
+  ([e4cb465](https://github.com/agentlang-ai/agentlang-cli/commit/e4cb46579ae7f1639269290591ce407ec4259c36)) -
+  @mhamzachippa
+
+---
+
 ## [0.9.6](https://github.com/agentlang-ai/agentlang-cli/compare/0.9.5...0.9.6) (2026-01-08)
 
 ### Changes

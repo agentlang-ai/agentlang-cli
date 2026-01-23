@@ -1,6 +1,6 @@
 {
   "name": "@agentlang/cli",
-  "version": "0.9.6-dev",
+  "version": "0.10.4",
   "description": "A command-line interface tool for Agentlang",
   "main": "out/main.js",
   "type": "module",
@@ -50,13 +50,13 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@agentlang/agentgen": "^0.0.2",
-    "@agentlang/lstudio": "^0.3.0",
+    "@agentlang/agentgen": "^0.0.5",
+    "@agentlang/lstudio": "^0.4.2",
     "@anthropic-ai/claude-agent-sdk": "^0.1.1",
     "@anthropic-ai/sdk": "^0.65.0",
     "@asteasolutions/zod-to-openapi": "7.3.4",
     "@redocly/cli": "^2.0.2",
-    "agentlang": "^0.8.4",
+    "agentlang": "^0.9.3",
     "better-sqlite3": "^12.4.1",
     "chalk": "^5.4.1",
     "chokidar": "^4.0.3",
@@ -71,6 +71,7 @@
     "openapi-client-axios": "^7.7.0",
     "openapi-to-postmanv2": "^5.0.1",
     "ora": "^8.0.1",
+    "simple-git": "^3.30.0",
     "tmp": "^0.2.3",
     "yaml": "^2.8.1",
     "zod": "^3.25.0"
