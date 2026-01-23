@@ -5,7 +5,13 @@ import * as path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import os from 'node:os';
 import { simpleGit, type SimpleGit } from 'simple-git';
-import { generateApp } from './app-generator/index.js';
+import { initializeProject } from './utils/projectInitializer.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let agPath = 'agentlang';
 // Check if ./node_modules/agentlang exists in the current directory, add to agPath
@@ -50,12 +56,6 @@ import { loadUISpec } from './ui-generator/specLoader.js';
 import { findSpecFile } from './ui-generator/specFinder.js';
 import { startStudio } from './studio.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
-import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
-//import { execSync } from 'child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Read package.json for version
 let packageVersion = '0.0.0';
@@ -69,91 +69,6 @@ try {
 
 export interface GenerateOptions {
   destination?: string;
-}
-
-// Helper function to recursively find .al files (excluding config.al)
-function findAgentlangFiles(dir: string, fileList: string[] = []): string[] {
-  try {
-    const files = readdirSync(dir);
-    files.forEach(file => {
-      const filePath = join(dir, file);
-      try {
-        const stat = statSync(filePath);
-        if (stat.isDirectory()) {
-          if (file !== 'node_modules' && file !== '.git') {
-            findAgentlangFiles(filePath, fileList);
-          }
-        } else if (file.endsWith('.al') && file !== 'config.al') {
-          fileList.push(filePath);
-        }
-      } catch {
-        // Skip files/directories we can't access
-      }
-    });
-  } catch {
-    // Directory doesn't exist or can't be read
-  }
-  return fileList;
-}
-
-// Check if an Agentlang app is already initialized
-function isAppInitialized(targetDir: string): boolean {
-  const packageJsonPath = join(targetDir, 'package.json');
-  const hasPackageJson = existsSync(packageJsonPath);
-  const hasAgentlangFiles = findAgentlangFiles(targetDir).length > 0;
-  return hasPackageJson || hasAgentlangFiles;
-}
-
-const defaultGitignoreContent = `node_modules/
-dist/
-build/
-tmp/
-temp/
-.env
-.env.local
-.env.*.local
-npm-debug.log*
-pnpm-debug.log*
-yarn-error.log*
-.DS_Store
-*.sqlite
-*.db
-`;
-
-function writeGitignore(targetDir: string): void {
-  const gitignorePath = join(targetDir, '.gitignore');
-  if (existsSync(gitignorePath)) {
-    return;
-  }
-
-  writeFileSync(gitignorePath, defaultGitignoreContent, 'utf-8');
-  // eslint-disable-next-line no-console
-  console.log(`${chalk.green('✓')} Created ${chalk.cyan('.gitignore')}`);
-}
-
-async function initializeGitRepository(targetDir: string): Promise<SimpleGit | null> {
-  try {
-    const git = simpleGit(targetDir);
-    const isRepo = await git.checkIsRepo();
-
-    if (!isRepo) {
-      await git.init();
-      await git.checkoutLocalBranch('main');
-      // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Initialized ${chalk.cyan('git')} repository`);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log(chalk.dim('ℹ️  Git repository already initialized.'));
-    }
-
-    return git;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.log(
-      chalk.yellow(`⚠️  Skipping git initialization: ${error instanceof Error ? error.message : String(error)}`),
-    );
-    return null;
-  }
 }
 
 function getDefaultRepoUrl(appName: string): string {
@@ -212,143 +127,25 @@ async function promptAndPushRepository(git: SimpleGit, appName: string): Promise
   }
 }
 
-async function setupGitRepository(targetDir: string, appName: string): Promise<void> {
-  writeGitignore(targetDir);
-
-  const git = await initializeGitRepository(targetDir);
-  if (!git) {
-    return;
-  }
-
-  try {
-    await git.add('.');
-    const status = await git.status();
-    if (status.files.length > 0) {
-      await git.commit('chore: initial Agentlang app scaffold');
-      // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Created initial git commit`);
-    }
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.yellow(`⚠️  Skipping commit: ${error instanceof Error ? error.message : String(error)}`));
-  }
-
-  await promptAndPushRepository(git, appName);
-}
 // Initialize a new Agentlang application
 export const initCommand = async (appName: string, options?: { prompt?: string }): Promise<void> => {
   const currentDir = process.cwd();
-
   const targetDir = join(currentDir, appName);
 
-  let coreContent: string;
-
-  if (options?.prompt) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('Generating app template via AI...'));
-    coreContent = await generateApp(options.prompt, appName);
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Finished generating app template via AI`);
-  } else {
-    coreContent = `module ${appName}.core`;
-  }
-
-  // Check if already initialized
-  if (isAppInitialized(targetDir)) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.yellow('⚠️  This directory already contains an Agentlang application.'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('   Found existing package.json or .al files.'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('   No initialization needed.'));
-    return;
-  }
-
   try {
-    // eslint-disable-next-line no-console
-    console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(appName)}\n`));
+    await initializeProject(targetDir, appName, {
+      prompt: options?.prompt,
+      silent: false, // Maintain logs for CLI
+    });
 
-    mkdirSync(targetDir);
-
-    // Create package.json
-    const packageJson = {
-      name: appName,
-      version: '0.0.1',
-      dependencies: {
-        agentlang: '*',
-      },
-      devDependencies: {
-        '@agentlang/lstudio': '*',
-      },
-    };
-    writeFileSync(join(targetDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
-
-    // Create config.al with Agentlang syntax for LLM and JSON for the rest
-    const configAlContent = `{
-  "agentlang": {
-    "service": {
-      "port": 8080
-    },
-    "store": {
-      "type": "sqlite",
-      "dbname": "${appName}.db"
-    },
-    "rbac": {
-      "enabled": false
-    },
-    "auth": {
-      "enabled": false
-    },
-    "auditTrail": {
-      "enabled": true
-    },
-    "monitoring": {
-      "enabled": true
-    }
-  },
-  "agentlang.ai": [
-    {
-      "agentlang.ai/LLM": {
-        "name": "llm01",
-        "service": "openai",
-        "config": {
-          "model": "gpt-4o"
-        }
-      }
-    }
-  ]
-}`;
-
-    writeFileSync(join(targetDir, 'config.al'), configAlContent, 'utf-8');
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Created ${chalk.cyan('config.al')}`);
-
-    // Create src directory
-    const srcDir = join(targetDir, 'src');
-    mkdirSync(srcDir, { recursive: true });
-
-    writeFileSync(join(srcDir, 'core.al'), coreContent, 'utf-8');
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
-
-    // Install dependencies
-    // eslint-disable-next-line no-console
-    console.log(chalk.cyan('\n📦 Installing dependencies...'));
+    // Change to the app directory (for CLI context)
     try {
-      // execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
+      process.chdir(targetDir);
       // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Dependencies installed`);
+      console.log(chalk.cyan(`\n📂 Changed directory to ${chalk.bold(appName)}`));
     } catch {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run npm install manually.'));
+      // Ignore if can't change directory
     }
-
-    // Change to the app directory
-    process.chdir(targetDir);
-    // eslint-disable-next-line no-console
-    console.log(chalk.cyan(`\n📂 Changed directory to ${chalk.bold(appName)}`));
 
     // eslint-disable-next-line no-console
     console.log(chalk.green('\n✨ Successfully initialized Agentlang application!'));
@@ -361,7 +158,12 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     // eslint-disable-next-line no-console
     console.log(chalk.dim('  3. Or start Studio UI with: ') + chalk.cyan('agent studio'));
 
-    await setupGitRepository(targetDir, appName);
+    // Handle interactive git push
+    const git = simpleGit(targetDir);
+    // Check if git is initialized (initializeProject does it, but let's be safe)
+    if (await git.checkIsRepo()) {
+      await promptAndPushRepository(git, appName);
+    }
 
     if (options?.prompt) {
       process.exit(0);
