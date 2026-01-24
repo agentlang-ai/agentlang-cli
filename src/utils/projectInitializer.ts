@@ -101,21 +101,29 @@ async function initializeGitRepository(targetDir: string, silent = false): Promi
 }
 
 export async function setupGitRepository(targetDir: string, silent = false): Promise<SimpleGit | null> {
+  console.log(`[ProjectInitializer] Setting up git repository at ${targetDir}`);
   writeGitignore(targetDir, silent);
 
   const git = await initializeGitRepository(targetDir, silent);
   if (!git) {
+    console.log('[ProjectInitializer] Git repository initialization skipped or failed');
     return null;
   }
 
   try {
+    console.log('[ProjectInitializer] Adding files to git repository');
     await git.add('.');
     const status = await git.status();
     if (status.files.length > 0) {
+      console.log(`[ProjectInitializer] Creating initial git commit with ${status.files.length} files`);
       await git.commit('chore: initial Agentlang app scaffold');
       if (!silent) console.log(`${chalk.green('✓')} Created initial git commit`);
+      console.log('[ProjectInitializer] Initial git commit created successfully');
+    } else {
+      console.log('[ProjectInitializer] No files to commit');
     }
   } catch (error) {
+    console.error('[ProjectInitializer] Error setting up git repository:', error);
     if (!silent) {
       console.log(chalk.yellow(`⚠️  Skipping commit: ${error instanceof Error ? error.message : String(error)}`));
     }
@@ -152,10 +160,14 @@ export const initializeProject = async (
   }
 
   try {
+    console.log(`[ProjectInitializer] Starting initialization for "${appName}" at ${targetDir}`);
     if (!silent) console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(appName)}\n`));
 
     if (!existsSync(targetDir)) {
+      console.log(`[ProjectInitializer] Creating directory: ${targetDir}`);
       mkdirSync(targetDir, { recursive: true });
+    } else {
+      console.log(`[ProjectInitializer] Directory already exists: ${targetDir}`);
     }
 
     // Create package.json
@@ -169,6 +181,7 @@ export const initializeProject = async (
         '@agentlang/lstudio': '*',
       },
     };
+    console.log(`[ProjectInitializer] Creating package.json for "${appName}"`);
     writeFileSync(join(targetDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
     if (!silent) console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
 
@@ -208,6 +221,7 @@ export const initializeProject = async (
   ]
 }`;
 
+    console.log(`[ProjectInitializer] Creating config.al for "${appName}"`);
     writeFileSync(join(targetDir, 'config.al'), configAlContent, 'utf-8');
     if (!silent) console.log(`${chalk.green('✓')} Created ${chalk.cyan('config.al')}`);
 
@@ -215,25 +229,46 @@ export const initializeProject = async (
     const srcDir = join(targetDir, 'src');
     mkdirSync(srcDir, { recursive: true });
 
+    console.log(`[ProjectInitializer] Creating src/core.al for "${appName}"`);
     writeFileSync(join(srcDir, 'core.al'), coreContent, 'utf-8');
     if (!silent) console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
 
     // Install dependencies
     if (!skipInstall) {
+      console.log(`[ProjectInitializer] Installing dependencies for "${appName}" (this may take a while)...`);
+      const installStartTime = Date.now();
       if (!silent) console.log(chalk.cyan('\n📦 Installing dependencies...'));
       try {
         execSync('npm install', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
+        const installDuration = Date.now() - installStartTime;
+        console.log(`[ProjectInitializer] Dependencies installed for "${appName}" in ${installDuration}ms`);
         if (!silent) console.log(`${chalk.green('✓')} Dependencies installed`);
-      } catch {
-        if (!silent) console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run npm install manually.'));
+      } catch (error) {
+        const installDuration = Date.now() - installStartTime;
+        console.error(
+          `[ProjectInitializer] Failed to install dependencies for "${appName}" after ${installDuration}ms:`,
+          error,
+        );
+        if (!silent)
+          console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run npm install manually.'));
       }
+    } else {
+      console.log(`[ProjectInitializer] Skipping dependency installation for "${appName}"`);
     }
 
     if (!skipGit) {
+      console.log(`[ProjectInitializer] Initializing git repository for "${appName}"`);
       await setupGitRepository(targetDir, silent);
+      console.log(`[ProjectInitializer] Git repository initialized for "${appName}"`);
+    } else {
+      console.log(`[ProjectInitializer] Skipping git initialization for "${appName}"`);
     }
+
+    console.log(`[ProjectInitializer] Successfully completed initialization for "${appName}"`);
   } catch (error) {
-    if (!silent) console.error(chalk.red('❌ Error initializing application:'), error instanceof Error ? error.message : error);
+    console.error(`[ProjectInitializer] Error initializing application "${appName}":`, error);
+    if (!silent)
+      console.error(chalk.red('❌ Error initializing application:'), error instanceof Error ? error.message : error);
     throw error;
   }
 };

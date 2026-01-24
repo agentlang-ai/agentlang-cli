@@ -36,14 +36,23 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
   router.post('/app/create', async (req, res) => {
     const { name } = req.body as { name?: string };
     if (!name) {
+      console.error('[Studio Server] /app/create: App name is required');
       res.status(400).json({ error: 'App name is required' });
       return;
     }
 
+    console.log(`[Studio Server] /app/create: Starting app creation for "${name}"`);
+    const startTime = Date.now();
+
     try {
       const appInfo = await studioServer.createApp(name);
+      const duration = Date.now() - startTime;
+      console.log(`[Studio Server] /app/create: Successfully created app "${name}" in ${duration}ms`);
+      console.log(`[Studio Server] /app/create: App path: ${appInfo.path}`);
       res.json(appInfo);
     } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[Studio Server] /app/create: Failed to create app "${name}" after ${duration}ms:`, error);
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
@@ -57,7 +66,12 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
       githubToken?: string;
     };
 
+    const importStartTime = Date.now();
+    console.log('[Studio Server] /app/import: Starting app import request');
+    console.log(`[Studio Server] /app/import: Source path: ${sourcePath || 'not provided'}`);
+
     if (!sourcePath) {
+      console.error('[Studio Server] /app/import: Source path is required');
       res.status(400).json({ error: 'Source path is required' });
       return;
     }
@@ -74,16 +88,29 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
         appName = path.basename(sourcePath);
       }
     }
+    console.log(`[Studio Server] /app/import: App name: ${appName}`);
 
     // Build credentials object if provided
     const credentials = githubUsername && githubToken
       ? { username: githubUsername, token: githubToken }
       : undefined;
 
+    if (credentials) {
+      console.log(`[Studio Server] /app/import: Using authenticated access (username: ${credentials.username})`);
+    }
+    if (branch) {
+      console.log(`[Studio Server] /app/import: Branch: ${branch}`);
+    }
+
     try {
       const appInfo = await studioServer.forkApp(sourcePath, appName, { credentials, branch });
+      const importDuration = Date.now() - importStartTime;
+      console.log(`[Studio Server] /app/import: Successfully imported app "${appName}" in ${importDuration}ms`);
+      console.log(`[Studio Server] /app/import: App path: ${appInfo.path}`);
       res.json(appInfo);
     } catch (error) {
+      const importDuration = Date.now() - importStartTime;
+      console.error(`[Studio Server] /app/import: Failed to import app "${appName}" after ${importDuration}ms:`, error);
       res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });

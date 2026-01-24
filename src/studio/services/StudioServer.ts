@@ -76,19 +76,34 @@ export class StudioServer {
 
   async createApp(name: string): Promise<AppInfo> {
     const appPath = path.join(this.workspaceRoot, name);
+    console.log(`[StudioServer] createApp: Creating app "${name}" at path: ${appPath}`);
 
-    // Use the shared initialization logic
-    await initializeProject(appPath, name, {
-      silent: true, // Don't log to server console
-      skipInstall: false, // Install dependencies so the app is ready to run
-      skipGit: false, // Initialize git repo
-    });
+    try {
+      // Use the shared initialization logic
+      console.log(`[StudioServer] createApp: Starting project initialization for "${name}"`);
+      const initStartTime = Date.now();
 
-    return {
-      name,
-      path: appPath,
-      isInitialApp: false,
-    };
+      await initializeProject(appPath, name, {
+        silent: false, // Enable logging for better visibility
+        skipInstall: false, // Install dependencies so the app is ready to run
+        skipGit: false, // Initialize git repo
+      });
+
+      const initDuration = Date.now() - initStartTime;
+      console.log(`[StudioServer] createApp: Project initialization completed for "${name}" in ${initDuration}ms`);
+
+      const appInfo = {
+        name,
+        path: appPath,
+        isInitialApp: false,
+      };
+
+      console.log(`[StudioServer] createApp: Successfully created app "${name}"`);
+      return appInfo;
+    } catch (error) {
+      console.error(`[StudioServer] createApp: Failed to create app "${name}":`, error);
+      throw error;
+    }
   }
 
   async forkApp(
