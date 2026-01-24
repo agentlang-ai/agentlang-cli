@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import { execSync as execSyncChild } from 'child_process';
 import { flushAllAndLoad } from '../runtime.js';
 import { ignoredPaths, FileTreeNode } from '../utils.js';
+import { simpleGit } from 'simple-git';
 
 export class FileService {
   private targetDir: string;
@@ -60,9 +61,41 @@ export class FileService {
     return fs.readFile(fullPath, 'utf-8');
   }
 
-  async writeFile(filePath: string, content: string): Promise<void> {
+  async writeFile(filePath: string, content: string, commitMessage?: string): Promise<void> {
     const fullPath = path.join(this.targetDir, filePath);
     await fs.writeFile(fullPath, content, 'utf-8');
+
+    // Auto-commit the change if a commit message is provided
+    if (commitMessage) {
+      await this.commitFile(filePath, commitMessage);
+    }
+  }
+
+  async commitFile(filePath: string, message: string): Promise<void> {
+    try {
+      // Check if .git directory exists
+      const gitDir = path.join(this.targetDir, '.git');
+      if (!existsSync(gitDir)) {
+        // Not a git repo, skip commit
+        return;
+      }
+
+      const git = simpleGit(this.targetDir);
+      await git.add(filePath);
+
+      // Check if there are staged changes
+      const status = await git.status();
+      if (status.staged.length > 0) {
+        const timestamp = new Date().toLocaleString();
+        await git.commit(`${message} at ${timestamp}`);
+        // eslint-disable-next-line no-console
+        console.log(`✅ Committed: ${message}`);
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to commit changes:', error);
+      // Don't throw - file was saved, commit is optional
+    }
   }
 
   async stat(filePath: string): Promise<{ type: 'file' | 'directory'; size: number; mtime: Date }> {

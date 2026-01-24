@@ -89,12 +89,16 @@ export class FileController {
   };
 
   saveFile = async (req: Request, res: Response) => {
-    const { path: filePath, content } = req.body as { path?: string; content?: string };
+    const { path: filePath, content, commitMessage } = req.body as {
+      path?: string;
+      content?: string;
+      commitMessage?: string;
+    };
     if (!filePath || content === undefined) {
       return res.status(400).json({ error: 'File path and content are required' });
     }
     try {
-      await this.fileService.writeFile(filePath, content);
+      await this.fileService.writeFile(filePath, content, commitMessage);
       return res.json({ message: `Successfully wrote to ${filePath}` });
     } catch {
       return res.status(500).json({ error: `Failed to write to file: ${filePath}` });
