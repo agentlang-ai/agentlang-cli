@@ -56,6 +56,7 @@ import { loadUISpec } from './ui-generator/specLoader.js';
 import { findSpecFile } from './ui-generator/specFinder.js';
 import { startStudio } from './studio.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
+import { forkApp, type ForkOptions } from './utils/forkApp.js';
 
 // Read package.json for version
 let packageVersion = '0.0.0';
@@ -237,6 +238,22 @@ function customHelp(): string {
         ${chalk.cyan('-k, --api-key')} ${chalk.dim('<key>')}      Anthropic API key
         ${chalk.cyan('-p, --push')}               Commit and push to git
         ${chalk.cyan('-m, --message')} ${chalk.dim('<text>')}     Update instructions
+
+    ${chalk.cyan.bold('fork')} ${chalk.dim('<source> [name]')}
+      ${chalk.white('▸')} Fork an app from a local directory or git repository
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-b, --branch')} ${chalk.dim('<branch>')}     Git branch to clone (for git URLs)
+        ${chalk.cyan('-u, --username')} ${chalk.dim('<username>')}  GitHub username for authenticated access
+        ${chalk.cyan('-t, --token')} ${chalk.dim('<token>')}       GitHub token for authenticated access
+
+    ${chalk.cyan.bold('import')} ${chalk.dim('<source> [name]')}
+      ${chalk.white('▸')} Import an app (alias for fork)
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-b, --branch')} ${chalk.dim('<branch>')}     Git branch to clone (for git URLs)
+        ${chalk.cyan('-u, --username')} ${chalk.dim('<username>')}  GitHub username for authenticated access
+        ${chalk.cyan('-t, --token')} ${chalk.dim('<token>')}       GitHub token for authenticated access
 
     ${chalk.cyan.bold('studio')} ${chalk.dim('[path]')}
       ${chalk.white('▸')} Start Agentlang Studio with local server
@@ -478,6 +495,66 @@ ${chalk.bold.white('EXAMPLES')}
     .action(generateUICommand);
 
   program
+    .command('fork')
+    .argument('<source>', 'Source path (local directory or git URL)')
+    .argument('[name]', 'Name for the forked app (defaults to source name)')
+    .option('-b, --branch <branch>', 'Git branch to clone (for git URLs)')
+    .option('-u, --username <username>', 'GitHub username for authenticated access')
+    .option('-t, --token <token>', 'GitHub token for authenticated access')
+    .description('Fork an app from a local directory or git repository')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Forks an Agentlang application from a source path (local directory or git URL)
+  into the current workspace. The forked app will be initialized with dependencies
+  installed and a fresh git repository.
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Fork from local directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork ./my-app MyForkedApp')}
+
+  ${chalk.dim('Fork from GitHub repository')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp')}
+
+  ${chalk.dim('Fork from GitHub with specific branch')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp --branch develop')}
+
+  ${chalk.dim('Fork private repository with authentication')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp -u username -t token')}
+
+  ${chalk.dim('Fork using git@ URL')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork git@github.com:user/repo.git MyApp')}
+`,
+    )
+    .action(forkCommand);
+
+  program
+    .command('import')
+    .argument('<source>', 'Source path (local directory or git URL)')
+    .argument('[name]', 'Name for the imported app (defaults to source name)')
+    .option('-b, --branch <branch>', 'Git branch to clone (for git URLs)')
+    .option('-u, --username <username>', 'GitHub username for authenticated access')
+    .option('-t, --token <token>', 'GitHub token for authenticated access')
+    .description('Import an app from a local directory or git repository (alias for fork)')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Imports an Agentlang application from a source path. This is an alias for the
+  'fork' command and uses the same functionality.
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Import from local directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent import ./my-app MyImportedApp')}
+
+  ${chalk.dim('Import from GitHub repository')}
+  ${chalk.dim('$')} ${chalk.cyan('agent import https://github.com/user/repo.git MyApp')}
+`,
+    )
+    .action(forkCommand);
+
+  program
     .command('studio')
     .argument('[path]', 'Path to Agentlang project directory (default: current directory)', '.')
     .option('-p, --port <port>', 'Port to run Studio server on', '4000')
@@ -680,6 +757,67 @@ export const studioCommand = async (
     await startStudio(projectPath || '.', port, options?.serverOnly);
   } catch (error) {
     console.error(chalk.red(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(1);
+  }
+};
+/* eslint-enable no-console */
+
+/* eslint-disable no-console */
+export const forkCommand = async (
+  source: string,
+  name?: string,
+  options?: { branch?: string; username?: string; token?: string },
+): Promise<void> => {
+  try {
+    console.log(chalk.blue('🚀 Forking Agentlang application...\n'));
+
+    // Determine destination name
+    let appName = name;
+    if (!appName) {
+      if (source.startsWith('http') || source.startsWith('git@')) {
+        // Try to infer from URL
+        const parts = source.split('/');
+        const lastPart = parts[parts.length - 1].replace('.git', '');
+        appName = lastPart;
+      } else {
+        appName = path.basename(path.resolve(source));
+      }
+    }
+
+    // Determine destination path (current directory)
+    const destPath = path.resolve(process.cwd(), appName);
+
+    // Build fork options
+    const forkOptions: ForkOptions = {};
+    if (options?.branch) {
+      forkOptions.branch = options.branch;
+    }
+    if (options?.username && options?.token) {
+      forkOptions.credentials = {
+        username: options.username,
+        token: options.token,
+      };
+    }
+
+    console.log(chalk.cyan(`📦 Source: ${source}`));
+    console.log(chalk.cyan(`📂 Destination: ${destPath}`));
+    if (options?.branch) {
+      console.log(chalk.cyan(`🌿 Branch: ${options.branch}`));
+    }
+    if (forkOptions.credentials) {
+      console.log(chalk.cyan(`🔐 Authenticated as: ${forkOptions.credentials.username}`));
+    }
+
+    // Perform the fork
+    const result = await forkApp(source, destPath, forkOptions);
+
+    console.log(chalk.green(`\n✅ Successfully forked app "${result.name}"!`));
+    console.log(chalk.dim(`\nNext steps:`));
+    console.log(chalk.dim(`  1. Change directory: `) + chalk.cyan(`cd ${result.name}`));
+    console.log(chalk.dim(`  2. Run your app: `) + chalk.cyan('agent run'));
+    console.log(chalk.dim(`  3. Or start Studio: `) + chalk.cyan('agent studio'));
+  } catch (error) {
+    console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
     process.exit(1);
   }
 };
