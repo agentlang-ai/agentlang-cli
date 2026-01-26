@@ -173,7 +173,7 @@ export class FileService {
                 stdio: 'pipe',
               });
             } catch (globalConfigError) {
-              // Ignore config errors, continue with npm install
+              // Ignore config errors, continue with pnpm install
               // eslint-disable-next-line no-console
               console.warn('Failed to set git config:', globalConfigError);
             }
@@ -181,7 +181,7 @@ export class FileService {
         }
       }
 
-      execSyncChild('npm install', {
+      execSyncChild('pnpm install', {
         cwd: this.targetDir,
         stdio: 'pipe',
         env: {

@@ -239,7 +239,7 @@ export const initializeProject = async (
       const installStartTime = Date.now();
       if (!silent) console.log(chalk.cyan('\n📦 Installing dependencies...'));
       try {
-        execSync('npm install', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
+        execSync('pnpm install', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
         const installDuration = Date.now() - installStartTime;
         console.log(`[ProjectInitializer] Dependencies installed for "${appName}" in ${installDuration}ms`);
         if (!silent) console.log(`${chalk.green('✓')} Dependencies installed`);
@@ -250,7 +250,7 @@ export const initializeProject = async (
           error,
         );
         if (!silent)
-          console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run npm install manually.'));
+          console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run pnpm install manually.'));
       }
     } else {
       console.log(`[ProjectInitializer] Skipping dependency installation for "${appName}"`);

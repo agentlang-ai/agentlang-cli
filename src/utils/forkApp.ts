@@ -112,7 +112,7 @@ async function forkGitRepo(
 async function postForkInit(destPath: string, sourcePath: string): Promise<void> {
   // Install dependencies
   try {
-    execSync('npm install', { cwd: destPath, stdio: 'ignore' });
+    execSync('pnpm install', { cwd: destPath, stdio: 'ignore' });
   } catch (e) {
     console.warn('Failed to install dependencies for forked app:', e);
   }

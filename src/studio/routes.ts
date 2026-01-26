@@ -154,6 +154,46 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
     }
   });
 
+  router.post('/app/push', async (req, res) => {
+    const {
+      path: appPath,
+      githubToken,
+      githubUsername,
+      repoName,
+    } = req.body as {
+      path?: string;
+      githubToken?: string;
+      githubUsername?: string;
+      repoName?: string;
+    };
+
+    if (!appPath) {
+      res.status(400).json({ error: 'App path required' });
+      return;
+    }
+
+    if (!githubToken || !githubUsername) {
+      res.status(400).json({ error: 'GitHub token and username are required' });
+      return;
+    }
+
+    if (!repoName) {
+      res.status(400).json({ error: 'Repository name is required' });
+      return;
+    }
+
+    try {
+      const result = await studioServer.pushToGitHub(appPath, {
+        githubToken,
+        githubUsername,
+        repoName,
+      });
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+    }
+  });
+
   router.get('/test', (_req, res) => {
     return res.json({ message: 'Hello from agent studio!' });
   });
