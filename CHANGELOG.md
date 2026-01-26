@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.10.6](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.5...0.10.6) (2026-01-26)
+
+### Changes
+
+- fix init pnpm install
+  ([58f86f0](https://github.com/agentlang-ai/agentlang-cli/commit/58f86f0c232d68f1950afa18f703bd98a9f94b97)) -
+  @muazzam
+- Fixed linting issues
+  ([04ca9fe](https://github.com/agentlang-ai/agentlang-cli/commit/04ca9fe4001409c600d19e654e4c07c6de7ba946)) -
+  @mhamzachippa
+- Fix lint issue
+  ([f217544](https://github.com/agentlang-ai/agentlang-cli/commit/f217544134731fafceb1b7c7b139099b9f2da70c)) -
+  @mhamzachippa
+- chore: release 0.10.5 (#67)
+  ([d0860cb](https://github.com/agentlang-ai/agentlang-cli/commit/d0860cb005714787842871dcc8ce1b2c7f8226af)) -
+  @github-actions[bot]
+- Fallback to the npm i while installing deps via studio rather than pnpm i due
+  to sqlite 3 issue
+  ([9a76a8b](https://github.com/agentlang-ai/agentlang-cli/commit/9a76a8b121d0ed56d08d6bc47a57eaf3c722f60e)) -
+  @mhamzachippa
+- Refactored StudioServer service into multiple services and introduces the
+  functionality of pushing changes to github repo/creating and pushing if the
+  repo does not exist
+  ([064e5c0](https://github.com/agentlang-ai/agentlang-cli/commit/064e5c0d7cc77531233ba48fc531d353e6ea6068)) -
+  @mhamzachippa
+- Implementation of git fork command
+  ([834b47e](https://github.com/agentlang-ai/agentlang-cli/commit/834b47ea3ac784171666cd3b224e09fe1e7eebe9)) -
+  @mhamzachippa
+- Add logs while creating and importing team
+  ([1337275](https://github.com/agentlang-ai/agentlang-cli/commit/133727596a804dd3b0a66e56e4a30728820938f4)) -
+  @mhamzachippa
+- While writing content to file also update the git history
+  ([e6274ba](https://github.com/agentlang-ai/agentlang-cli/commit/e6274baa990d18958e0f83d9482d08e114c55ac1)) -
+  @mhamzachippa
+- Add mechanism for adding, deleting and forking of app
+  ([a373ab3](https://github.com/agentlang-ai/agentlang-cli/commit/a373ab31a040e5c685dddf25fe810f8bd59d8717)) -
+  @mhamzachippa
+- Smart detection of working directory and mechanism for auto detection of agent
+  studio command and enable navigation on the frontend
+  ([100a028](https://github.com/agentlang-ai/agentlang-cli/commit/100a0286339c7c8c7b1e9b66e11ce0d2551f3444)) -
+  @mhamzachippa
+
+---
+
 ## [0.10.5](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.4...0.10.5) (2026-01-26)
 
 ### Changes
