@@ -41,8 +41,7 @@ export class AppRuntimeService {
     const packageJsonPath = path.join(appPath, 'package.json');
 
     if (existsSync(packageJsonPath)) {
-      const needsInstall = !existsSync(nodeModulesPath) ||
-                          !existsSync(path.join(nodeModulesPath, 'sqlite3'));
+      const needsInstall = !existsSync(nodeModulesPath) || !existsSync(path.join(nodeModulesPath, 'sqlite3'));
 
       if (needsInstall) {
         console.log(chalk.yellow('📦 Dependencies not found. Installing...'));

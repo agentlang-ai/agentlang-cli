@@ -58,7 +58,13 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
   });
 
   router.post('/app/import', async (req, res) => {
-    const { path: sourcePath, name: newName, branch, githubUsername, githubToken } = req.body as {
+    const {
+      path: sourcePath,
+      name: newName,
+      branch,
+      githubUsername,
+      githubToken,
+    } = req.body as {
       path?: string;
       name?: string;
       branch?: string;
@@ -91,9 +97,7 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
     console.log(`[Studio Server] /app/import: App name: ${appName}`);
 
     // Build credentials object if provided
-    const credentials = githubUsername && githubToken
-      ? { username: githubUsername, token: githubToken }
-      : undefined;
+    const credentials = githubUsername && githubToken ? { username: githubUsername, token: githubToken } : undefined;
 
     if (credentials) {
       console.log(`[Studio Server] /app/import: Using authenticated access (username: ${credentials.username})`);

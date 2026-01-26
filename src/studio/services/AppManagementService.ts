@@ -42,11 +42,7 @@ export class AppManagementService {
     }
   }
 
-  async forkApp(
-    sourcePath: string,
-    newAppName: string,
-    options?: ForkOptions,
-  ): Promise<AppInfo> {
+  async forkApp(sourcePath: string, newAppName: string, options?: ForkOptions): Promise<AppInfo> {
     const destPath = path.join(this.workspaceRoot, newAppName);
 
     if (existsSync(destPath)) {

@@ -25,11 +25,7 @@ export interface ForkResult {
  * @param options - Optional credentials and branch for git repos
  * @returns Promise resolving to fork result with name and path
  */
-export async function forkApp(
-  sourcePath: string,
-  destPath: string,
-  options?: ForkOptions,
-): Promise<ForkResult> {
+export async function forkApp(sourcePath: string, destPath: string, options?: ForkOptions): Promise<ForkResult> {
   if (existsSync(destPath)) {
     throw new Error(`Destination path "${destPath}" already exists.`);
   }
@@ -66,11 +62,7 @@ export async function forkApp(
 /**
  * Forks a git repository by cloning it to a temp directory, then copying to destination.
  */
-async function forkGitRepo(
-  repoUrl: string,
-  destPath: string,
-  options?: ForkOptions,
-): Promise<ForkResult> {
+async function forkGitRepo(repoUrl: string, destPath: string, options?: ForkOptions): Promise<ForkResult> {
   // 1. Clone to a temporary directory
   const tempDir = path.join(os.tmpdir(), `agentlang-fork-${Date.now()}`);
   await mkdir(tempDir, { recursive: true });

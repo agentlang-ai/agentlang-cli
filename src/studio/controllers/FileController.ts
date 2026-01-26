@@ -89,7 +89,11 @@ export class FileController {
   };
 
   saveFile = async (req: Request, res: Response) => {
-    const { path: filePath, content, commitMessage } = req.body as {
+    const {
+      path: filePath,
+      content,
+      commitMessage,
+    } = req.body as {
       path?: string;
       content?: string;
       commitMessage?: string;

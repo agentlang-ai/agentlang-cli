@@ -64,9 +64,7 @@ export class GitHubService {
           console.log(chalk.green(`[GitHubService] ${progressMessage}`));
         } else {
           const errorData = (await response.json().catch(() => ({}))) as { message?: string };
-          throw new Error(
-            `Failed to check repository: ${response.statusText} - ${errorData.message || ''}`,
-          );
+          throw new Error(`Failed to check repository: ${response.statusText} - ${errorData.message || ''}`);
         }
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -98,7 +96,7 @@ export class GitHubService {
       progressMessage = 'Configuring git remote...';
       console.log(chalk.blue(`[GitHubService] ${progressMessage}`));
       const remotes = await git.getRemotes(true);
-      const originRemote = remotes.find((r) => r.name === 'origin');
+      const originRemote = remotes.find(r => r.name === 'origin');
       const expectedRemoteUrl = `https://${githubUsername}:${githubToken}@github.com/${githubUsername}/${repoName}.git`;
 
       if (originRemote) {
@@ -135,7 +133,7 @@ export class GitHubService {
           // Check if remote branch exists by trying to list remote branches
           try {
             const remotes = await git.getRemotes(true);
-            const hasOrigin = remotes.some((r) => r.name === 'origin');
+            const hasOrigin = remotes.some(r => r.name === 'origin');
 
             if (hasOrigin) {
               // Try to check if remote branch exists
@@ -176,7 +174,9 @@ export class GitHubService {
         // If we can't determine status, try to push anyway
         // This handles edge cases where git status might fail
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.warn(chalk.yellow(`[GitHubService] Could not determine push status, attempting push anyway: ${errorMessage}`));
+        console.warn(
+          chalk.yellow(`[GitHubService] Could not determine push status, attempting push anyway: ${errorMessage}`),
+        );
       }
 
       progressMessage = 'Pushing to GitHub...';

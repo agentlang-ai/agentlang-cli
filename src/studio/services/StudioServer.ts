@@ -40,11 +40,7 @@ export class StudioServer {
     return this.appManagementService.createApp(name);
   }
 
-  async forkApp(
-    sourcePath: string,
-    newAppName: string,
-    options?: ForkOptions,
-  ): Promise<AppInfo> {
+  async forkApp(sourcePath: string, newAppName: string, options?: ForkOptions): Promise<AppInfo> {
     return this.appManagementService.forkApp(sourcePath, newAppName, options);
   }
 
