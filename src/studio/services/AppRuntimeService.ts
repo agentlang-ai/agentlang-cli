@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import path from 'path';
 import { existsSync } from 'fs';
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import chalk from 'chalk';
 import { FileService } from './FileService.js';
 import { runPreInitTasks } from '../runtime.js';
@@ -36,7 +36,35 @@ export class AppRuntimeService {
       console.warn(chalk.yellow('Warning: Runtime initialization error:'), error);
     }
 
-    // 4. Load Project (Runtime)
+    // 4. Check and install dependencies if needed
+    const nodeModulesPath = path.join(appPath, 'node_modules');
+    const packageJsonPath = path.join(appPath, 'package.json');
+
+    if (existsSync(packageJsonPath)) {
+      const needsInstall = !existsSync(nodeModulesPath) ||
+                          !existsSync(path.join(nodeModulesPath, 'sqlite3'));
+
+      if (needsInstall) {
+        console.log(chalk.yellow('📦 Dependencies not found. Installing...'));
+        try {
+          execSync('npm install', {
+            cwd: appPath,
+            stdio: 'inherit',
+            env: {
+              ...process.env,
+              GIT_ASKPASS: 'echo',
+              GIT_TERMINAL_PROMPT: '0',
+            },
+          });
+          console.log(chalk.green('✓ Dependencies installed'));
+        } catch (error) {
+          console.error(chalk.red('Failed to install dependencies:'), error);
+          throw new Error('Failed to install dependencies. Please run "npm install" manually in the app directory.');
+        }
+      }
+    }
+
+    // 5. Load Project (Runtime)
     try {
       await this.fileService.loadProject();
     } catch (error) {
@@ -44,7 +72,7 @@ export class AppRuntimeService {
       // Continue anyway to allow editing
     }
 
-    // 5. Start Agent Process
+    // 6. Start Agent Process
     try {
       // Need to find the CLI path. We are in src/studio/services
       // CLI is likely at ../../../bin/cli.js relative to this file?
