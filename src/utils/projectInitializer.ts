@@ -239,7 +239,11 @@ export const initializeProject = async (
       const installStartTime = Date.now();
       if (!silent) console.log(chalk.cyan('\n📦 Installing dependencies...'));
       try {
-        execSync('npm', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
+        execSync('pnpm install', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
+        // After main deps, install sqlite3 and rebuild it.
+        execSync('pnpm install sqlite3', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
+        execSync('npm rebuild sqlite3', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
+
         const installDuration = Date.now() - installStartTime;
         console.log(`[ProjectInitializer] Dependencies installed for "${appName}" in ${installDuration}ms`);
         if (!silent) console.log(`${chalk.green('✓')} Dependencies installed`);
