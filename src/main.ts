@@ -5,7 +5,13 @@ import * as path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import os from 'node:os';
 import { simpleGit, type SimpleGit } from 'simple-git';
-import { generateApp } from './app-generator/index.js';
+import { initializeProject } from './utils/projectInitializer.js';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 let agPath = 'agentlang';
 // Check if ./node_modules/agentlang exists in the current directory, add to agPath
@@ -50,12 +56,7 @@ import { loadUISpec } from './ui-generator/specLoader.js';
 import { findSpecFile } from './ui-generator/specFinder.js';
 import { startStudio } from './studio.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
-import { readFileSync, existsSync, readdirSync, statSync, writeFileSync, mkdirSync } from 'node:fs';
-//import { execSync } from 'child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { forkApp, type ForkOptions } from './utils/forkApp.js';
 
 // Read package.json for version
 let packageVersion = '0.0.0';
@@ -69,91 +70,6 @@ try {
 
 export interface GenerateOptions {
   destination?: string;
-}
-
-// Helper function to recursively find .al files (excluding config.al)
-function findAgentlangFiles(dir: string, fileList: string[] = []): string[] {
-  try {
-    const files = readdirSync(dir);
-    files.forEach(file => {
-      const filePath = join(dir, file);
-      try {
-        const stat = statSync(filePath);
-        if (stat.isDirectory()) {
-          if (file !== 'node_modules' && file !== '.git') {
-            findAgentlangFiles(filePath, fileList);
-          }
-        } else if (file.endsWith('.al') && file !== 'config.al') {
-          fileList.push(filePath);
-        }
-      } catch {
-        // Skip files/directories we can't access
-      }
-    });
-  } catch {
-    // Directory doesn't exist or can't be read
-  }
-  return fileList;
-}
-
-// Check if an Agentlang app is already initialized
-function isAppInitialized(targetDir: string): boolean {
-  const packageJsonPath = join(targetDir, 'package.json');
-  const hasPackageJson = existsSync(packageJsonPath);
-  const hasAgentlangFiles = findAgentlangFiles(targetDir).length > 0;
-  return hasPackageJson || hasAgentlangFiles;
-}
-
-const defaultGitignoreContent = `node_modules/
-dist/
-build/
-tmp/
-temp/
-.env
-.env.local
-.env.*.local
-npm-debug.log*
-pnpm-debug.log*
-yarn-error.log*
-.DS_Store
-*.sqlite
-*.db
-`;
-
-function writeGitignore(targetDir: string): void {
-  const gitignorePath = join(targetDir, '.gitignore');
-  if (existsSync(gitignorePath)) {
-    return;
-  }
-
-  writeFileSync(gitignorePath, defaultGitignoreContent, 'utf-8');
-  // eslint-disable-next-line no-console
-  console.log(`${chalk.green('✓')} Created ${chalk.cyan('.gitignore')}`);
-}
-
-async function initializeGitRepository(targetDir: string): Promise<SimpleGit | null> {
-  try {
-    const git = simpleGit(targetDir);
-    const isRepo = await git.checkIsRepo();
-
-    if (!isRepo) {
-      await git.init();
-      await git.checkoutLocalBranch('main');
-      // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Initialized ${chalk.cyan('git')} repository`);
-    } else {
-      // eslint-disable-next-line no-console
-      console.log(chalk.dim('ℹ️  Git repository already initialized.'));
-    }
-
-    return git;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.log(
-      chalk.yellow(`⚠️  Skipping git initialization: ${error instanceof Error ? error.message : String(error)}`),
-    );
-    return null;
-  }
 }
 
 function getDefaultRepoUrl(appName: string): string {
@@ -212,143 +128,25 @@ async function promptAndPushRepository(git: SimpleGit, appName: string): Promise
   }
 }
 
-async function setupGitRepository(targetDir: string, appName: string): Promise<void> {
-  writeGitignore(targetDir);
-
-  const git = await initializeGitRepository(targetDir);
-  if (!git) {
-    return;
-  }
-
-  try {
-    await git.add('.');
-    const status = await git.status();
-    if (status.files.length > 0) {
-      await git.commit('chore: initial Agentlang app scaffold');
-      // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Created initial git commit`);
-    }
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.yellow(`⚠️  Skipping commit: ${error instanceof Error ? error.message : String(error)}`));
-  }
-
-  await promptAndPushRepository(git, appName);
-}
 // Initialize a new Agentlang application
 export const initCommand = async (appName: string, options?: { prompt?: string }): Promise<void> => {
   const currentDir = process.cwd();
-
   const targetDir = join(currentDir, appName);
 
-  let coreContent: string;
-
-  if (options?.prompt) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('Generating app template via AI...'));
-    coreContent = await generateApp(options.prompt, appName);
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Finished generating app template via AI`);
-  } else {
-    coreContent = `module ${appName}.core`;
-  }
-
-  // Check if already initialized
-  if (isAppInitialized(targetDir)) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.yellow('⚠️  This directory already contains an Agentlang application.'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('   Found existing package.json or .al files.'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('   No initialization needed.'));
-    return;
-  }
-
   try {
-    // eslint-disable-next-line no-console
-    console.log(chalk.cyan(`🚀 Initializing Agentlang application: ${chalk.bold(appName)}\n`));
+    await initializeProject(targetDir, appName, {
+      prompt: options?.prompt,
+      silent: false, // Maintain logs for CLI
+    });
 
-    mkdirSync(targetDir);
-
-    // Create package.json
-    const packageJson = {
-      name: appName,
-      version: '0.0.1',
-      dependencies: {
-        agentlang: '*',
-      },
-      devDependencies: {
-        '@agentlang/lstudio': '*',
-      },
-    };
-    writeFileSync(join(targetDir, 'package.json'), JSON.stringify(packageJson, null, 2), 'utf-8');
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Created ${chalk.cyan('package.json')}`);
-
-    // Create config.al with Agentlang syntax for LLM and JSON for the rest
-    const configAlContent = `{
-  "agentlang": {
-    "service": {
-      "port": 8080
-    },
-    "store": {
-      "type": "sqlite",
-      "dbname": "${appName}.db"
-    },
-    "rbac": {
-      "enabled": false
-    },
-    "auth": {
-      "enabled": false
-    },
-    "auditTrail": {
-      "enabled": true
-    },
-    "monitoring": {
-      "enabled": true
-    }
-  },
-  "agentlang.ai": [
-    {
-      "agentlang.ai/LLM": {
-        "name": "llm01",
-        "service": "openai",
-        "config": {
-          "model": "gpt-4o"
-        }
-      }
-    }
-  ]
-}`;
-
-    writeFileSync(join(targetDir, 'config.al'), configAlContent, 'utf-8');
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Created ${chalk.cyan('config.al')}`);
-
-    // Create src directory
-    const srcDir = join(targetDir, 'src');
-    mkdirSync(srcDir, { recursive: true });
-
-    writeFileSync(join(srcDir, 'core.al'), coreContent, 'utf-8');
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Created ${chalk.cyan('src/core.al')}`);
-
-    // Install dependencies
-    // eslint-disable-next-line no-console
-    console.log(chalk.cyan('\n📦 Installing dependencies...'));
+    // Change to the app directory (for CLI context)
     try {
-      // execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
+      process.chdir(targetDir);
       // eslint-disable-next-line no-console
-      console.log(`${chalk.green('✓')} Dependencies installed`);
+      console.log(chalk.cyan(`\n📂 Changed directory to ${chalk.bold(appName)}`));
     } catch {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run npm install manually.'));
+      // Ignore if can't change directory
     }
-
-    // Change to the app directory
-    process.chdir(targetDir);
-    // eslint-disable-next-line no-console
-    console.log(chalk.cyan(`\n📂 Changed directory to ${chalk.bold(appName)}`));
 
     // eslint-disable-next-line no-console
     console.log(chalk.green('\n✨ Successfully initialized Agentlang application!'));
@@ -361,7 +159,12 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     // eslint-disable-next-line no-console
     console.log(chalk.dim('  3. Or start Studio UI with: ') + chalk.cyan('agent studio'));
 
-    await setupGitRepository(targetDir, appName);
+    // Handle interactive git push
+    const git = simpleGit(targetDir);
+    // Check if git is initialized (initializeProject does it, but let's be safe)
+    if (await git.checkIsRepo()) {
+      await promptAndPushRepository(git, appName);
+    }
 
     if (options?.prompt) {
       process.exit(0);
@@ -435,6 +238,22 @@ function customHelp(): string {
         ${chalk.cyan('-k, --api-key')} ${chalk.dim('<key>')}      Anthropic API key
         ${chalk.cyan('-p, --push')}               Commit and push to git
         ${chalk.cyan('-m, --message')} ${chalk.dim('<text>')}     Update instructions
+
+    ${chalk.cyan.bold('fork')} ${chalk.dim('<source> [name]')}
+      ${chalk.white('▸')} Fork an app from a local directory or git repository
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-b, --branch')} ${chalk.dim('<branch>')}     Git branch to clone (for git URLs)
+        ${chalk.cyan('-u, --username')} ${chalk.dim('<username>')}  GitHub username for authenticated access
+        ${chalk.cyan('-t, --token')} ${chalk.dim('<token>')}       GitHub token for authenticated access
+
+    ${chalk.cyan.bold('import')} ${chalk.dim('<source> [name]')}
+      ${chalk.white('▸')} Import an app (alias for fork)
+      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
+      ${chalk.yellow('OPTIONS')}
+        ${chalk.cyan('-b, --branch')} ${chalk.dim('<branch>')}     Git branch to clone (for git URLs)
+        ${chalk.cyan('-u, --username')} ${chalk.dim('<username>')}  GitHub username for authenticated access
+        ${chalk.cyan('-t, --token')} ${chalk.dim('<token>')}       GitHub token for authenticated access
 
     ${chalk.cyan.bold('studio')} ${chalk.dim('[path]')}
       ${chalk.white('▸')} Start Agentlang Studio with local server
@@ -676,6 +495,66 @@ ${chalk.bold.white('EXAMPLES')}
     .action(generateUICommand);
 
   program
+    .command('fork')
+    .argument('<source>', 'Source path (local directory or git URL)')
+    .argument('[name]', 'Name for the forked app (defaults to source name)')
+    .option('-b, --branch <branch>', 'Git branch to clone (for git URLs)')
+    .option('-u, --username <username>', 'GitHub username for authenticated access')
+    .option('-t, --token <token>', 'GitHub token for authenticated access')
+    .description('Fork an app from a local directory or git repository')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Forks an Agentlang application from a source path (local directory or git URL)
+  into the current workspace. The forked app will be initialized with dependencies
+  installed and a fresh git repository.
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Fork from local directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork ./my-app MyForkedApp')}
+
+  ${chalk.dim('Fork from GitHub repository')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp')}
+
+  ${chalk.dim('Fork from GitHub with specific branch')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp --branch develop')}
+
+  ${chalk.dim('Fork private repository with authentication')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp -u username -t token')}
+
+  ${chalk.dim('Fork using git@ URL')}
+  ${chalk.dim('$')} ${chalk.cyan('agent fork git@github.com:user/repo.git MyApp')}
+`,
+    )
+    .action(forkCommand);
+
+  program
+    .command('import')
+    .argument('<source>', 'Source path (local directory or git URL)')
+    .argument('[name]', 'Name for the imported app (defaults to source name)')
+    .option('-b, --branch <branch>', 'Git branch to clone (for git URLs)')
+    .option('-u, --username <username>', 'GitHub username for authenticated access')
+    .option('-t, --token <token>', 'GitHub token for authenticated access')
+    .description('Import an app from a local directory or git repository (alias for fork)')
+    .addHelpText(
+      'after',
+      `
+${chalk.bold.white('DESCRIPTION')}
+  Imports an Agentlang application from a source path. This is an alias for the
+  'fork' command and uses the same functionality.
+
+${chalk.bold.white('EXAMPLES')}
+  ${chalk.dim('Import from local directory')}
+  ${chalk.dim('$')} ${chalk.cyan('agent import ./my-app MyImportedApp')}
+
+  ${chalk.dim('Import from GitHub repository')}
+  ${chalk.dim('$')} ${chalk.cyan('agent import https://github.com/user/repo.git MyApp')}
+`,
+    )
+    .action(forkCommand);
+
+  program
     .command('studio')
     .argument('[path]', 'Path to Agentlang project directory (default: current directory)', '.')
     .option('-p, --port <port>', 'Port to run Studio server on', '4000')
@@ -878,6 +757,67 @@ export const studioCommand = async (
     await startStudio(projectPath || '.', port, options?.serverOnly);
   } catch (error) {
     console.error(chalk.red(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(1);
+  }
+};
+/* eslint-enable no-console */
+
+/* eslint-disable no-console */
+export const forkCommand = async (
+  source: string,
+  name?: string,
+  options?: { branch?: string; username?: string; token?: string },
+): Promise<void> => {
+  try {
+    console.log(chalk.blue('🚀 Forking Agentlang application...\n'));
+
+    // Determine destination name
+    let appName = name;
+    if (!appName) {
+      if (source.startsWith('http') || source.startsWith('git@')) {
+        // Try to infer from URL
+        const parts = source.split('/');
+        const lastPart = parts[parts.length - 1].replace('.git', '');
+        appName = lastPart;
+      } else {
+        appName = path.basename(path.resolve(source));
+      }
+    }
+
+    // Determine destination path (current directory)
+    const destPath = path.resolve(process.cwd(), appName);
+
+    // Build fork options
+    const forkOptions: ForkOptions = {};
+    if (options?.branch) {
+      forkOptions.branch = options.branch;
+    }
+    if (options?.username && options?.token) {
+      forkOptions.credentials = {
+        username: options.username,
+        token: options.token,
+      };
+    }
+
+    console.log(chalk.cyan(`📦 Source: ${source}`));
+    console.log(chalk.cyan(`📂 Destination: ${destPath}`));
+    if (options?.branch) {
+      console.log(chalk.cyan(`🌿 Branch: ${options.branch}`));
+    }
+    if (forkOptions.credentials) {
+      console.log(chalk.cyan(`🔐 Authenticated as: ${forkOptions.credentials.username}`));
+    }
+
+    // Perform the fork
+    const result = await forkApp(source, destPath, forkOptions);
+
+    console.log(chalk.green(`\n✅ Successfully forked app "${result.name}"!`));
+    console.log(chalk.dim('\nNext steps:'));
+    console.log(chalk.dim('  1. Change directory: ') + chalk.cyan(`cd ${result.name}`));
+    console.log(chalk.dim('  2. Run your app: ') + chalk.cyan('agent run'));
+    console.log(chalk.dim('  3. Or start Studio: ') + chalk.cyan('agent studio'));
+  } catch (error) {
+    console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
     process.exit(1);
   }
 };
