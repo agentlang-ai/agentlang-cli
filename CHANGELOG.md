@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.8](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.7...0.10.8) (2026-01-26)
+
+### Changes
+
+- Generate lock file
+  ([d768192](https://github.com/agentlang-ai/agentlang-cli/commit/d7681922e6c65a895023ae4106289187cf32b4c0)) -
+  @mhamzachippa
+- Bump lstudio version to 0.4.7
+  ([217435a](https://github.com/agentlang-ai/agentlang-cli/commit/217435adb0db413ddeb2e1b9821cf6dd20d1e1f1)) -
+  @mhamzachippa
+- Bump lstudio version
+  ([a5c4000](https://github.com/agentlang-ai/agentlang-cli/commit/a5c40004fd543ae415696b0211e1b1c9ef681b86)) -
+  @mhamzachippa
+- init: use pnpm only when available (#71)
+  ([f87ef57](https://github.com/agentlang-ai/agentlang-cli/commit/f87ef57e80cf4e4db3980864c482ea66e01db9f5)) -
+  @muazzam0x48
+
+---
+
 ## [0.10.7](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.6...0.10.7) (2026-01-26)
 
 ### Changes
