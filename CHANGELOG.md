@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.7](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.6...0.10.7) (2026-01-26)
+
+### Changes
+
+- fix studioserver formatting
+  ([20f06c7](https://github.com/agentlang-ai/agentlang-cli/commit/20f06c732242ab9884038d70b6c012f09436f9ca)) -
+  @muazzam
+- chore: release 0.10.6 (#69)
+  ([5968b90](https://github.com/agentlang-ai/agentlang-cli/commit/5968b9062ccffb5a27ac0471aeddcf9627663890)) -
+  @github-actions[bot]
+
+---
+
 ## [0.10.6](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.5...0.10.6) (2026-01-26)
 
 ### Changes
