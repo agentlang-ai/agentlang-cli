@@ -812,10 +812,10 @@ export const forkCommand = async (
     const result = await forkApp(source, destPath, forkOptions);
 
     console.log(chalk.green(`\n✅ Successfully forked app "${result.name}"!`));
-    console.log(chalk.dim(`\nNext steps:`));
-    console.log(chalk.dim(`  1. Change directory: `) + chalk.cyan(`cd ${result.name}`));
-    console.log(chalk.dim(`  2. Run your app: `) + chalk.cyan('agent run'));
-    console.log(chalk.dim(`  3. Or start Studio: `) + chalk.cyan('agent studio'));
+    console.log(chalk.dim('\nNext steps:'));
+    console.log(chalk.dim('  1. Change directory: ') + chalk.cyan(`cd ${result.name}`));
+    console.log(chalk.dim('  2. Run your app: ') + chalk.cyan('agent run'));
+    console.log(chalk.dim('  3. Or start Studio: ') + chalk.cyan('agent studio'));
   } catch (error) {
     console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
     process.exit(1);
