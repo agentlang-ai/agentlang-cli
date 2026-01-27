@@ -101,21 +101,7 @@ async function initializeGitRepository(targetDir: string, silent = false): Promi
 }
 
 function installDependencies(targetDir: string, silent = false) {
-  let hasPnpm = true;
-  try {
-    execSync('pnpm -v', { stdio: 'ignore' });
-  } catch {
-    hasPnpm = false;
-  }
-
-  if (hasPnpm) {
-    execSync('pnpm install', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
-    // After main deps, install sqlite3 and rebuild it.
-    execSync('pnpm install sqlite3', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
-    execSync('npm rebuild sqlite3', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
-  } else {
-    execSync('npm install', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
-  }
+  execSync('npm install', { cwd: targetDir, stdio: silent ? 'ignore' : 'inherit' });
 }
 
 export async function setupGitRepository(targetDir: string, silent = false): Promise<SimpleGit | null> {
@@ -265,7 +251,7 @@ export const initializeProject = async (
           error,
         );
         if (!silent)
-          console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run pnpm install manually.'));
+          console.log(chalk.yellow('⚠️  Failed to install dependencies. You may need to run npm install manually.'));
       }
       const installDuration = Date.now() - installStartTime;
       console.log(`[ProjectInitializer] Dependencies installed for "${appName}" in ${installDuration}ms`);
