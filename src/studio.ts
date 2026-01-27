@@ -67,7 +67,7 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
     app.use(express.static(lstudioPath));
 
     // Handle client-side routing
-    app.get('*', (req, res, next) => {
+    app.get('/*', (req, res, next) => {
       // Skip if handled by API routes
       if (
         req.path.startsWith('/files') ||
