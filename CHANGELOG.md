@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.3](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.2...0.11.3) (2026-01-27)
+
+### Changes
+
+- Fix route
+  ([6b30c80](https://github.com/agentlang-ai/agentlang-cli/commit/6b30c80c72a3fae6539c9d9461af78cf064125a9)) -
+  @mhamzachippa
+
+---
+
 ## [0.11.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.1...0.11.2) (2026-01-27)
 
 ### Changes
