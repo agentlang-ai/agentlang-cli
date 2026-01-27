@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.0...0.11.1) (2026-01-27)
+
+### Changes
+
+- Bump lstudio version
+  ([e18df26](https://github.com/agentlang-ai/agentlang-cli/commit/e18df26c1af49ec3cea7a096f7506a869efbef29)) -
+  @mhamzachippa
+- Fixed api routes for agent studio and use npm i when installing deps on
+  initalizing app using agent init
+  ([4b911c5](https://github.com/agentlang-ai/agentlang-cli/commit/4b911c5cf1898bcb28bfe1941601b06afa137779)) -
+  @mhamzachippa
+
+---
+
 ## [0.11.0](https://github.com/agentlang-ai/agentlang-cli/compare/0.10.8...0.11.0) (2026-01-27)
 
 ### Changes
