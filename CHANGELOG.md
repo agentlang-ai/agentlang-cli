@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.1...0.11.2) (2026-01-27)
+
+### Changes
+
+- Fix express route
+  ([7423911](https://github.com/agentlang-ai/agentlang-cli/commit/74239110c51fbd8755c7a016069a9963278904ff)) -
+  @mhamzachippa
+
+---
+
 ## [0.11.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.0...0.11.1) (2026-01-27)
 
 ### Changes
