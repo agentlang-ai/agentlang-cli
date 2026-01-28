@@ -9,3 +9,4 @@ tsconfig.src.tsbuildinfo
 .DS_Store
 db
 .env
+.idea
