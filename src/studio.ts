@@ -80,7 +80,8 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
         req.path.startsWith('/env-config.js') ||
         req.path.startsWith('/workspace') || // workspace info
         req.path.startsWith('/apps') ||
-        req.path.startsWith('/app/')
+        req.path.startsWith('/app/') ||
+        req.path.startsWith('/documents') // document upload routes
       ) {
         return next();
       }

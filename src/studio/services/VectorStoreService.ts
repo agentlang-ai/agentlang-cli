@@ -158,7 +158,7 @@ export class VectorStoreService {
           throw new Error(`Ollama API error: ${response.statusText}`);
         }
 
-        const data = await response.json() as { embedding: number[] };
+        const data = (await response.json()) as { embedding: number[] };
         embeddings.push(data.embedding);
       }
 
