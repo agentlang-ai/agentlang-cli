@@ -87,7 +87,23 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
 
       // Check if this is a request for a static file with a known extension
       // express.static would have already served it if it existed
-      const staticFileExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.json', '.map', '.html'];
+      const staticFileExtensions = [
+        '.js',
+        '.css',
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.gif',
+        '.svg',
+        '.ico',
+        '.woff',
+        '.woff2',
+        '.ttf',
+        '.eot',
+        '.json',
+        '.map',
+        '.html',
+      ];
       const hasStaticExtension = staticFileExtensions.some(ext => req.path.toLowerCase().endsWith(ext));
 
       // If it's a static file request that express.static didn't handle, return 404
