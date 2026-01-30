@@ -64,11 +64,12 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
 
   // Serve static files from @agentlang/lstudio/dist (skip in server-only mode)
   if (!serverOnly && lstudioPath) {
-    app.use(express.static(lstudioPath));
+    // Serve static files with fallthrough disabled - if file not found, continue to next middleware
+    app.use(express.static(lstudioPath, { fallthrough: true }));
 
-    // Handle client-side routing
-    app.get('', (req, res, next) => {
-      // Skip if handled by API routes
+    // Handle client-side routing - serve index.html for all non-API, non-static-file routes
+    app.use((req, res, next) => {
+      // Skip if this is an API route (already handled by createRoutes)
       if (
         req.path.startsWith('/files') ||
         req.path.startsWith('/file') ||
@@ -83,10 +84,39 @@ export async function startStudio(projectPath = '.', studioPort = 4000, serverOn
       ) {
         return next();
       }
-      if (lstudioPath) {
+
+      // Check if this is a request for a static file with a known extension
+      // express.static would have already served it if it existed
+      const staticFileExtensions = [
+        '.js',
+        '.css',
+        '.png',
+        '.jpg',
+        '.jpeg',
+        '.gif',
+        '.svg',
+        '.ico',
+        '.woff',
+        '.woff2',
+        '.ttf',
+        '.eot',
+        '.json',
+        '.map',
+        '.html',
+      ];
+      const hasStaticExtension = staticFileExtensions.some(ext => req.path.toLowerCase().endsWith(ext));
+
+      // If it's a static file request that express.static didn't handle, return 404
+      if (hasStaticExtension) {
+        return res.status(404).send('File not found');
+      }
+
+      // For all other GET requests, serve index.html
+      // (client-side routing will handle the rest, including routes with dots in them)
+      if (req.method === 'GET' && lstudioPath) {
         res.sendFile(path.join(lstudioPath, 'index.html'));
       } else {
-        res.status(404).json({ error: 'Studio UI not found' });
+        next();
       }
     });
   }
