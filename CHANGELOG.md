@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.4](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.3...0.11.4) (2026-01-30)
+
+### Changes
+
+---
+
 ## [0.11.3](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.2...0.11.3) (2026-01-27)
 
 ### Changes
