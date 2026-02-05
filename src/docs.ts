@@ -46,7 +46,7 @@ function getOpenApiDocumentation(registry: OpenAPIRegistry, name: string, versio
 
 function writeDocumentation(registry: OpenAPIRegistry, docDir: string, name: string, version: string) {
   const docs = getOpenApiDocumentation(registry, name, version);
-  const fileContent = yaml.stringify(docs);
+  const fileContent = yaml.stringify(docs, { lineWidth: -1 });
   void fs.mkdir(path.join(docDir, 'docs'), { recursive: true });
   void fs.writeFile(`${docDir}/docs/openapi.yml`, fileContent, {
     encoding: 'utf-8',
