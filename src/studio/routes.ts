@@ -213,14 +213,12 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
     return res.json({ message: 'Hello from agent studio!' });
   });
 
-  // Document Upload Routes (for lstudio mode)
   router.post('/documents/upload', upload.single('file'), documentController.upload);
   router.get('/documents', documentController.list);
   router.get('/documents/stats', documentController.stats);
   router.get('/documents/:id', documentController.get);
   router.get('/documents/:id/download', documentController.download);
   router.delete('/documents/:id', documentController.delete);
-  router.post('/documents/search', documentController.search);
 
   return router;
 }

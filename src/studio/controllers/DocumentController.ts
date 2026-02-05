@@ -159,34 +159,6 @@ export class DocumentController {
   };
 
   /**
-   * Search documents
-   * POST /documents/search
-   */
-  search = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const appPath = req.headers['x-app-path'];
-      const uploadService = this.getUploadService(typeof appPath === 'string' ? appPath : null);
-
-      const { query, limit } = req.body as { query?: string; limit?: number };
-
-      if (!query) {
-        res.status(400).json({ error: 'Query is required' });
-        return;
-      }
-
-      const results = await uploadService.searchDocuments(query, limit);
-
-      res.json({ results });
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('Error searching documents:', error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : 'Failed to search documents',
-      });
-    }
-  };
-
-  /**
    * Get stats
    * GET /documents/stats
    */

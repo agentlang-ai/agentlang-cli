@@ -1,9 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import mammoth from 'mammoth';
 import { DocumentDatabaseService } from './DocumentDatabaseService.js';
-import { VectorStoreService } from './VectorStoreService.js';
 
 export interface UploadedFile {
   fieldname: string;
@@ -21,86 +19,21 @@ export interface FileUploadResult {
   size: number;
   mimeType: string;
   uploadedAt: string;
-  chunkCount: number;
 }
 
 /**
- * Service for handling file uploads, text extraction, and document processing
+ * Service for handling file uploads
+ * Files are stored and made available to AgentLang for embedding processing
  */
 export class FileUploadService {
   private documentsDir: string;
   private dbService: DocumentDatabaseService;
-  private vectorService: VectorStoreService;
 
   constructor(appPath: string) {
     this.documentsDir = path.join(appPath, 'documents');
 
-    // Initialize services
+    // Initialize database service for metadata
     this.dbService = new DocumentDatabaseService(appPath);
-    this.vectorService = new VectorStoreService(this.dbService);
-  }
-
-  /**
-   * Extract text from PDF file
-   */
-  private async extractPdfText(buffer: Buffer): Promise<string> {
-    try {
-      // Dynamic import for pdf-parse to handle ESM/CJS compatibility
-      const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: buffer });
-      const textResult = await parser.getText();
-      return textResult.text;
-    } catch (error) {
-      throw new Error(`Failed to extract text from PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Extract text from Word document
-   */
-  private async extractDocxText(buffer: Buffer): Promise<string> {
-    try {
-      const result = await mammoth.extractRawText({ buffer });
-      return result.value;
-    } catch (error) {
-      throw new Error(`Failed to extract text from DOCX: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  /**
-   * Extract text from plain text file
-   */
-  private extractPlainText(buffer: Buffer): string {
-    return buffer.toString('utf-8');
-  }
-
-  /**
-   * Extract text from file based on MIME type
-   */
-  private async extractText(buffer: Buffer, mimeType: string): Promise<string> {
-    switch (mimeType) {
-      case 'application/pdf':
-        return this.extractPdfText(buffer);
-
-      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      case 'application/msword':
-        return this.extractDocxText(buffer);
-
-      case 'text/plain':
-      case 'text/markdown':
-      case 'text/html':
-      case 'text/csv':
-      case 'application/json':
-        return this.extractPlainText(buffer);
-
-      default:
-        // Try to extract as plain text for unknown types
-        try {
-          return this.extractPlainText(buffer);
-        } catch {
-          throw new Error(`Unsupported file type: ${mimeType}`);
-        }
-    }
   }
 
   /**
@@ -113,7 +46,7 @@ export class FileUploadService {
   }
 
   /**
-   * Upload and process a file
+   * Upload and store a file
    */
   async uploadFile(file: UploadedFile): Promise<FileUploadResult> {
     // eslint-disable-next-line no-console
@@ -136,16 +69,9 @@ export class FileUploadService {
       size: file.size,
       storagePath,
       uploadedAt: new Date().toISOString(),
-      chunkCount: 0,
     });
     // eslint-disable-next-line no-console
     console.log(`Saved document metadata with ID: ${doc.id}`);
-
-    // Extract text and process in background
-    this.processFileInBackground(doc.id, file.buffer, file.mimetype).catch(error => {
-      // eslint-disable-next-line no-console
-      console.error(`Failed to process document ${doc.id}:`, error);
-    });
 
     return {
       id: doc.id,
@@ -154,39 +80,7 @@ export class FileUploadService {
       size: doc.size,
       mimeType: doc.mimeType,
       uploadedAt: doc.uploadedAt,
-      chunkCount: doc.chunkCount,
     };
-  }
-
-  /**
-   * Process file in background (extract text, chunk, generate embeddings)
-   */
-  private async processFileInBackground(documentId: string, buffer: Buffer, mimeType: string): Promise<void> {
-    try {
-      // eslint-disable-next-line no-console
-      console.log(`Processing document ${documentId} in background...`);
-
-      // Extract text
-      const text = await this.extractText(buffer, mimeType);
-      // eslint-disable-next-line no-console
-      console.log(`Extracted ${text.length} characters from document`);
-
-      if (text.trim().length === 0) {
-        // eslint-disable-next-line no-console
-        console.warn(`Document ${documentId} has no extractable text`);
-        return;
-      }
-
-      // Process with vector service (chunk and embed)
-      await this.vectorService.processDocument(documentId, text);
-
-      // eslint-disable-next-line no-console
-      console.log(`Successfully processed document ${documentId}`);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Error processing document ${documentId}:`, error);
-      throw error;
-    }
   }
 
   /**
@@ -203,7 +97,6 @@ export class FileUploadService {
       size: doc.size,
       mimeType: doc.mimeType,
       uploadedAt: doc.uploadedAt,
-      chunkCount: doc.chunkCount,
     };
   }
 
@@ -219,7 +112,6 @@ export class FileUploadService {
       size: doc.size,
       mimeType: doc.mimeType,
       uploadedAt: doc.uploadedAt,
-      chunkCount: doc.chunkCount,
     }));
   }
 
@@ -247,13 +139,6 @@ export class FileUploadService {
       filename: doc.originalName,
       mimeType: doc.mimeType,
     };
-  }
-
-  /**
-   * Search for similar documents
-   */
-  async searchDocuments(query: string, limit = 5) {
-    return this.vectorService.search(query, { limit });
   }
 
   /**
