@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.11.5](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.4...0.11.5) (2026-02-05)
+
+### Changes
+
+- doc fix: stringify lineWidth -1 (#84)
+  ([0c88828](https://github.com/agentlang-ai/agentlang-cli/commit/0c888289b3e51cadec419a5230368e09a5e95e1a)) -
+  @muazzam0x48
+- chore: release 0.11.4
+  ([beffff3](https://github.com/agentlang-ai/agentlang-cli/commit/beffff38dd89270306838e2ad7b4f36ac6e79b23)) -
+  @HamzaFractl
+- Bump lstudio version
+  ([b8a17ad](https://github.com/agentlang-ai/agentlang-cli/commit/b8a17ad78f00abf51020eaf9a7e34bef2bb88fd0)) -
+  @mhamzachippa
+- Fix formatting
+  ([50146e6](https://github.com/agentlang-ai/agentlang-cli/commit/50146e6d35274cdfa845f222b3ef5a3f47e3f848)) -
+  @mhamzachippa
+
+---
+
 ## [0.11.4](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.3...0.11.4) (2026-01-30)
 
 ### Changes
