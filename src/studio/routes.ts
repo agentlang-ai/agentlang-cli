@@ -1,13 +1,24 @@
 /* eslint-disable no-console */
 import { Router } from 'express';
 import path from 'path';
+import multer from 'multer';
 import { StudioServer } from './services/StudioServer.js';
 import { FileService } from './services/FileService.js';
 import { FileController } from './controllers/FileController.js';
+import { DocumentController } from './controllers/DocumentController.js';
 
 export function createRoutes(studioServer: StudioServer, fileService: FileService): Router {
   const router = Router();
   const fileController = new FileController(fileService);
+  const documentController = new DocumentController();
+
+  // Configure multer for file uploads (memory storage)
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 25 * 1024 * 1024, // 25MB max file size
+    },
+  });
 
   // Initialize project load if not in dashboard mode initially
   fileService.loadProject().catch(console.error);
@@ -201,6 +212,13 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
   router.get('/test', (_req, res) => {
     return res.json({ message: 'Hello from agent studio!' });
   });
+
+  router.post('/documents/upload', upload.single('file'), documentController.upload);
+  router.get('/documents', documentController.list);
+  router.get('/documents/stats', documentController.stats);
+  router.get('/documents/:id', documentController.get);
+  router.get('/documents/:id/download', documentController.download);
+  router.delete('/documents/:id', documentController.delete);
 
   return router;
 }
