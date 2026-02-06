@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
 import { FileUploadService } from '../services/FileUploadService.js';
 
+// Extend Express Request to include multer's file property
+type MulterFile = Express.Multer.File;
+
+interface MulterRequest extends Request {
+  file?: MulterFile;
+}
+
 /**
  * Controller for handling document upload and management endpoints
  */
@@ -21,7 +28,7 @@ export class DocumentController {
    * Upload a file
    * POST /documents/upload
    */
-  upload = async (req: Request, res: Response): Promise<void> => {
+  upload = async (req: MulterRequest, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
       const uploadService = this.getUploadService(typeof appPath === 'string' ? appPath : null);
