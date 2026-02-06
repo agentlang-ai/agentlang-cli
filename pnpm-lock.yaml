@@ -27,8 +27,8 @@ importers:
         specifier: ^2.15.0
         version: 2.16.0(@opentelemetry/api@1.9.0)(core-js@3.48.0)
       agentlang:
-        specifier: ^0.9.8
-        version: 0.9.8(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))
+        specifier: ^0.9.9
+        version: 0.9.9(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))
       better-sqlite3:
         specifier: ^12.6.2
         version: 12.6.2
@@ -1340,8 +1340,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  agentlang@0.9.8:
-    resolution: {integrity: sha512-9pwBIOYS+R3NvUhIBm9718e7P4HnPRjzV/cKeKTZ+mzjp4wPLWKveTEXUG0uOZLi+5n4+lkQeRDyrP/W7d45/w==}
+  agentlang@0.9.9:
+    resolution: {integrity: sha512-ZNUhOlM8BgO0y2nsCqzpQdJoyP51pykXveX+5oa5wxpOE+LCL4kOC72jd2H+j4E9dDqPXN2Z5MlLvV3ABGvt3g==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -5323,7 +5323,7 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  agentlang@0.9.8(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3)):
+  agentlang@0.9.9(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3)):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.984.0
       '@aws-sdk/client-cognito-identity-provider': 3.984.0
