@@ -104,7 +104,15 @@ export class FileController {
     try {
       await this.fileService.writeFile(filePath, content, commitMessage);
       return res.json({ message: `Successfully wrote to ${filePath}` });
-    } catch {
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'ENOENT'
+      ) {
+        return res.status(404).json({ error: 'Parent path not found' });
+      }
       return res.status(500).json({ error: `Failed to write to file: ${filePath}` });
     }
   };
