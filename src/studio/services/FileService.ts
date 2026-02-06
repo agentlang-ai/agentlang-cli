@@ -21,6 +21,19 @@ export class FileService {
     return this.targetDir;
   }
 
+  /**
+   * Resolve a relative file path to a full path under targetDir.
+   * Prevents path traversal (e.g. ../../../etc/passwd).
+   */
+  private resolvePath(filePath: string): string {
+    const normalized = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const fullPath = path.resolve(this.targetDir, normalized);
+    if (!fullPath.startsWith(path.resolve(this.targetDir))) {
+      throw new Error('Invalid path: cannot access outside project directory');
+    }
+    return fullPath;
+  }
+
   async loadProject(): Promise<void> {
     // Only load if it looks like a valid project to avoid errors in dashboard mode
     if (existsSync(path.join(this.targetDir, 'package.json'))) {
@@ -57,12 +70,14 @@ export class FileService {
   }
 
   async readFile(filePath: string): Promise<string> {
-    const fullPath = path.join(this.targetDir, filePath);
+    const fullPath = this.resolvePath(filePath);
     return fs.readFile(fullPath, 'utf-8');
   }
 
   async writeFile(filePath: string, content: string, commitMessage?: string): Promise<void> {
-    const fullPath = path.join(this.targetDir, filePath);
+    const fullPath = this.resolvePath(filePath);
+    const dir = path.dirname(fullPath);
+    await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, content, 'utf-8');
 
     // Auto-commit the change if a commit message is provided
@@ -99,7 +114,7 @@ export class FileService {
   }
 
   async stat(filePath: string): Promise<{ type: 'file' | 'directory'; size: number; mtime: Date }> {
-    const fullPath = path.join(this.targetDir, filePath);
+    const fullPath = this.resolvePath(filePath);
     const stats = await fs.stat(fullPath);
     return {
       type: stats.isDirectory() ? 'directory' : 'file',
