@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.11.6](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.5...0.11.6) (2026-02-06)
+
+### Changes
+
+- bump agentlang version to 0.9.9
+  ([339a073](https://github.com/agentlang-ai/agentlang-cli/commit/339a07359bc437874e45998652b652a023fe6b60)) -
+  @muazzam
+- Add Multer File Request
+  ([3d245f9](https://github.com/agentlang-ai/agentlang-cli/commit/3d245f9f85788ea6b007008461904b65d2c3a3fd)) -
+  @pratik
+- Update package lock and pnpm lock
+  ([2d5ab3a](https://github.com/agentlang-ai/agentlang-cli/commit/2d5ab3a60b3cbde33c3fe816077ba30e885f65b2)) -
+  @pratik
+- Update package lock and pnpm lock
+  ([c35c402](https://github.com/agentlang-ai/agentlang-cli/commit/c35c402fef6ee24d6855afbe89dd6c53b1d7f19e)) -
+  @pratik
+- Update packages
+  ([e0cdd58](https://github.com/agentlang-ai/agentlang-cli/commit/e0cdd58967af894974b131895bc1503fbcea2fdc)) -
+  @pratik
+- Remove vectordb usages and embedding
+  ([da545d6](https://github.com/agentlang-ai/agentlang-cli/commit/da545d627575a56764a25be6fc24f99904e78f0c)) -
+  @pratik
+- Update routes
+  ([fb12c7a](https://github.com/agentlang-ai/agentlang-cli/commit/fb12c7a4bd44b39d90445ab8a5a5f0df232afbb5)) -
+  @pratik
+- Add document upload & vectorDB support
+  ([140a4a1](https://github.com/agentlang-ai/agentlang-cli/commit/140a4a1824a33522eea80d4001f4463771e55135)) -
+  @pratik
+
+---
+
 ## [0.11.5](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.4...0.11.5) (2026-02-05)
 
 ### Changes
