@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.8](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.7...0.11.8) (2026-02-10)
+
+### Changes
+
+- Update agentlang packages
+  ([de42a23](https://github.com/agentlang-ai/agentlang-cli/commit/de42a23a4e1794ecfe7628461cd722c371d112b2)) -
+  @pratik
+
+---
+
 ## [0.11.7](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.6...0.11.7) (2026-02-06)
 
 ### Changes
