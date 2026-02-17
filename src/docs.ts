@@ -159,6 +159,7 @@ function registerEntityEndpoint(
   tags: string[],
   filterPaths: string[],
   entitySchema: z.ZodTypeAny,
+  description?: string,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const endpointConfig: any = {
@@ -166,6 +167,7 @@ function registerEntityEndpoint(
     path,
     security: [{ [bearerAuth.name]: [] }],
     tags,
+    ...(description && { description }),
     responses: {
       200: {
         description: 'Success',
@@ -230,10 +232,12 @@ function generateEntitiesEntries() {
 
       const entitySchema = createZodSchemaFromEntitySchema(entity.schema).openapi(`${entity.name}Schema`);
 
-      registerEntityEndpoint('post', `/${entityPath}`, [entity.name], [], entitySchema);
-      registerEntityEndpoint('get', `/${entityPath}`, [entity.name], [], entitySchema);
-      registerEntityEndpoint('put', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema);
-      registerEntityEndpoint('delete', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema);
+      const documentation: string | undefined = entity.getMeta('documentation');
+
+      registerEntityEndpoint('post', `/${entityPath}`, [entity.name], [], entitySchema, documentation);
+      registerEntityEndpoint('get', `/${entityPath}`, [entity.name], [], entitySchema, documentation);
+      registerEntityEndpoint('put', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema, documentation);
+      registerEntityEndpoint('delete', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema, documentation);
 
       if (relatinotionshipPaths.length > 1) {
         relatinotionshipPaths.forEach(path => {
@@ -247,6 +251,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths,
             entitySchema,
+            documentation,
           );
           registerEntityEndpoint(
             'get',
@@ -254,6 +259,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths,
             entitySchema,
+            documentation,
           );
           registerEntityEndpoint(
             'put',
@@ -261,6 +267,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths.concat(['id']),
             entitySchema,
+            documentation,
           );
           registerEntityEndpoint(
             'delete',
@@ -268,6 +275,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths.concat(['id']),
             entitySchema,
+            documentation,
           );
         });
       }
@@ -289,11 +297,14 @@ function generateEventsEntries() {
         [eventPath]: eventSchema,
       });
 
+      const eventDocumentation: string | undefined = event.getMeta('documentation');
+
       registry.registerPath({
         method: 'post',
         path: `/${eventPath}`,
         security: [{ [bearerAuth.name]: [] }],
         tags: ['Events'],
+        ...(eventDocumentation && { description: eventDocumentation }),
         request: {
           body: {
             content: {
