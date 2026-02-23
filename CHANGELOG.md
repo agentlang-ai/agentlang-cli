@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.10](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.9...0.11.10) (2026-02-23)
+
+### Changes
+
+- Bump lstudio version
+  ([aff023f](https://github.com/agentlang-ai/agentlang-cli/commit/aff023f50289ba362f6cef91482b0e936b28632d)) -
+  @mhamzachippa
+
+---
+
 ## [0.11.9](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.8...0.11.9) (2026-02-18)
 
 ### Changes
