@@ -24,7 +24,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint:check && npm run format:check"
+    "check": "npm run typecheck && npm run lint:check && npm run format:check",
+    "test": "vitest run"
   },
   "keywords": [
     "agentlang",
@@ -97,7 +98,8 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "typescript-eslint": "^8.54.0",
+    "vitest": "^4.0.18"
   },
   "packageManager": "pnpm@10.28.2"
 }
