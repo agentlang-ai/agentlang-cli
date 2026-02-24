@@ -131,6 +131,69 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   return response.data.map((d) => d.embedding);
 }
 
+/**
+ * Extract text content from a file buffer based on its file type.
+ * Supports PDF, DOCX, HTML, JSON, and plain text.
+ */
+async function extractText(
+  fileBuffer: Buffer,
+  fileType: string,
+  fileName: string
+): Promise<string> {
+  const ext = (fileName || '').split('.').pop()?.toLowerCase() ?? '';
+
+  // PDF extraction
+  if (fileType === 'pdf' || ext === 'pdf') {
+    try {
+      const pdfParseModule = await import('pdf-parse');
+      const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+      const result = await pdfParse(fileBuffer);
+      return (result.text || '').trim();
+    } catch (err) {
+      console.warn(`[LOCAL-KNOWLEDGE] PDF extraction failed for ${fileName}, falling back to raw text`);
+      return fileBuffer.toString('utf-8');
+    }
+  }
+
+  // DOCX / DOC extraction
+  if (fileType === 'docx' || fileType === 'doc' || ext === 'docx' || ext === 'doc') {
+    try {
+      const mammoth = await import('mammoth');
+      const result = await mammoth.extractRawText({ buffer: fileBuffer });
+      return (result.value || '').trim();
+    } catch (err) {
+      console.warn(`[LOCAL-KNOWLEDGE] DOCX extraction failed for ${fileName}, falling back to raw text`);
+      return fileBuffer.toString('utf-8');
+    }
+  }
+
+  // HTML — strip tags
+  if (fileType === 'html' || ext === 'html' || ext === 'htm') {
+    try {
+      const cheerio = await import('cheerio');
+      const $ = cheerio.load(fileBuffer.toString('utf-8'));
+      $('script, style, noscript').remove();
+      return ($('body').text() || $.root().text() || '').replace(/\s+/g, ' ').trim();
+    } catch (err) {
+      console.warn(`[LOCAL-KNOWLEDGE] HTML extraction failed for ${fileName}, falling back to raw text`);
+      return fileBuffer.toString('utf-8');
+    }
+  }
+
+  // JSON — pretty-print
+  if (fileType === 'json' || ext === 'json') {
+    try {
+      const parsed = JSON.parse(fileBuffer.toString('utf-8'));
+      return JSON.stringify(parsed, null, 2);
+    } catch {
+      return fileBuffer.toString('utf-8');
+    }
+  }
+
+  // Plain text, Markdown, CSV, code files
+  return fileBuffer.toString('utf-8');
+}
+
 function splitIntoChunks(text: string): string[] {
   const chunks: string[] = [];
   let start = 0;
@@ -487,6 +550,7 @@ export class LocalKnowledgeService {
 
     // Run ingestion synchronously (local mode — no queue needed)
     try {
+      const textContent = await extractText(fileBuffer, input.fileType || '', input.fileName || '');
       await this.ingestDocumentVersion(
         documentVersionId,
         documentId,
@@ -494,7 +558,7 @@ export class LocalKnowledgeService {
         containerTag!,
         input.tenantId,
         input.appId,
-        fileBuffer.toString('utf-8')
+        textContent
       );
 
       this.db
