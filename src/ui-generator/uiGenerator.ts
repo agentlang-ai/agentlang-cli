@@ -15,7 +15,6 @@ interface ProjectAnalysis {
   structure: string; // Tree-like structure of the project
 }
 
-
 /**
  * Analyzes the existing UI directory to determine if it exists and what's in it
  */
@@ -87,7 +86,6 @@ async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalys
     return analysis;
   }
 }
-
 
 export async function generateUI(
   uiSpec: UISpec,
@@ -451,7 +449,6 @@ export async function generateUI(
   }
 }
 
-
 /**
  * Count all files (recursively) in the generated project directory
  */
@@ -480,7 +477,6 @@ async function countGeneratedFiles(projectDir: string): Promise<number> {
   await countInDirectory(projectDir);
   return count;
 }
-
 
 async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
   const { exec } = await import('child_process');
@@ -566,7 +562,6 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
     console.log(chalk.gray('     git push'));
   }
 }
-
 
 function createGenerationPrompt(
   uiSpec: UISpec,

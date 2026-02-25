@@ -146,7 +146,6 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
       // Ignore if can't change directory
     }
 
-
     console.log(chalk.green('\n✨ Successfully initialized Agentlang application!'));
 
     console.log(chalk.dim('\nNext steps:'));
@@ -683,7 +682,6 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   return rm;
 }
 
-
 export const generateUICommand = async (
   specFile?: string,
   options?: { directory?: string; apiKey?: string; push?: boolean; message?: string },
@@ -734,7 +732,6 @@ export const generateUICommand = async (
   }
 };
 
-
 export const studioCommand = async (
   projectPath?: string,
   options?: { port?: string; serverOnly?: boolean },
@@ -751,7 +748,6 @@ export const studioCommand = async (
     process.exit(1);
   }
 };
-
 
 export const forkCommand = async (
   source: string,
@@ -811,7 +807,6 @@ export const forkCommand = async (
     process.exit(1);
   }
 };
-
 
 interface OpenApiConfigItem {
   name: string;

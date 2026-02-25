@@ -1,4 +1,3 @@
-
 import path from 'path';
 import { readdirSync, statSync } from 'fs';
 import { isValidAgentlangProject, ignoredPaths } from '../utils.js';

@@ -1,4 +1,3 @@
-
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { execSync } from 'child_process';

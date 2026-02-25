@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs-extra';
@@ -143,10 +143,11 @@ async function extractText(fileBuffer: Buffer, fileType: string, fileName: strin
   // PDF extraction
   if (fileType === 'pdf' || ext === 'pdf') {
     try {
+      type PdfParseFn = (buffer: Buffer) => Promise<{ text?: string }>;
       const pdfParseModule = await import('pdf-parse');
       /* eslint-disable @typescript-eslint/no-unsafe-member-access */
       const pdfParse =
-        (pdfParseModule as { default?: (buffer: Buffer) => Promise<{ text?: string }> }).default || pdfParseModule;
+        (pdfParseModule as { default?: PdfParseFn }).default || (pdfParseModule as unknown as PdfParseFn);
       const result = await pdfParse(fileBuffer);
       return (result.text || '').trim();
     } catch {
@@ -229,7 +230,6 @@ export class LocalKnowledgeService {
   /* eslint-disable @typescript-eslint/no-explicit-any */
   private neo4jDriver: any = null;
   /* eslint-enable @typescript-eslint/no-explicit-any */
-  private neo4jConnected = false;
   private neo4jConnected = false;
   private lanceReady = false;
   private initPromise: Promise<void>;
@@ -412,13 +412,14 @@ export class LocalKnowledgeService {
 
       // Check if knowledgeGraph section needs updating
       const needsUpdate =
-        !config.knowledgeGraph || !(config.knowledgeGraph as Record<string, unknown>).serviceUrl || (config.knowledgeGraph as Record<string, unknown>).serviceUrl === '';
+        !config.knowledgeGraph ||
+        !(config.knowledgeGraph as Record<string, unknown>).serviceUrl ||
+        (config.knowledgeGraph as Record<string, unknown>).serviceUrl === '';
 
       if (needsUpdate) {
         // Add or update knowledgeGraph section
         config.knowledgeGraph = {
-
-          ...(config.knowledgeGraph as Record<string, unknown> || {}),
+          ...((config.knowledgeGraph as Record<string, unknown>) || {}),
           serviceUrl: 'http://localhost:4000',
           enabled: true,
         };
@@ -823,18 +824,28 @@ export class LocalKnowledgeService {
       const content = response.choices[0]?.message?.content;
       if (!content) return;
 
-
       const parsed: {
         entities?: { name: string; entityType: string; description?: string }[];
         relationships?: { source: string; target: string; relType?: string; description?: string }[];
       } = JSON.parse(content);
-      const entities: { name: string; entityType: string; description: string }[] = parsed.entities || [];
+      const entities: { name: string; entityType: string; description: string }[] = (parsed.entities || []).map(
+        entity => ({
+          name: entity.name,
+          entityType: entity.entityType,
+          description: entity.description ?? '',
+        }),
+      );
       const relationships: {
         source: string;
         target: string;
         relType: string;
         description: string;
-      }[] = parsed.relationships || [];
+      }[] = (parsed.relationships || []).map(rel => ({
+        source: rel.source,
+        target: rel.target,
+        relType: rel.relType ?? '',
+        description: rel.description ?? '',
+      }));
 
       // Upsert nodes in Neo4j
       /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
@@ -992,7 +1003,10 @@ export class LocalKnowledgeService {
           sourceId: (r as { get: (key: string) => string }).get('sourceId'),
           targetId: (r as { get: (key: string) => string }).get('targetId'),
           relType: (r as { get: (key: string) => string }).get('relType'),
-          weight: typeof (r as { get: (key: string) => unknown }).get('weight') === 'object' ? ((r as { get: (key: string) => { toNumber: () => number } }).get('weight').toNumber()) : ((r as { get: (key: string) => number }).get('weight')),
+          weight:
+            typeof (r as { get: (key: string) => unknown }).get('weight') === 'object'
+              ? (r as { get: (key: string) => { toNumber: () => number } }).get('weight').toNumber()
+              : (r as { get: (key: string) => number }).get('weight'),
         }));
         /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
       } catch (err) {
@@ -1087,6 +1101,10 @@ export class LocalKnowledgeService {
   // -------------------------------------------------------------------------
   // Document listing
   // -------------------------------------------------------------------------
+
+  getDb(): Database.Database {
+    return this.db;
+  }
 
   listDocuments(topicId: string, limit = 50, offset = 0): KnowledgeDocument[] {
     return this.db

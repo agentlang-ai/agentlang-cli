@@ -1,4 +1,3 @@
-
 import { Request, Response, Router } from 'express';
 import { LocalKnowledgeService } from '../services/LocalKnowledgeService.js';
 
@@ -272,6 +271,7 @@ export function createAgentlangCompatRoutes(): Router {
   router.get('/DocumentVersion', async (req: Request, res: Response) => {
     try {
       const service = getService(req);
+      const db = service.getDb();
       const documentId = req.query.documentId as string;
 
       if (!documentId) {
@@ -281,7 +281,7 @@ export function createAgentlangCompatRoutes(): Router {
       }
 
       // Query document versions from SQLite directly
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+
       const versions = db
         .prepare(
           `SELECT id, document_id as documentId, version, size_bytes as sizeBytes,
@@ -375,11 +375,12 @@ export function createAgentlangCompatRoutes(): Router {
   router.post('/reIngestDocumentVersion', async (req: Request, res: Response) => {
     try {
       const service = getService(req);
+      const db = service.getDb();
       const { documentVersionId } = req.body;
 
       // In local mode, re-ingestion is synchronous
       // Find the document version and re-ingest
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+
       const version = db
         .prepare('SELECT document_id, storage_key FROM document_versions WHERE id = ?')
         .get(documentVersionId) as { document_id: string; storage_key: string } | undefined;
@@ -406,11 +407,12 @@ export function createAgentlangCompatRoutes(): Router {
   router.get('/VectorIngestionQueueItem', async (req: Request, res: Response) => {
     try {
       const service = getService(req);
+      const db = service.getDb();
       const topicId = req.query.topicId as string;
       const documentId = req.query.documentId as string;
 
       // In local mode, ingestion is synchronous — return completed items from doc versions
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+
       let query = `
                 SELECT dv.id, d.tenant_id as tenantId, d.app_id as appId,
                        '${MANUAL_CONNECTION_ID}' as connectionId,
@@ -451,7 +453,12 @@ export function createAgentlangCompatRoutes(): Router {
       // Map local ingest_status to queue status
       const mapped = items.map((item: Record<string, unknown>) => ({
         ...item,
-        status: (item.status as string) === 'completed' ? 'completed' : (item.status as string) === 'failed' ? 'failed' : 'queued',
+        status:
+          (item.status as string) === 'completed'
+            ? 'completed'
+            : (item.status as string) === 'failed'
+              ? 'failed'
+              : 'queued',
         progress: item.status === 'completed' ? 100 : 0,
       }));
       res.json(wrap('VectorIngestionQueueItem', mapped));

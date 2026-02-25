@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import { LocalKnowledgeService } from '../services/LocalKnowledgeService.js';
 

@@ -464,7 +464,6 @@ function createReplHelpers() {
       console.log('  inspect.instances(MyApp/EntityName)');
       console.log('  m.active()');
 
-
       return '';
     },
     clear: () => {
@@ -593,7 +592,6 @@ async function restartRepl(): Promise<void> {
     if (replState.appDir) {
       await loadApplication(replState.appDir);
     }
-
 
     console.log(chalk.green('✅ REPL restarted successfully'));
 
@@ -762,7 +760,6 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
       }
     }
 
-
     console.log(chalk.green('✅ AgentLang runtime initialized'));
 
     // Setup file watcher AFTER initial load to prevent immediate restart
@@ -779,7 +776,6 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
 
     // Give any async startup messages time to complete
     await new Promise<void>(resolve => setTimeout(resolve, 50));
-
 
     console.log(chalk.blue('💬 REPL ready - type "help" for help'));
 
