@@ -33,7 +33,7 @@ export class KnowledgeController {
         entityLimit,
       });
 
-      service.close();
+      await service.close();
       res.json(result);
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] Query error:', error);
@@ -44,7 +44,7 @@ export class KnowledgeController {
   };
 
   // POST /api/knowledge/topics
-  createTopic = (req: Request, res: Response): void => {
+  createTopic = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
@@ -52,7 +52,7 @@ export class KnowledgeController {
       const { tenantId, appId, name, description } = req.body;
       const topic = service.createTopic({ tenantId, appId, name, description });
 
-      service.close();
+      await service.close();
       res.json(topic);
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] Create topic error:', error);
@@ -63,7 +63,7 @@ export class KnowledgeController {
   };
 
   // GET /api/knowledge/topics
-  listTopics = (req: Request, res: Response): void => {
+  listTopics = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
@@ -72,7 +72,7 @@ export class KnowledgeController {
       const appId = (req.query.appId as string) || '';
       const topics = service.listTopics(tenantId, appId);
 
-      service.close();
+      await service.close();
       res.json(topics);
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] List topics error:', error);
@@ -83,15 +83,18 @@ export class KnowledgeController {
   };
 
   // DELETE /api/knowledge/topics/:topicId
-  deleteTopic = (req: Request, res: Response): void => {
+  deleteTopic = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
-      service.deleteTopic(topicId);
+      const topicId =
+        typeof req.params.topicId === 'string'
+          ? req.params.topicId
+          : req.params.topicId?.[0] || '';
+      await service.deleteTopic(topicId);
 
-      service.close();
+      await service.close();
       res.json({ success: true });
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] Delete topic error:', error);
@@ -107,9 +110,21 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
-      const { tenantId, appId, topicName, containerTag, title, fileName, fileType, content, uploadedBy } =
-        req.body;
+      const topicId =
+        typeof req.params.topicId === 'string'
+          ? req.params.topicId
+          : req.params.topicId?.[0] || '';
+      const {
+        tenantId,
+        appId,
+        topicName,
+        containerTag,
+        title,
+        fileName,
+        fileType,
+        content,
+        uploadedBy,
+      } = req.body;
 
       const result = await service.uploadDocumentVersion({
         tenantId,
@@ -124,7 +139,7 @@ export class KnowledgeController {
         uploadedBy,
       });
 
-      service.close();
+      await service.close();
       res.json(result);
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] Upload error:', error);
@@ -140,8 +155,18 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const { tenantId, appId, topicId, topicName, containerTag, title, fileName, fileType, content, uploadedBy } =
-        req.body;
+      const {
+        tenantId,
+        appId,
+        topicId,
+        topicName,
+        containerTag,
+        title,
+        fileName,
+        fileType,
+        content,
+        uploadedBy,
+      } = req.body;
 
       const result = await service.uploadDocumentVersion({
         tenantId,
@@ -156,7 +181,7 @@ export class KnowledgeController {
         uploadedBy,
       });
 
-      service.close();
+      await service.close();
       res.json(result);
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] Upload version error:', error);
@@ -167,18 +192,21 @@ export class KnowledgeController {
   };
 
   // GET /api/knowledge/topics/:topicId/documents
-  listDocuments = (req: Request, res: Response): void => {
+  listDocuments = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
+      const topicId =
+        typeof req.params.topicId === 'string'
+          ? req.params.topicId
+          : req.params.topicId?.[0] || '';
       const limit = parseInt((req.query.limit as string) || '50', 10);
       const offset = parseInt((req.query.offset as string) || '0', 10);
 
       const documents = service.listDocuments(topicId, limit, offset);
 
-      service.close();
+      await service.close();
       res.json(documents);
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] List documents error:', error);
@@ -189,15 +217,18 @@ export class KnowledgeController {
   };
 
   // DELETE /api/knowledge/documents/:documentId
-  deleteDocument = (req: Request, res: Response): void => {
+  deleteDocument = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const documentId = typeof req.params.documentId === 'string' ? req.params.documentId : req.params.documentId?.[0] || '';
-      service.softDeleteDocument(documentId);
+      const documentId =
+        typeof req.params.documentId === 'string'
+          ? req.params.documentId
+          : req.params.documentId?.[0] || '';
+      await service.softDeleteDocument(documentId);
 
-      service.close();
+      await service.close();
       res.json({ success: true });
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] Delete document error:', error);
@@ -208,7 +239,7 @@ export class KnowledgeController {
   };
 
   // GET /api/knowledge/jobs
-  listJobs = (req: Request, res: Response): void => {
+  listJobs = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
@@ -216,7 +247,7 @@ export class KnowledgeController {
       const containerTag = (req.query.containerTag as string) || '';
       const jobs = service.listIngestionJobs(containerTag);
 
-      service.close();
+      await service.close();
       res.json(jobs);
     } catch (error) {
       console.error('[LOCAL-KNOWLEDGE] List jobs error:', error);

@@ -21,8 +21,10 @@ describe('LocalKnowledgeService', () => {
   });
 
   afterEach(async () => {
-    svc.close();
-    await rm(tmpDir, { recursive: true, force: true });
+    await svc.close();
+    // Small delay to let LanceDB release file locks
+    await new Promise((r) => setTimeout(r, 50));
+    await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   });
 
   // ─── Topic CRUD ──────────────────────────────────────────────────────────
@@ -52,9 +54,9 @@ describe('LocalKnowledgeService', () => {
       expect(topics.map((t) => t.name).sort()).toEqual(['Topic A', 'Topic B']);
     });
 
-    test('deleteTopic removes topic and its documents', () => {
+    test('deleteTopic removes topic and its documents', async () => {
       const topic = svc.createTopic({ tenantId: TENANT, appId: APP, name: 'Doomed' });
-      svc.deleteTopic(topic.id);
+      await svc.deleteTopic(topic.id);
       expect(svc.getTopic(topic.id)).toBeNull();
     });
 

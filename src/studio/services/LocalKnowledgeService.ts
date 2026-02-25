@@ -3,7 +3,8 @@ import path from 'path';
 import fs from 'fs-extra';
 import { randomUUID } from 'crypto';
 import { createHash } from 'crypto';
-import * as sqliteVec from 'sqlite-vec';
+import * as lancedb from '@lancedb/lancedb';
+import { Schema, Field, Float32, Utf8, FixedSizeList, Int32 } from 'apache-arrow';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -149,8 +150,10 @@ async function extractText(
       const pdfParse = (pdfParseModule as any).default || pdfParseModule;
       const result = await pdfParse(fileBuffer);
       return (result.text || '').trim();
-    } catch (err) {
-      console.warn(`[LOCAL-KNOWLEDGE] PDF extraction failed for ${fileName}, falling back to raw text`);
+    } catch (_err) {
+      console.warn(
+        `[LOCAL-KNOWLEDGE] PDF extraction failed for ${fileName}, falling back to raw text`
+      );
       return fileBuffer.toString('utf-8');
     }
   }
@@ -161,8 +164,10 @@ async function extractText(
       const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ buffer: fileBuffer });
       return (result.value || '').trim();
-    } catch (err) {
-      console.warn(`[LOCAL-KNOWLEDGE] DOCX extraction failed for ${fileName}, falling back to raw text`);
+    } catch (_err) {
+      console.warn(
+        `[LOCAL-KNOWLEDGE] DOCX extraction failed for ${fileName}, falling back to raw text`
+      );
       return fileBuffer.toString('utf-8');
     }
   }
@@ -174,8 +179,10 @@ async function extractText(
       const $ = cheerio.load(fileBuffer.toString('utf-8'));
       $('script, style, noscript').remove();
       return ($('body').text() || $.root().text() || '').replace(/\s+/g, ' ').trim();
-    } catch (err) {
-      console.warn(`[LOCAL-KNOWLEDGE] HTML extraction failed for ${fileName}, falling back to raw text`);
+    } catch (_err) {
+      console.warn(
+        `[LOCAL-KNOWLEDGE] HTML extraction failed for ${fileName}, falling back to raw text`
+      );
       return fileBuffer.toString('utf-8');
     }
   }
@@ -210,12 +217,26 @@ function splitIntoChunks(text: string): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Neo4j helper — sanitize Cypher labels
+// ---------------------------------------------------------------------------
+
+function sanitizeCypherLabel(label: string): string {
+  return label.replace(/[^a-zA-Z0-9_]/g, '_').toUpperCase();
+}
+
+// ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
 
 export class LocalKnowledgeService {
-  private db: Database.Database;
+  private db: Database.Database; // SQLite for metadata only
   private storageDir: string;
+  private lanceConn: lancedb.Connection | null = null;
+  private lanceTable: lancedb.Table | null = null;
+  private neo4jDriver: any = null;
+  private neo4jConnected = false;
+  private lanceReady = false;
+  private initPromise: Promise<void>;
 
   constructor(appPath: string) {
     const knowledgeDir = path.join(appPath, 'knowledge');
@@ -224,16 +245,16 @@ export class LocalKnowledgeService {
     this.storageDir = path.join(knowledgeDir, 'files');
     fs.ensureDirSync(this.storageDir);
 
+    // SQLite for metadata (topics, documents, versions)
     const dbPath = path.join(knowledgeDir, 'knowledge.db');
     this.db = new Database(dbPath);
+    this.initializeMetadataSchema();
 
-    // Load sqlite-vec extension
-    sqliteVec.load(this.db);
-
-    this.initializeSchema();
+    // Async init for LanceDB + Neo4j
+    this.initPromise = this.initAsyncStores(knowledgeDir);
   }
 
-  private initializeSchema(): void {
+  private initializeMetadataSchema(): void {
     this.db.pragma('journal_mode = WAL');
 
     this.db.exec(`
@@ -289,6 +310,7 @@ export class LocalKnowledgeService {
       )
     `);
 
+    // Chunk metadata in SQLite (content + metadata, embeddings in LanceDB)
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS chunks (
         id TEXT PRIMARY KEY,
@@ -304,45 +326,6 @@ export class LocalKnowledgeService {
       )
     `);
 
-    // Virtual table for vector search via sqlite-vec
-    this.db.exec(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS chunk_embeddings USING vec0(
-        chunk_id TEXT PRIMARY KEY,
-        embedding float[${EMBEDDING_DIMENSIONS}]
-      )
-    `);
-
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        tenant_id TEXT NOT NULL,
-        app_id TEXT NOT NULL,
-        container_tag TEXT NOT NULL,
-        document_version_id TEXT NOT NULL,
-        name TEXT NOT NULL,
-        entity_type TEXT DEFAULT '',
-        description TEXT DEFAULT '',
-        confidence REAL DEFAULT 1.0,
-        UNIQUE(container_tag, name, entity_type)
-      )
-    `);
-
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS relations (
-        id TEXT PRIMARY KEY,
-        tenant_id TEXT NOT NULL,
-        app_id TEXT NOT NULL,
-        container_tag TEXT NOT NULL,
-        document_version_id TEXT NOT NULL,
-        source_node_id TEXT NOT NULL,
-        target_node_id TEXT NOT NULL,
-        rel_type TEXT DEFAULT 'RELATED_TO',
-        weight REAL DEFAULT 1.0,
-        FOREIGN KEY (source_node_id) REFERENCES nodes(id),
-        FOREIGN KEY (target_node_id) REFERENCES nodes(id)
-      )
-    `);
-
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_chunks_container ON chunks(container_tag)
     `);
@@ -350,11 +333,59 @@ export class LocalKnowledgeService {
       CREATE INDEX IF NOT EXISTS idx_chunks_document ON chunks(document_id)
     `);
     this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_nodes_container ON nodes(container_tag)
-    `);
-    this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_documents_topic ON documents(topic_id)
     `);
+  }
+
+  private async initAsyncStores(knowledgeDir: string): Promise<void> {
+    // Initialize LanceDB
+    try {
+      const lancePath = path.join(knowledgeDir, 'lance');
+      fs.ensureDirSync(lancePath);
+      this.lanceConn = await lancedb.connect(lancePath);
+
+      const tableNames = await this.lanceConn.tableNames();
+      if (tableNames.includes('chunk_embeddings')) {
+        this.lanceTable = await this.lanceConn.openTable('chunk_embeddings');
+      } else {
+        const schema = new Schema([
+          new Field('id', new Utf8(), false),
+          new Field(
+            'embedding',
+            new FixedSizeList(EMBEDDING_DIMENSIONS, new Field('item', new Float32())),
+            false
+          ),
+          new Field('containerTag', new Utf8(), true),
+          new Field('chunkIndex', new Int32(), true),
+        ]);
+        this.lanceTable = await this.lanceConn.createEmptyTable('chunk_embeddings', schema);
+      }
+      this.lanceReady = true;
+      console.log('[LOCAL-KNOWLEDGE] LanceDB initialized');
+    } catch (err) {
+      console.warn('[LOCAL-KNOWLEDGE] LanceDB initialization failed:', err);
+    }
+
+    // Initialize Neo4j
+    try {
+      const neo4jUri = process.env.GRAPH_DB_URI || 'bolt://localhost:7687';
+      const neo4jUser = process.env.GRAPH_DB_USER || 'neo4j';
+      const neo4jPassword = process.env.GRAPH_DB_PASSWORD || 'password';
+
+      const neo4jModule = await import('neo4j-driver');
+      const neo4j = neo4jModule.default;
+      this.neo4jDriver = neo4j.driver(neo4jUri, neo4j.auth.basic(neo4jUser, neo4jPassword));
+      await this.neo4jDriver.verifyConnectivity();
+      this.neo4jConnected = true;
+      console.log(`[LOCAL-KNOWLEDGE] Neo4j connected at ${neo4jUri}`);
+    } catch (err) {
+      console.warn('[LOCAL-KNOWLEDGE] Neo4j not available — graph features disabled:', err);
+    }
+  }
+
+  /** Wait for async stores to be ready */
+  async ensureReady(): Promise<void> {
+    await this.initPromise;
   }
 
   // -------------------------------------------------------------------------
@@ -415,14 +446,13 @@ export class LocalKnowledgeService {
     );
   }
 
-  deleteTopic(topicId: string): void {
-    // Delete all knowledge data for this topic
+  async deleteTopic(topicId: string): Promise<void> {
     const docs = this.db
       .prepare('SELECT id FROM documents WHERE topic_id = ?')
       .all(topicId) as Array<{ id: string }>;
 
     for (const doc of docs) {
-      this.deleteDocumentKnowledge(doc.id);
+      await this.deleteDocumentKnowledge(doc.id);
     }
 
     this.db.prepare('DELETE FROM documents WHERE topic_id = ?').run(topicId);
@@ -438,6 +468,7 @@ export class LocalKnowledgeService {
     documentVersionId: string;
     topicId: string;
   }> {
+    await this.ensureReady();
     const now = new Date().toISOString();
 
     // Resolve or create topic
@@ -522,7 +553,9 @@ export class LocalKnowledgeService {
         );
 
       // Increment topic document count
-      this.db.prepare('UPDATE topics SET document_count = document_count + 1, updated_at = ? WHERE id = ?').run(now, topicId);
+      this.db
+        .prepare('UPDATE topics SET document_count = document_count + 1, updated_at = ? WHERE id = ?')
+        .run(now, topicId);
     }
 
     // Mark previous versions as not current
@@ -584,7 +617,7 @@ export class LocalKnowledgeService {
     textContent: string
   ): Promise<void> {
     // Clean up previous chunks/nodes/relations for this document
-    this.deleteDocumentKnowledge(documentId);
+    await this.deleteDocumentKnowledge(documentId);
 
     // Chunk the text
     const chunks = splitIntoChunks(textContent);
@@ -593,19 +626,17 @@ export class LocalKnowledgeService {
     // Generate embeddings
     const embeddings = await generateEmbeddings(chunks);
 
-    // Store chunks and embeddings
+    // Store chunk metadata in SQLite
     const insertChunk = this.db.prepare(
       `INSERT INTO chunks (id, tenant_id, app_id, topic_id, document_id, document_version_id, container_tag, chunk_index, content, embedding_model)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     );
 
-    const insertEmbedding = this.db.prepare(
-      `INSERT INTO chunk_embeddings (chunk_id, embedding) VALUES (?, ?)`
-    );
-
+    const chunkIds: string[] = [];
     const insertMany = this.db.transaction(() => {
       for (let i = 0; i < chunks.length; i++) {
         const chunkId = randomUUID();
+        chunkIds.push(chunkId);
         insertChunk.run(
           chunkId,
           tenantId,
@@ -618,20 +649,27 @@ export class LocalKnowledgeService {
           chunks[i],
           EMBEDDING_MODEL
         );
-        insertEmbedding.run(chunkId, new Float32Array(embeddings[i]));
       }
     });
-
     insertMany();
 
-    // Extract entities (simple NER-like extraction from chunks)
-    await this.extractAndStoreEntities(
-      chunks,
-      documentVersionId,
-      containerTag,
-      tenantId,
-      appId
-    );
+    // Store embeddings in LanceDB
+    if (this.lanceReady && this.lanceTable) {
+      try {
+        const records = chunkIds.map((id, i) => ({
+          id,
+          embedding: embeddings[i],
+          containerTag,
+          chunkIndex: i,
+        }));
+        await this.lanceTable.add(records);
+      } catch (err) {
+        console.error('[LOCAL-KNOWLEDGE] Failed to store embeddings in LanceDB:', err);
+      }
+    }
+
+    // Extract entities and store in Neo4j
+    await this.extractAndStoreEntities(chunks, documentVersionId, containerTag, tenantId, appId);
   }
 
   private async extractAndStoreEntities(
@@ -641,16 +679,18 @@ export class LocalKnowledgeService {
     tenantId: string,
     appId: string
   ): Promise<void> {
-    // Simple entity extraction: use OpenAI if available, otherwise skip
     const apiKey = process.env.AGENTLANG_OPENAI_KEY || process.env.OPENAI_API_KEY;
     if (!apiKey) return;
+    if (!this.neo4jConnected || !this.neo4jDriver) {
+      console.warn('[LOCAL-KNOWLEDGE] Neo4j not connected — skipping entity extraction');
+      return;
+    }
 
     try {
       const { default: OpenAI } = await import('openai');
       const client = new OpenAI({ apiKey });
 
-      // Process chunks in batches to extract entities
-      const allText = chunks.slice(0, 5).join('\n\n'); // Limit to first 5 chunks for entity extraction
+      const allText = chunks.slice(0, 5).join('\n\n');
       const response = await client.chat.completions.create({
         model: process.env.AGENTLANG_LLM_MODEL || 'gpt-4o-mini',
         messages: [
@@ -678,63 +718,54 @@ export class LocalKnowledgeService {
         description: string;
       }> = parsed.relationships || [];
 
-      // Upsert nodes
-      const upsertNode = this.db.prepare(
-        `INSERT INTO nodes (id, tenant_id, app_id, container_tag, document_version_id, name, entity_type, description, confidence)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1.0)
-         ON CONFLICT(container_tag, name, entity_type) DO UPDATE SET
-           description = excluded.description,
-           document_version_id = excluded.document_version_id`
-      );
-
-      const nodeIdMap = new Map<string, string>();
-
-      this.db.transaction(() => {
+      // Upsert nodes in Neo4j
+      const session = this.neo4jDriver.session();
+      try {
         for (const entity of entities) {
           const nodeId = randomUUID();
-          const key = `${entity.name}::${entity.entityType}`.toLowerCase();
-          nodeIdMap.set(key, nodeId);
-          upsertNode.run(
-            nodeId,
-            tenantId,
-            appId,
-            containerTag,
-            documentVersionId,
-            entity.name,
-            entity.entityType,
-            entity.description || ''
-          );
-        }
-      })();
-
-      // Resolve node IDs for relationships (look up by name+type)
-      const findNode = this.db.prepare(
-        'SELECT id FROM nodes WHERE container_tag = ? AND name = ? LIMIT 1'
-      );
-
-      const insertRelation = this.db.prepare(
-        `INSERT INTO relations (id, tenant_id, app_id, container_tag, document_version_id, source_node_id, target_node_id, rel_type, weight)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1.0)`
-      );
-
-      this.db.transaction(() => {
-        for (const rel of relationships) {
-          const sourceRow = findNode.get(containerTag, rel.source) as { id: string } | undefined;
-          const targetRow = findNode.get(containerTag, rel.target) as { id: string } | undefined;
-          if (sourceRow && targetRow) {
-            insertRelation.run(
-              randomUUID(),
+          await session.run(
+            `MERGE (n:KnowledgeNode {containerTag: $containerTag, name: $name, entityType: $entityType})
+             ON CREATE SET n.id = $id, n.tenantId = $tenantId, n.appId = $appId,
+                           n.documentVersionId = $documentVersionId, n.description = $description,
+                           n.confidence = 1.0, n.createdAt = datetime()
+             ON MATCH SET n.description = $description, n.documentVersionId = $documentVersionId,
+                          n.updatedAt = datetime()
+             RETURN n.id AS id`,
+            {
+              id: nodeId,
+              containerTag,
+              name: entity.name,
+              entityType: entity.entityType,
+              description: entity.description || '',
               tenantId,
               appId,
-              containerTag,
               documentVersionId,
-              sourceRow.id,
-              targetRow.id,
-              rel.relType || 'RELATED_TO'
-            );
-          }
+            }
+          );
         }
-      })();
+
+        // Create relationships in Neo4j
+        for (const rel of relationships) {
+          await session.run(
+            `MATCH (a:KnowledgeNode {containerTag: $containerTag, name: $source})
+             MATCH (b:KnowledgeNode {containerTag: $containerTag, name: $target})
+             MERGE (a)-[r:${sanitizeCypherLabel(rel.relType || 'RELATED_TO')}]->(b)
+             ON CREATE SET r.id = $id, r.containerTag = $containerTag,
+                           r.documentVersionId = $documentVersionId,
+                           r.weight = 1.0, r.createdAt = datetime()
+             RETURN r`,
+            {
+              id: randomUUID(),
+              containerTag,
+              source: rel.source,
+              target: rel.target,
+              documentVersionId,
+            }
+          );
+        }
+      } finally {
+        await session.close();
+      }
     } catch (err) {
       console.error('[LOCAL-KNOWLEDGE] Entity extraction failed (non-fatal):', err);
     }
@@ -750,58 +781,51 @@ export class LocalKnowledgeService {
     chunkLimit?: number;
     entityLimit?: number;
   }): Promise<KnowledgeQueryResult> {
+    await this.ensureReady();
     const chunkLimit = input.chunkLimit || 10;
     const entityLimit = input.entityLimit || 20;
 
     // Generate query embedding
     const [queryEmbedding] = await generateEmbeddings([input.queryText]);
 
-    // Vector similarity search via sqlite-vec
+    // Vector similarity search via LanceDB
     let chunks: Array<{ id: string; content: string; similarity: number; containerTag: string }> =
       [];
 
-    try {
-      const vecQuery = input.containerTags?.length
-        ? this.db.prepare(
-            `SELECT ce.chunk_id, ce.distance, c.content, c.container_tag
-             FROM chunk_embeddings ce
-             JOIN chunks c ON c.id = ce.chunk_id
-             WHERE c.container_tag IN (${input.containerTags.map(() => '?').join(',')})
-             AND ce.embedding MATCH ?
-             ORDER BY ce.distance
-             LIMIT ?`
-          )
-        : this.db.prepare(
-            `SELECT ce.chunk_id, ce.distance, c.content, c.container_tag
-             FROM chunk_embeddings ce
-             JOIN chunks c ON c.id = ce.chunk_id
-             WHERE ce.embedding MATCH ?
-             ORDER BY ce.distance
-             LIMIT ?`
-          );
+    if (this.lanceReady && this.lanceTable) {
+      try {
+        let searchQuery = this.lanceTable.vectorSearch(queryEmbedding).limit(chunkLimit);
 
-      const params = input.containerTags?.length
-        ? [...input.containerTags, new Float32Array(queryEmbedding), chunkLimit]
-        : [new Float32Array(queryEmbedding), chunkLimit];
+        if (input.containerTags?.length) {
+          const tagFilter = input.containerTags
+            .map((t) => `containerTag = '${t.replace(/'/g, "''")}'`)
+            .join(' OR ');
+          searchQuery = searchQuery.where(`(${tagFilter})`);
+        }
 
-      const rows = vecQuery.all(...params) as Array<{
-        chunk_id: string;
-        distance: number;
-        content: string;
-        container_tag: string;
-      }>;
+        const results = await searchQuery.toArray();
 
-      chunks = rows.map((r) => ({
-        id: r.chunk_id,
-        content: r.content,
-        similarity: 1 - r.distance, // Convert distance to similarity
-        containerTag: r.container_tag,
-      }));
-    } catch (err) {
-      console.error('[LOCAL-KNOWLEDGE] Vector search failed:', err);
+        // Look up chunk content from SQLite metadata
+        for (const row of results) {
+          const chunkRow = this.db
+            .prepare('SELECT content, container_tag FROM chunks WHERE id = ?')
+            .get(row.id) as { content: string; container_tag: string } | undefined;
+
+          if (chunkRow) {
+            chunks.push({
+              id: row.id,
+              content: chunkRow.content,
+              similarity: 1 - (row._distance || 0),
+              containerTag: chunkRow.container_tag,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[LOCAL-KNOWLEDGE] LanceDB vector search failed:', err);
+      }
     }
 
-    // Fetch entities for matching container tags
+    // Fetch entities and edges from Neo4j
     let entities: Array<{
       id: string;
       name: string;
@@ -817,23 +841,47 @@ export class LocalKnowledgeService {
       weight: number;
     }> = [];
 
-    if (input.containerTags?.length) {
-      const placeholders = input.containerTags.map(() => '?').join(',');
+    if (this.neo4jConnected && this.neo4jDriver && input.containerTags?.length) {
+      const session = this.neo4jDriver.session();
+      try {
+        // Fetch nodes
+        const nodeResult = await session.run(
+          `MATCH (n:KnowledgeNode)
+           WHERE n.containerTag IN $containerTags
+           RETURN n.id AS id, n.name AS name, n.entityType AS entityType,
+                  n.description AS description, n.confidence AS confidence
+           LIMIT $limit`,
+          { containerTags: input.containerTags, limit: entityLimit }
+        );
 
-      entities = this.db
-        .prepare(
-          `SELECT id, name, entity_type as entityType, description, confidence
-           FROM nodes WHERE container_tag IN (${placeholders})
-           LIMIT ?`
-        )
-        .all(...input.containerTags, entityLimit) as typeof entities;
+        entities = nodeResult.records.map((r: any) => ({
+          id: r.get('id'),
+          name: r.get('name'),
+          entityType: r.get('entityType') || '',
+          description: r.get('description') || '',
+          confidence: r.get('confidence') || 1.0,
+        }));
 
-      edges = this.db
-        .prepare(
-          `SELECT source_node_id as sourceId, target_node_id as targetId, rel_type as relType, weight
-           FROM relations WHERE container_tag IN (${placeholders})`
-        )
-        .all(...input.containerTags) as typeof edges;
+        // Fetch edges
+        const edgeResult = await session.run(
+          `MATCH (a:KnowledgeNode)-[r]->(b:KnowledgeNode)
+           WHERE a.containerTag IN $containerTags
+           RETURN a.id AS sourceId, b.id AS targetId, type(r) AS relType,
+                  COALESCE(r.weight, 1.0) AS weight`,
+          { containerTags: input.containerTags }
+        );
+
+        edges = edgeResult.records.map((r: any) => ({
+          sourceId: r.get('sourceId'),
+          targetId: r.get('targetId'),
+          relType: r.get('relType'),
+          weight: typeof r.get('weight') === 'object' ? r.get('weight').toNumber() : r.get('weight'),
+        }));
+      } catch (err) {
+        console.error('[LOCAL-KNOWLEDGE] Neo4j query failed:', err);
+      } finally {
+        await session.close();
+      }
     }
 
     // Build context string
@@ -863,35 +911,57 @@ export class LocalKnowledgeService {
   // Cleanup helpers
   // -------------------------------------------------------------------------
 
-  deleteDocumentKnowledge(documentId: string): void {
+  async deleteDocumentKnowledge(documentId: string): Promise<void> {
     // Get chunk IDs for this document
     const chunkIds = this.db
       .prepare('SELECT id FROM chunks WHERE document_id = ?')
       .all(documentId) as Array<{ id: string }>;
 
-    // Delete embeddings
-    for (const { id } of chunkIds) {
-      this.db.prepare('DELETE FROM chunk_embeddings WHERE chunk_id = ?').run(id);
+    // Delete embeddings from LanceDB
+    if (this.lanceReady && this.lanceTable && chunkIds.length > 0) {
+      try {
+        for (const { id } of chunkIds) {
+          await this.lanceTable.delete(`id = '${id.replace(/'/g, "''")}'`);
+        }
+      } catch (err) {
+        console.error('[LOCAL-KNOWLEDGE] Failed to delete embeddings from LanceDB:', err);
+      }
     }
 
-    // Delete chunks
+    // Delete chunks from SQLite
     this.db.prepare('DELETE FROM chunks WHERE document_id = ?').run(documentId);
 
-    // Delete nodes and relations for document versions
-    const versionIds = this.db
-      .prepare('SELECT id FROM document_versions WHERE document_id = ?')
-      .all(documentId) as Array<{ id: string }>;
+    // Delete nodes and relations from Neo4j
+    if (this.neo4jConnected && this.neo4jDriver) {
+      const versionIds = this.db
+        .prepare('SELECT id FROM document_versions WHERE document_id = ?')
+        .all(documentId) as Array<{ id: string }>;
 
-    for (const { id } of versionIds) {
-      this.db.prepare('DELETE FROM relations WHERE document_version_id = ?').run(id);
-      this.db.prepare('DELETE FROM nodes WHERE document_version_id = ?').run(id);
+      if (versionIds.length > 0) {
+        const session = this.neo4jDriver.session();
+        try {
+          const ids = versionIds.map((v) => v.id);
+          await session.run(
+            `MATCH (n:KnowledgeNode)
+             WHERE n.documentVersionId IN $versionIds
+             DETACH DELETE n`,
+            { versionIds: ids }
+          );
+        } catch (err) {
+          console.error('[LOCAL-KNOWLEDGE] Failed to delete nodes from Neo4j:', err);
+        } finally {
+          await session.close();
+        }
+      }
     }
   }
 
-  softDeleteDocument(documentId: string): void {
-    this.deleteDocumentKnowledge(documentId);
+  async softDeleteDocument(documentId: string): Promise<void> {
+    await this.deleteDocumentKnowledge(documentId);
     const now = new Date().toISOString();
-    this.db.prepare('UPDATE documents SET is_deleted = 1, updated_at = ? WHERE id = ?').run(now, documentId);
+    this.db
+      .prepare('UPDATE documents SET is_deleted = 1, updated_at = ? WHERE id = ?')
+      .run(now, documentId);
   }
 
   // -------------------------------------------------------------------------
@@ -946,7 +1016,20 @@ export class LocalKnowledgeService {
   // Lifecycle
   // -------------------------------------------------------------------------
 
-  close(): void {
+  async close(): Promise<void> {
     this.db.close();
+
+    if (this.lanceTable) {
+      this.lanceTable = null;
+    }
+    if (this.lanceConn) {
+      this.lanceConn = null;
+    }
+
+    if (this.neo4jDriver) {
+      await this.neo4jDriver.close();
+      this.neo4jDriver = null;
+      this.neo4jConnected = false;
+    }
   }
 }
