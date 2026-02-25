@@ -15,7 +15,7 @@ interface ProjectAnalysis {
   structure: string; // Tree-like structure of the project
 }
 
-/* eslint-disable no-console */
+
 /**
  * Analyzes the existing UI directory to determine if it exists and what's in it
  */
@@ -87,9 +87,8 @@ async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalys
     return analysis;
   }
 }
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
+
 export async function generateUI(
   uiSpec: UISpec,
   outputBaseDir: string,
@@ -451,7 +450,7 @@ export async function generateUI(
     throw error;
   }
 }
-/* eslint-enable no-console */
+
 
 /**
  * Count all files (recursively) in the generated project directory
@@ -482,7 +481,7 @@ async function countGeneratedFiles(projectDir: string): Promise<number> {
   return count;
 }
 
-/* eslint-disable no-console */
+
 async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
@@ -567,7 +566,7 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
     console.log(chalk.gray('     git push'));
   }
 }
-/* eslint-enable no-console */
+
 
 function createGenerationPrompt(
   uiSpec: UISpec,

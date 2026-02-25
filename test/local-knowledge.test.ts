@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-non-null-assertion */
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';

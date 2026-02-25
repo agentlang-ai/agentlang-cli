@@ -103,11 +103,10 @@ export class FileService {
       if (status.staged.length > 0) {
         const timestamp = new Date().toLocaleString();
         await git.commit(`${message} at ${timestamp}`);
-        // eslint-disable-next-line no-console
+
         console.log(`✅ Committed: ${message}`);
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.warn('Failed to commit changes:', error);
       // Don't throw - file was saved, commit is optional
     }
@@ -159,7 +158,6 @@ export class FileService {
 
       return branch || 'main';
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.warn('Failed to get current branch:', error);
       return 'main'; // Default to main if git command fails
     }
@@ -189,7 +187,7 @@ export class FileService {
               });
             } catch (globalConfigError) {
               // Ignore config errors, continue with npm install
-              // eslint-disable-next-line no-console
+
               console.warn('Failed to set git config:', globalConfigError);
             }
           }

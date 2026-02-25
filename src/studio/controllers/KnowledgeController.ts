@@ -1,3 +1,4 @@
+
 import { Request, Response } from 'express';
 import { LocalKnowledgeService } from '../services/LocalKnowledgeService.js';
 
@@ -23,7 +24,9 @@ export class KnowledgeController {
       const { query, queryText, containerTags, containerTagsJson, chunkLimit, entityLimit } = req.body;
 
       const resolvedQuery = query || queryText || '';
-      const resolvedTags = containerTags || (containerTagsJson ? JSON.parse(containerTagsJson) : []);
+      const resolvedTags: string[] =
+        (containerTags as string[] | undefined) ||
+        (containerTagsJson ? (JSON.parse(containerTagsJson as string) as string[]) : []);
 
       const result = await service.query({
         queryText: resolvedQuery,

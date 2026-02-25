@@ -49,7 +49,6 @@ export class FileUploadService {
    * Upload and store a file
    */
   async uploadFile(file: UploadedFile): Promise<FileUploadResult> {
-    // eslint-disable-next-line no-console
     console.log(`Uploading file: ${file.originalname} (${file.size} bytes, ${file.mimetype})`);
 
     // Generate masked filename
@@ -58,7 +57,7 @@ export class FileUploadService {
 
     // Save file to disk
     await fs.writeFile(storagePath, file.buffer);
-    // eslint-disable-next-line no-console
+
     console.log(`Saved file to: ${storagePath}`);
 
     // Save metadata to database
@@ -70,7 +69,7 @@ export class FileUploadService {
       storagePath,
       uploadedAt: new Date().toISOString(),
     });
-    // eslint-disable-next-line no-console
+
     console.log(`Saved document metadata with ID: ${doc.id}`);
 
     return {

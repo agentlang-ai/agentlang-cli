@@ -334,7 +334,6 @@ export const generateSwaggerDoc = async (
   fileName: string,
   options?: { outputHtml?: boolean; outputPostman?: boolean },
 ): Promise<void> => {
-  // eslint-disable-next-line no-console
   console.log('Generating documentation...');
   const docDir = path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
 
@@ -369,15 +368,14 @@ async function generateHtmlDocumentation(
   const yamlContent = await fs.readFile(`${docDir}/docs/openapi.yml`, 'utf8');
   const jsonContent = JSON.stringify(yaml.parse(yamlContent), null, 2);
   await fs.writeFile(`${docDir}/docs/openapi.json`, jsonContent, { encoding: 'utf-8' });
-  // eslint-disable-next-line no-console
+
   console.log('OpenAPI JSON generated: docs/openapi.json');
 
   try {
     execSync(`redocly build-docs ${docDir}/docs/openapi.json -o ${outputPath}`);
-    // eslint-disable-next-line no-console
+
     console.log('HTML documentation generated: docs/index.html');
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error('Failed to generate HTML documentation:', error);
   }
 }
@@ -394,13 +392,13 @@ async function generatePostmanCollection(
   Converter.convert({ type: 'string', data: openapiData }, {}, (err: any, conversionResult: any) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!conversionResult.result) {
-      // eslint-disable-next-line no-console, @typescript-eslint/no-unsafe-member-access
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       console.log('Could not convert', conversionResult.reason);
     } else {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const collection = conversionResult.output?.[0]?.data;
       void fs.writeFile(`${docDir}/docs/postman.json`, JSON.stringify(collection, null, 2), { encoding: 'utf-8' });
-      // eslint-disable-next-line no-console
+
       console.log('Postman collection generated: docs/postman.json');
     }
   });

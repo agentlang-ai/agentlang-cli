@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import path from 'path';
 import { existsSync } from 'fs';
 import { rm } from 'fs/promises';

@@ -10,7 +10,6 @@ export const generateApp = async (prompt: string, appName: string): Promise<stri
   await runPreInitTasks();
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    // eslint-disable-next-line no-console
     console.error('Environment variable ANTHROPIC_API_KEY must be set');
     throw new Error('ANTHROPIC_API_KEY environment variable is required for AI-based app generation');
   }
@@ -46,9 +45,8 @@ export const generateApp = async (prompt: string, appName: string): Promise<stri
     if (generatedSchema['code']) return generatedSchema['code'] as string;
     else throw new Error('Failed to generate app');
   } catch (error: unknown) {
-    // eslint-disable-next-line no-console
     console.error('Error generating app:', error);
-    // eslint-disable-next-line no-console
+
     console.log('Something went wrong generating the app, try again with a different prompt');
     process.exit(1);
   }

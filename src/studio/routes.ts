@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+
 import { Router } from 'express';
 import path from 'path';
 import multer from 'multer';
@@ -7,6 +7,7 @@ import { FileService } from './services/FileService.js';
 import { FileController } from './controllers/FileController.js';
 import { DocumentController } from './controllers/DocumentController.js';
 import { KnowledgeController } from './controllers/KnowledgeController.js';
+import { createAgentlangCompatRoutes } from './controllers/AgentlangCompatController.js';
 
 export function createRoutes(studioServer: StudioServer, fileService: FileService): Router {
   const router = Router();
@@ -232,6 +233,20 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
   router.get('/api/knowledge/topics/:topicId/documents', knowledgeController.listDocuments);
   router.delete('/api/knowledge/documents/:documentId', knowledgeController.deleteDocument);
   router.get('/api/knowledge/jobs', knowledgeController.listJobs);
+
+  // Agentlang-entity-compatible routes for Studio's Knowledge page
+  router.use('/knowledge.core', createAgentlangCompatRoutes());
+
+  // OAuth stub routes for local mode
+  router.get('/agentlang/oauth/authorize-url', (_req, res) => {
+    res.status(501).json({ error: 'OAuth not available in local mode' });
+  });
+  router.post('/agentlang/oauth/exchange', (_req, res) => {
+    res.status(501).json({ error: 'OAuth not available in local mode' });
+  });
+  router.get('/agentlang/oauth/access-token', (_req, res) => {
+    res.status(501).json({ error: 'OAuth not available in local mode' });
+  });
 
   return router;
 }
