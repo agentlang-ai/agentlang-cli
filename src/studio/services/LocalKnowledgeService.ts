@@ -75,20 +75,20 @@ export interface KnowledgeRelation {
 }
 
 export interface KnowledgeQueryResult {
-  chunks: Array<{ id: string; content: string; similarity: number; containerTag: string }>;
-  entities: Array<{
+  chunks: { id: string; content: string; similarity: number; containerTag: string }[];
+  entities: {
     id: string;
     name: string;
     entityType: string;
     description: string;
     confidence: number;
-  }>;
-  edges: Array<{
+  }[];
+  edges: {
     sourceId: string;
     targetId: string;
     relType: string;
     weight: number;
-  }>;
+  }[];
   contextString: string;
 }
 
@@ -129,18 +129,14 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
     input: texts,
   });
 
-  return response.data.map((d) => d.embedding);
+  return response.data.map(d => d.embedding);
 }
 
 /**
  * Extract text content from a file buffer based on its file type.
  * Supports PDF, DOCX, HTML, JSON, and plain text.
  */
-async function extractText(
-  fileBuffer: Buffer,
-  fileType: string,
-  fileName: string
-): Promise<string> {
+async function extractText(fileBuffer: Buffer, fileType: string, fileName: string): Promise<string> {
   const ext = (fileName || '').split('.').pop()?.toLowerCase() ?? '';
 
   // PDF extraction
@@ -151,9 +147,7 @@ async function extractText(
       const result = await pdfParse(fileBuffer);
       return (result.text || '').trim();
     } catch (_err) {
-      console.warn(
-        `[LOCAL-KNOWLEDGE] PDF extraction failed for ${fileName}, falling back to raw text`
-      );
+      console.warn(`[LOCAL-KNOWLEDGE] PDF extraction failed for ${fileName}, falling back to raw text`);
       return fileBuffer.toString('utf-8');
     }
   }
@@ -165,9 +159,7 @@ async function extractText(
       const result = await mammoth.extractRawText({ buffer: fileBuffer });
       return (result.value || '').trim();
     } catch (_err) {
-      console.warn(
-        `[LOCAL-KNOWLEDGE] DOCX extraction failed for ${fileName}, falling back to raw text`
-      );
+      console.warn(`[LOCAL-KNOWLEDGE] DOCX extraction failed for ${fileName}, falling back to raw text`);
       return fileBuffer.toString('utf-8');
     }
   }
@@ -180,9 +172,7 @@ async function extractText(
       $('script, style, noscript').remove();
       return ($('body').text() || $.root().text() || '').replace(/\s+/g, ' ').trim();
     } catch (_err) {
-      console.warn(
-        `[LOCAL-KNOWLEDGE] HTML extraction failed for ${fileName}, falling back to raw text`
-      );
+      console.warn(`[LOCAL-KNOWLEDGE] HTML extraction failed for ${fileName}, falling back to raw text`);
       return fileBuffer.toString('utf-8');
     }
   }
@@ -350,11 +340,7 @@ export class LocalKnowledgeService {
       } else {
         const schema = new Schema([
           new Field('id', new Utf8(), false),
-          new Field(
-            'embedding',
-            new FixedSizeList(EMBEDDING_DIMENSIONS, new Field('item', new Float32())),
-            false
-          ),
+          new Field('embedding', new FixedSizeList(EMBEDDING_DIMENSIONS, new Field('item', new Float32())), false),
           new Field('containerTag', new Utf8(), true),
           new Field('chunkIndex', new Int32(), true),
         ]);
@@ -389,37 +375,166 @@ export class LocalKnowledgeService {
   }
 
   // -------------------------------------------------------------------------
+  // Config Management
+  // -------------------------------------------------------------------------
+
+  /**
+   * Update config.al to enable knowledge graph for the app
+   */
+  private async updateConfigForKnowledgeGraph(appId: string): Promise<void> {
+    try {
+      // Find the project root (look for config.al)
+      const projectRoot = this.findProjectRoot();
+      if (!projectRoot) {
+        console.warn('[LOCAL-KNOWLEDGE] Could not find project root for config update');
+        return;
+      }
+
+      const configPath = path.join(projectRoot, 'config.al');
+
+      // Read existing config or create new one
+      let config: any = {};
+      if (await fs.pathExists(configPath)) {
+        try {
+          const configContent = await fs.readFile(configPath, 'utf-8');
+          config = JSON.parse(configContent) || {};
+        } catch (parseErr) {
+          console.warn('[LOCAL-KNOWLEDGE] Failed to parse existing config.al, creating new one');
+        }
+      }
+
+      // Check if knowledgeGraph section needs updating
+      const needsUpdate =
+        !config.knowledgeGraph || !config.knowledgeGraph.serviceUrl || config.knowledgeGraph.serviceUrl === '';
+
+      if (needsUpdate) {
+        // Add or update knowledgeGraph section
+        config.knowledgeGraph = {
+          ...config.knowledgeGraph,
+          serviceUrl: 'http://localhost:4000',
+          enabled: true,
+        };
+
+        // Write back the updated config
+        await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8');
+        console.log(`[LOCAL-KNOWLEDGE] Updated config.al for knowledge graph (appId: ${appId})`);
+      } else {
+        console.log(`[LOCAL-KNOWLEDGE] Knowledge graph already configured in config.al (appId: ${appId})`);
+      }
+    } catch (err) {
+      // Don't throw - config update should not break topic creation
+      console.warn('[LOCAL-KNOWLEDGE] Failed to update config.al:', err);
+    }
+  }
+
+  /**
+   * Find the project root directory by looking for config.al
+   */
+  private findProjectRoot(): string | null {
+    let currentDir = process.cwd();
+    const maxDepth = 10;
+    let depth = 0;
+
+    while (depth < maxDepth) {
+      const configPath = path.join(currentDir, 'config.al');
+      if (fs.pathExistsSync(configPath)) {
+        return currentDir;
+      }
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) break; // Reached filesystem root
+      currentDir = parentDir;
+      depth++;
+    }
+
+    return null;
+  }
+
+  // -------------------------------------------------------------------------
   // Topics
   // -------------------------------------------------------------------------
 
   createTopic(input: {
-    tenantId: string;
-    appId: string;
+    tenantId?: string;
+    appId?: string;
     name: string;
     description?: string;
+    documentTitles?: string[];
   }): KnowledgeTopic {
     const id = randomUUID();
     const now = new Date().toISOString();
     const containerTag = `${input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${id.slice(0, 8)}`;
 
+    // Use defaults for agent-initiated topic creation
+    const tenantId = input.tenantId || 'local';
+    const appId = input.appId || this.getAppIdFromPath();
+
     this.db
       .prepare(
         `INSERT INTO topics (id, tenant_id, app_id, name, description, container_tag, document_count, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, input.tenantId, input.appId, input.name, input.description || '', containerTag, now, now);
+      .run(
+        id,
+        tenantId,
+        appId,
+        input.name,
+        input.description || '',
+        containerTag,
+        input.documentTitles?.length || 0,
+        now,
+        now,
+      );
+
+    // Associate documents if provided
+    if (input.documentTitles && input.documentTitles.length > 0) {
+      for (const docTitle of input.documentTitles) {
+        try {
+          // Find document by title
+          const doc = this.db
+            .prepare('SELECT id FROM documents WHERE title = ? AND app_id = ?')
+            .get(docTitle, appId) as { id: string } | undefined;
+
+          if (doc) {
+            // Create topic-document association
+            this.db
+              .prepare(
+                'INSERT INTO topic_documents (id, tenant_id, topic_id, document_id, added_by, added_at) VALUES (?, ?, ?, ?, ?, ?)',
+              )
+              .run(randomUUID(), tenantId, id, doc.id, 'system', now);
+          }
+        } catch (err) {
+          console.warn(`[LOCAL-KNOWLEDGE] Failed to associate document ${docTitle}:`, err);
+        }
+      }
+    }
+
+    // Auto-update config.al for knowledge graph
+    this.updateConfigForKnowledgeGraph(appId).catch(err => {
+      console.warn('[LOCAL-KNOWLEDGE] Failed to update config.al:', err);
+    });
 
     return {
       id,
-      tenantId: input.tenantId,
-      appId: input.appId,
+      tenantId,
+      appId,
       name: input.name,
       description: input.description || '',
       containerTag,
-      documentCount: 0,
+      documentCount: input.documentTitles?.length || 0,
       createdAt: now,
       updatedAt: now,
     };
+  }
+
+  /**
+   * Get app ID from project path
+   */
+  private getAppIdFromPath(): string {
+    const projectRoot = this.findProjectRoot();
+    if (projectRoot) {
+      return path.basename(projectRoot);
+    }
+    return 'default';
   }
 
   listTopics(tenantId: string, appId: string): KnowledgeTopic[] {
@@ -428,7 +543,7 @@ export class LocalKnowledgeService {
         `SELECT id, tenant_id as tenantId, app_id as appId, name, description,
                 container_tag as containerTag, document_count as documentCount,
                 created_at as createdAt, updated_at as updatedAt
-         FROM topics WHERE tenant_id = ? AND app_id = ? ORDER BY created_at DESC`
+         FROM topics WHERE tenant_id = ? AND app_id = ? ORDER BY created_at DESC`,
       )
       .all(tenantId, appId) as KnowledgeTopic[];
   }
@@ -440,16 +555,14 @@ export class LocalKnowledgeService {
           `SELECT id, tenant_id as tenantId, app_id as appId, name, description,
                   container_tag as containerTag, document_count as documentCount,
                   created_at as createdAt, updated_at as updatedAt
-           FROM topics WHERE id = ?`
+           FROM topics WHERE id = ?`,
         )
         .get(topicId) as KnowledgeTopic | undefined) || null
     );
   }
 
   async deleteTopic(topicId: string): Promise<void> {
-    const docs = this.db
-      .prepare('SELECT id FROM documents WHERE topic_id = ?')
-      .all(topicId) as Array<{ id: string }>;
+    const docs = this.db.prepare('SELECT id FROM documents WHERE topic_id = ?').all(topicId) as { id: string }[];
 
     for (const doc of docs) {
       await this.deleteDocumentKnowledge(doc.id);
@@ -478,9 +591,7 @@ export class LocalKnowledgeService {
     if (!topicId && input.topicName) {
       const existing = this.db
         .prepare('SELECT id, container_tag FROM topics WHERE tenant_id = ? AND app_id = ? AND name = ?')
-        .get(input.tenantId, input.appId, input.topicName) as
-        | { id: string; container_tag: string }
-        | undefined;
+        .get(input.tenantId, input.appId, input.topicName) as { id: string; container_tag: string } | undefined;
 
       if (existing) {
         topicId = existing.id;
@@ -516,7 +627,7 @@ export class LocalKnowledgeService {
     fs.writeFileSync(filePath, fileBuffer);
 
     // Create or find document
-    let docRow = this.db
+    const docRow = this.db
       .prepare('SELECT id, current_version FROM documents WHERE topic_id = ? AND title = ? AND is_deleted = 0')
       .get(topicId, input.title) as { id: string; current_version: number } | undefined;
 
@@ -535,7 +646,7 @@ export class LocalKnowledgeService {
       this.db
         .prepare(
           `INSERT INTO documents (id, tenant_id, app_id, topic_id, title, file_name, file_type, size_bytes, current_version, is_deleted, storage_key, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
         )
         .run(
           documentId,
@@ -549,7 +660,7 @@ export class LocalKnowledgeService {
           version,
           storageKey,
           now,
-          now
+          now,
         );
 
       // Increment topic document count
@@ -566,7 +677,7 @@ export class LocalKnowledgeService {
     this.db
       .prepare(
         `INSERT INTO document_versions (id, document_id, version, size_bytes, content_hash, storage_key, mime_type, original_file_name, is_current, ingest_status, uploaded_by, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'processing', ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 'processing', ?, ?)`,
       )
       .run(
         documentVersionId,
@@ -578,7 +689,7 @@ export class LocalKnowledgeService {
         input.fileType,
         input.fileName,
         input.uploadedBy || '',
-        now
+        now,
       );
 
     // Run ingestion synchronously (local mode — no queue needed)
@@ -588,20 +699,16 @@ export class LocalKnowledgeService {
         documentVersionId,
         documentId,
         topicId,
-        containerTag!,
+        containerTag,
         input.tenantId,
         input.appId,
-        textContent
+        textContent,
       );
 
-      this.db
-        .prepare("UPDATE document_versions SET ingest_status = 'completed' WHERE id = ?")
-        .run(documentVersionId);
+      this.db.prepare("UPDATE document_versions SET ingest_status = 'completed' WHERE id = ?").run(documentVersionId);
     } catch (err) {
       console.error(`[LOCAL-KNOWLEDGE] Ingestion failed for version ${documentVersionId}:`, err);
-      this.db
-        .prepare("UPDATE document_versions SET ingest_status = 'failed' WHERE id = ?")
-        .run(documentVersionId);
+      this.db.prepare("UPDATE document_versions SET ingest_status = 'failed' WHERE id = ?").run(documentVersionId);
     }
 
     return { documentId, documentVersionId, topicId };
@@ -614,7 +721,7 @@ export class LocalKnowledgeService {
     containerTag: string,
     tenantId: string,
     appId: string,
-    textContent: string
+    textContent: string,
   ): Promise<void> {
     // Clean up previous chunks/nodes/relations for this document
     await this.deleteDocumentKnowledge(documentId);
@@ -629,7 +736,7 @@ export class LocalKnowledgeService {
     // Store chunk metadata in SQLite
     const insertChunk = this.db.prepare(
       `INSERT INTO chunks (id, tenant_id, app_id, topic_id, document_id, document_version_id, container_tag, chunk_index, content, embedding_model)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
 
     const chunkIds: string[] = [];
@@ -647,7 +754,7 @@ export class LocalKnowledgeService {
           containerTag,
           i,
           chunks[i],
-          EMBEDDING_MODEL
+          EMBEDDING_MODEL,
         );
       }
     });
@@ -677,7 +784,7 @@ export class LocalKnowledgeService {
     documentVersionId: string,
     containerTag: string,
     tenantId: string,
-    appId: string
+    appId: string,
   ): Promise<void> {
     const apiKey = process.env.AGENTLANG_OPENAI_KEY || process.env.OPENAI_API_KEY;
     if (!apiKey) return;
@@ -709,14 +816,13 @@ export class LocalKnowledgeService {
       if (!content) return;
 
       const parsed = JSON.parse(content);
-      const entities: Array<{ name: string; entityType: string; description: string }> =
-        parsed.entities || [];
-      const relationships: Array<{
+      const entities: { name: string; entityType: string; description: string }[] = parsed.entities || [];
+      const relationships: {
         source: string;
         target: string;
         relType: string;
         description: string;
-      }> = parsed.relationships || [];
+      }[] = parsed.relationships || [];
 
       // Upsert nodes in Neo4j
       const session = this.neo4jDriver.session();
@@ -740,7 +846,7 @@ export class LocalKnowledgeService {
               tenantId,
               appId,
               documentVersionId,
-            }
+            },
           );
         }
 
@@ -760,7 +866,7 @@ export class LocalKnowledgeService {
               source: rel.source,
               target: rel.target,
               documentVersionId,
-            }
+            },
           );
         }
       } finally {
@@ -789,17 +895,14 @@ export class LocalKnowledgeService {
     const [queryEmbedding] = await generateEmbeddings([input.queryText]);
 
     // Vector similarity search via LanceDB
-    let chunks: Array<{ id: string; content: string; similarity: number; containerTag: string }> =
-      [];
+    const chunks: { id: string; content: string; similarity: number; containerTag: string }[] = [];
 
     if (this.lanceReady && this.lanceTable) {
       try {
         let searchQuery = this.lanceTable.vectorSearch(queryEmbedding).limit(chunkLimit);
 
         if (input.containerTags?.length) {
-          const tagFilter = input.containerTags
-            .map((t) => `containerTag = '${t.replace(/'/g, "''")}'`)
-            .join(' OR ');
+          const tagFilter = input.containerTags.map(t => `containerTag = '${t.replace(/'/g, "''")}'`).join(' OR ');
           searchQuery = searchQuery.where(`(${tagFilter})`);
         }
 
@@ -807,9 +910,9 @@ export class LocalKnowledgeService {
 
         // Look up chunk content from SQLite metadata
         for (const row of results) {
-          const chunkRow = this.db
-            .prepare('SELECT content, container_tag FROM chunks WHERE id = ?')
-            .get(row.id) as { content: string; container_tag: string } | undefined;
+          const chunkRow = this.db.prepare('SELECT content, container_tag FROM chunks WHERE id = ?').get(row.id) as
+            | { content: string; container_tag: string }
+            | undefined;
 
           if (chunkRow) {
             chunks.push({
@@ -826,20 +929,20 @@ export class LocalKnowledgeService {
     }
 
     // Fetch entities and edges from Neo4j
-    let entities: Array<{
+    let entities: {
       id: string;
       name: string;
       entityType: string;
       description: string;
       confidence: number;
-    }> = [];
+    }[] = [];
 
-    let edges: Array<{
+    let edges: {
       sourceId: string;
       targetId: string;
       relType: string;
       weight: number;
-    }> = [];
+    }[] = [];
 
     if (this.neo4jConnected && this.neo4jDriver && input.containerTags?.length) {
       const session = this.neo4jDriver.session();
@@ -851,7 +954,7 @@ export class LocalKnowledgeService {
            RETURN n.id AS id, n.name AS name, n.entityType AS entityType,
                   n.description AS description, n.confidence AS confidence
            LIMIT $limit`,
-          { containerTags: input.containerTags, limit: entityLimit }
+          { containerTags: input.containerTags, limit: entityLimit },
         );
 
         entities = nodeResult.records.map((r: any) => ({
@@ -868,7 +971,7 @@ export class LocalKnowledgeService {
            WHERE a.containerTag IN $containerTags
            RETURN a.id AS sourceId, b.id AS targetId, type(r) AS relType,
                   COALESCE(r.weight, 1.0) AS weight`,
-          { containerTags: input.containerTags }
+          { containerTags: input.containerTags },
         );
 
         edges = edgeResult.records.map((r: any) => ({
@@ -913,9 +1016,9 @@ export class LocalKnowledgeService {
 
   async deleteDocumentKnowledge(documentId: string): Promise<void> {
     // Get chunk IDs for this document
-    const chunkIds = this.db
-      .prepare('SELECT id FROM chunks WHERE document_id = ?')
-      .all(documentId) as Array<{ id: string }>;
+    const chunkIds = this.db.prepare('SELECT id FROM chunks WHERE document_id = ?').all(documentId) as {
+      id: string;
+    }[];
 
     // Delete embeddings from LanceDB
     if (this.lanceReady && this.lanceTable && chunkIds.length > 0) {
@@ -935,17 +1038,17 @@ export class LocalKnowledgeService {
     if (this.neo4jConnected && this.neo4jDriver) {
       const versionIds = this.db
         .prepare('SELECT id FROM document_versions WHERE document_id = ?')
-        .all(documentId) as Array<{ id: string }>;
+        .all(documentId) as { id: string }[];
 
       if (versionIds.length > 0) {
         const session = this.neo4jDriver.session();
         try {
-          const ids = versionIds.map((v) => v.id);
+          const ids = versionIds.map(v => v.id);
           await session.run(
             `MATCH (n:KnowledgeNode)
              WHERE n.documentVersionId IN $versionIds
              DETACH DELETE n`,
-            { versionIds: ids }
+            { versionIds: ids },
           );
         } catch (err) {
           console.error('[LOCAL-KNOWLEDGE] Failed to delete nodes from Neo4j:', err);
@@ -959,9 +1062,7 @@ export class LocalKnowledgeService {
   async softDeleteDocument(documentId: string): Promise<void> {
     await this.deleteDocumentKnowledge(documentId);
     const now = new Date().toISOString();
-    this.db
-      .prepare('UPDATE documents SET is_deleted = 1, updated_at = ? WHERE id = ?')
-      .run(now, documentId);
+    this.db.prepare('UPDATE documents SET is_deleted = 1, updated_at = ? WHERE id = ?').run(now, documentId);
   }
 
   // -------------------------------------------------------------------------
@@ -976,7 +1077,7 @@ export class LocalKnowledgeService {
                 size_bytes as sizeBytes, current_version as currentVersion,
                 is_deleted as isDeleted, created_at as createdAt, updated_at as updatedAt
          FROM documents WHERE topic_id = ? AND is_deleted = 0
-         ORDER BY created_at DESC LIMIT ? OFFSET ?`
+         ORDER BY created_at DESC LIMIT ? OFFSET ?`,
       )
       .all(topicId, limit, offset) as KnowledgeDocument[];
   }
@@ -985,13 +1086,13 @@ export class LocalKnowledgeService {
   // Ingestion jobs (local mode returns completed immediately)
   // -------------------------------------------------------------------------
 
-  listIngestionJobs(containerTag: string): Array<{
+  listIngestionJobs(containerTag: string): {
     id: string;
     documentVersionId: string;
     status: string;
     progress: number;
     progressStage: string;
-  }> {
+  }[] {
     return this.db
       .prepare(
         `SELECT dv.id, dv.id as documentVersionId, dv.ingest_status as status,
@@ -1001,15 +1102,15 @@ export class LocalKnowledgeService {
          JOIN documents d ON d.id = dv.document_id
          JOIN topics t ON t.id = d.topic_id
          WHERE t.container_tag = ?
-         ORDER BY dv.created_at DESC`
+         ORDER BY dv.created_at DESC`,
       )
-      .all(containerTag) as Array<{
+      .all(containerTag) as {
       id: string;
       documentVersionId: string;
       status: string;
       progress: number;
       progressStage: string;
-    }>;
+    }[];
   }
 
   // -------------------------------------------------------------------------

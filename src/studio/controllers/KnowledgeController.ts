@@ -20,8 +20,7 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const { query, queryText, containerTags, containerTagsJson, chunkLimit, entityLimit } =
-        req.body;
+      const { query, queryText, containerTags, containerTagsJson, chunkLimit, entityLimit } = req.body;
 
       const resolvedQuery = query || queryText || '';
       const resolvedTags = containerTags || (containerTagsJson ? JSON.parse(containerTagsJson) : []);
@@ -49,8 +48,14 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const { tenantId, appId, name, description } = req.body;
-      const topic = service.createTopic({ tenantId, appId, name, description });
+      const { tenantId, appId, name, description, documentTitles } = req.body;
+      const topic = service.createTopic({
+        tenantId,
+        appId,
+        name,
+        description,
+        documentTitles,
+      });
 
       await service.close();
       res.json(topic);
@@ -88,10 +93,7 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const topicId =
-        typeof req.params.topicId === 'string'
-          ? req.params.topicId
-          : req.params.topicId?.[0] || '';
+      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
       await service.deleteTopic(topicId);
 
       await service.close();
@@ -110,21 +112,8 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const topicId =
-        typeof req.params.topicId === 'string'
-          ? req.params.topicId
-          : req.params.topicId?.[0] || '';
-      const {
-        tenantId,
-        appId,
-        topicName,
-        containerTag,
-        title,
-        fileName,
-        fileType,
-        content,
-        uploadedBy,
-      } = req.body;
+      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
+      const { tenantId, appId, topicName, containerTag, title, fileName, fileType, content, uploadedBy } = req.body;
 
       const result = await service.uploadDocumentVersion({
         tenantId,
@@ -155,18 +144,8 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const {
-        tenantId,
-        appId,
-        topicId,
-        topicName,
-        containerTag,
-        title,
-        fileName,
-        fileType,
-        content,
-        uploadedBy,
-      } = req.body;
+      const { tenantId, appId, topicId, topicName, containerTag, title, fileName, fileType, content, uploadedBy } =
+        req.body;
 
       const result = await service.uploadDocumentVersion({
         tenantId,
@@ -197,10 +176,7 @@ export class KnowledgeController {
       const appPath = req.headers['x-app-path'];
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
-      const topicId =
-        typeof req.params.topicId === 'string'
-          ? req.params.topicId
-          : req.params.topicId?.[0] || '';
+      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
       const limit = parseInt((req.query.limit as string) || '50', 10);
       const offset = parseInt((req.query.offset as string) || '0', 10);
 
@@ -223,9 +199,7 @@ export class KnowledgeController {
       const service = this.getService(typeof appPath === 'string' ? appPath : null);
 
       const documentId =
-        typeof req.params.documentId === 'string'
-          ? req.params.documentId
-          : req.params.documentId?.[0] || '';
+        typeof req.params.documentId === 'string' ? req.params.documentId : req.params.documentId?.[0] || '';
       await service.softDeleteDocument(documentId);
 
       await service.close();

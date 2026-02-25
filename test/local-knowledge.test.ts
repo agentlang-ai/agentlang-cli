@@ -23,7 +23,7 @@ describe('LocalKnowledgeService', () => {
   afterEach(async () => {
     await svc.close();
     // Small delay to let LanceDB release file locks
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 50));
     await rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   });
 
@@ -51,7 +51,7 @@ describe('LocalKnowledgeService', () => {
 
       const topics = svc.listTopics(TENANT, APP);
       expect(topics.length).toBe(2);
-      expect(topics.map((t) => t.name).sort()).toEqual(['Topic A', 'Topic B']);
+      expect(topics.map(t => t.name).sort()).toEqual(['Topic A', 'Topic B']);
     });
 
     test('deleteTopic removes topic and its documents', async () => {
@@ -74,7 +74,7 @@ describe('LocalKnowledgeService', () => {
     test('uploadDocumentVersion creates document, version, and chunks', async () => {
       const topic = svc.createTopic({ tenantId: TENANT, appId: APP, name: 'Upload Test' });
       const content = Buffer.from(
-        'Artificial intelligence is transforming software development. Machine learning models can now generate code.'
+        'Artificial intelligence is transforming software development. Machine learning models can now generate code.',
       ).toString('base64');
 
       const result = await svc.uploadDocumentVersion({
@@ -114,7 +114,7 @@ describe('LocalKnowledgeService', () => {
 
       expect(result.topicId).toBeTruthy();
       const topics = svc.listTopics(TENANT, APP);
-      expect(topics.some((t) => t.name === 'Auto-Created Topic')).toBe(true);
+      expect(topics.some(t => t.name === 'Auto-Created Topic')).toBe(true);
     });
 
     test('uploadDocumentVersion bumps version on re-upload', async () => {
@@ -158,7 +158,7 @@ describe('LocalKnowledgeService', () => {
           fileName: 'test.txt',
           fileType: 'text',
           content: Buffer.from('test').toString('base64'),
-        })
+        }),
       ).rejects.toThrow('topicId or topicName is required');
     });
   });
@@ -177,7 +177,7 @@ describe('LocalKnowledgeService', () => {
         fileName: 'knowledge.txt',
         fileType: 'text',
         content: Buffer.from(
-          'TypeScript is a typed superset of JavaScript that compiles to plain JavaScript.'
+          'TypeScript is a typed superset of JavaScript that compiles to plain JavaScript.',
         ).toString('base64'),
       });
 
@@ -308,7 +308,7 @@ describe('LocalKnowledgeService', () => {
 
       const docs = svc.listDocuments(topic.id);
       expect(docs.length).toBe(2);
-      expect(docs.map((d) => d.title).sort()).toEqual(['doc1.txt', 'doc2.txt']);
+      expect(docs.map(d => d.title).sort()).toEqual(['doc1.txt', 'doc2.txt']);
     });
 
     test('listDocuments respects limit and offset', async () => {

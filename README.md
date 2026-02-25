@@ -751,13 +751,14 @@ The CLI supports the following environment variables for configuration:
 
 Used by `agent studio` when knowledge graph features are enabled:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GRAPH_DB_URI` | `bolt://localhost:7687` | Neo4j Bolt connection URI |
-| `GRAPH_DB_USER` | `neo4j` | Neo4j username |
-| `GRAPH_DB_PASSWORD` | `password` | Neo4j password |
+| Variable            | Default                 | Description               |
+| ------------------- | ----------------------- | ------------------------- |
+| `GRAPH_DB_URI`      | `bolt://localhost:7687` | Neo4j Bolt connection URI |
+| `GRAPH_DB_USER`     | `neo4j`                 | Neo4j username            |
+| `GRAPH_DB_PASSWORD` | `password`              | Neo4j password            |
 
 Example:
+
 ```bash
 export GRAPH_DB_URI=bolt://localhost:7687
 export GRAPH_DB_USER=neo4j
@@ -767,25 +768,25 @@ agent studio
 
 ### AI/LLM Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `AGENTLANG_OPENAI_KEY` | - | OpenAI API key (falls back to `OPENAI_API_KEY`) |
-| `AGENTLANG_LLM_MODEL` | `gpt-4o-mini` | Default LLM model for knowledge extraction |
-| `AGENTLANG_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model for vector search |
-| `AGENTLANG_EMBEDDING_DIMENSIONS` | `1536` | Embedding vector dimensions |
+| Variable                         | Default                  | Description                                     |
+| -------------------------------- | ------------------------ | ----------------------------------------------- |
+| `AGENTLANG_OPENAI_KEY`           | -                        | OpenAI API key (falls back to `OPENAI_API_KEY`) |
+| `AGENTLANG_LLM_MODEL`            | `gpt-4o-mini`            | Default LLM model for knowledge extraction      |
+| `AGENTLANG_EMBEDDING_MODEL`      | `text-embedding-3-small` | Embedding model for vector search               |
+| `AGENTLANG_EMBEDDING_DIMENSIONS` | `1536`                   | Embedding vector dimensions                     |
 
 ### Knowledge Processing
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `KG_CHUNK_SIZE` | `1000` | Text chunk size for document processing |
-| `KG_CHUNK_OVERLAP` | `200` | Chunk overlap for document processing |
+| Variable           | Default | Description                             |
+| ------------------ | ------- | --------------------------------------- |
+| `KG_CHUNK_SIZE`    | `1000`  | Text chunk size for document processing |
+| `KG_CHUNK_OVERLAP` | `200`   | Chunk overlap for document processing   |
 
 ### Knowledge Service
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `KNOWLEDGE_SERVICE_URL` | - | URL of external knowledge service (when not using local) |
+| Variable                | Default | Description                                              |
+| ----------------------- | ------- | -------------------------------------------------------- |
+| `KNOWLEDGE_SERVICE_URL` | -       | URL of external knowledge service (when not using local) |
 
 ---
 

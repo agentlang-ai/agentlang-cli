@@ -210,8 +210,15 @@ export const initializeProject = async (
     },
     "monitoring": {
       "enabled": true
-    }
-  },
+    },
+    "knowledgeGraph": {
+      /**
+       * Knowledge Graph service configuration
+       * serviceUrl: URL for the knowledge graph service
+       * Uses KNOWLEDGE_SERVICE_URL env var if available, otherwise empty string
+       */
+      "serviceUrl": process.env.KNOWLEDGE_SERVICE_URL || ""
+    },
   "agentlang.ai": [
     {
       "agentlang.ai/LLM": {
