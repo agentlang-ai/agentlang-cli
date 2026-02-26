@@ -30,8 +30,8 @@ importers:
         specifier: ^2.15.0
         version: 2.16.0(@opentelemetry/api@1.9.0)(core-js@3.48.0)
       agentlang:
-        specifier: ^0.10.2
-        version: 0.10.2(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))
+        specifier: ^0.10.3
+        version: 0.10.3(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(apache-arrow@18.1.0)(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))
       apache-arrow:
         specifier: ^18.1.0
         version: 18.1.0
@@ -818,11 +818,30 @@ packages:
   '@kwsites/promise-deferred@1.1.1':
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
 
+  '@lancedb/lancedb-darwin-arm64@0.15.0':
+    resolution: {integrity: sha512-e6eiS1dUdSx3G3JXFEn5bk6I26GR7UM2QwQ1YMrTsg7IvGDqKmXc/s5j4jpJH0mzm7rwqh+OAILPIjr7DoUCDA==}
+    engines: {node: '>= 18'}
+    cpu: [arm64]
+    os: [darwin]
+
   '@lancedb/lancedb-darwin-arm64@0.26.2':
     resolution: {integrity: sha512-LAZ/v261eTlv44KoEm+AdqGnohS9IbVVVJkH9+8JTqwhe/k4j4Af8X9cD18tsaJAAtrGxxOCyIJ3wZTiBqrkCw==}
     engines: {node: '>= 18'}
     cpu: [arm64]
     os: [darwin]
+
+  '@lancedb/lancedb-darwin-x64@0.15.0':
+    resolution: {integrity: sha512-kEgigrqKf954egDbUdIp86tjVfFmTCTcq2Hydw/WLc+LI++46aeT2MsJv0CQpkNFMfh/T2G18FsDYLKH0zTaow==}
+    engines: {node: '>= 18'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@lancedb/lancedb-linux-arm64-gnu@0.15.0':
+    resolution: {integrity: sha512-TnpbBT9kaSYQqastJ+S5jm4S5ZYBx18X8PHQ1ic3yMIdPTjCWauj+owDovOpiXK9ucjmi/FnUp8bKNxGnlqmEg==}
+    engines: {node: '>= 18'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
 
   '@lancedb/lancedb-linux-arm64-gnu@0.26.2':
     resolution: {integrity: sha512-guHKm+zvuQB22dgyn6/sYZJvD6IL9lC24cl6ZuzVX/jYgag/gNLHT86HongrcBjgdjI6+YIGmdfD6b/iAKxn3Q==}
@@ -831,12 +850,26 @@ packages:
     os: [linux]
     libc: [glibc]
 
+  '@lancedb/lancedb-linux-arm64-musl@0.15.0':
+    resolution: {integrity: sha512-fe8LnC9YKbLgEJiLQhyVj+xz1d1RgWKs+rLSYPxaD3xQBo3kMC94Esq+xfrdNkSFvPgchRTvBA9jDYJjJL8rcg==}
+    engines: {node: '>= 18'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
   '@lancedb/lancedb-linux-arm64-musl@0.26.2':
     resolution: {integrity: sha512-pR6Hs/0iphItrJYYLf/yrqCC+scPcHpCGl6rHqcU2GHxo5RFpzlMzqW1DiXScGiBRuCcD9HIMec+kBsOgXv4GQ==}
     engines: {node: '>= 18'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
+
+  '@lancedb/lancedb-linux-x64-gnu@0.15.0':
+    resolution: {integrity: sha512-0lKEc3M06ax3RozBbxHuNN9qWqhJUiKDnRC3ttsbmo4VrOUBvAO3fKoaRkjZhAA8q4+EdhZnCaQZezsk60f7Ag==}
+    engines: {node: '>= 18'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
 
   '@lancedb/lancedb-linux-x64-gnu@0.26.2':
     resolution: {integrity: sha512-u4UUSPwd2YecgGqWjh9W0MHKgsVwB2Ch2ROpF8AY+IA7kpGsbB18R1/t7v2B0q7pahRy20dgsaku5LH1zuzMRQ==}
@@ -845,6 +878,13 @@ packages:
     os: [linux]
     libc: [glibc]
 
+  '@lancedb/lancedb-linux-x64-musl@0.15.0':
+    resolution: {integrity: sha512-ls+ikV7vWyVnqVT7bMmuqfGCwVR5JzPIfJ5iZ4rkjU4iTIQRpY7u/cTe9rGKt/+psliji8x6PPZHpfdGXHmleQ==}
+    engines: {node: '>= 18'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
   '@lancedb/lancedb-linux-x64-musl@0.26.2':
     resolution: {integrity: sha512-XIS4qkVfGlzmsUPqAG2iKt8ykuz28GfemGC0ijXwu04kC1pYiCFzTpB3UIZjm5oM7OTync1aQ3mGTj1oCciSPA==}
     engines: {node: '>= 18'}
@@ -852,10 +892,22 @@ packages:
     os: [linux]
     libc: [musl]
 
+  '@lancedb/lancedb-win32-arm64-msvc@0.15.0':
+    resolution: {integrity: sha512-C30A+nDaJ4jhjN76hRcp28Eq+G48SR9wO3i1zGm0ZAEcRV1t9O1fAp6g18IPT65Qyu/hXJBgBdVHtent+qg9Ng==}
+    engines: {node: '>= 18'}
+    cpu: [arm64]
+    os: [win32]
+
   '@lancedb/lancedb-win32-arm64-msvc@0.26.2':
     resolution: {integrity: sha512-//tZDPitm2PxNvalHP+m+Pf6VvFAeQgcht1+HJnutjH4gp6xYW6ynQlWWFDBmz9WRkUT+mXu2O4FUIhbdNaJSQ==}
     engines: {node: '>= 18'}
     cpu: [arm64]
+    os: [win32]
+
+  '@lancedb/lancedb-win32-x64-msvc@0.15.0':
+    resolution: {integrity: sha512-amXzIAxqrHyp+c9TpIDI8ze1uCqWC6HXQIoXkoMQrBXoUUo8tJORH2yGAsa3TSgjZDDjg0HPA33dYLhOLk1m8g==}
+    engines: {node: '>= 18'}
+    cpu: [x64]
     os: [win32]
 
   '@lancedb/lancedb-win32-x64-msvc@0.26.2':
@@ -863,6 +915,14 @@ packages:
     engines: {node: '>= 18'}
     cpu: [x64]
     os: [win32]
+
+  '@lancedb/lancedb@0.15.0':
+    resolution: {integrity: sha512-qm3GXLA17/nFGUwrOEuFNW0Qg2gvCtp+yAs6qoCM6vftIreqzp8d4Hio6eG/YojS9XqPnR2q+zIeIFy12Ywvxg==}
+    engines: {node: '>= 18'}
+    cpu: [x64, arm64]
+    os: [darwin, linux, win32]
+    peerDependencies:
+      apache-arrow: '>=15.0.0 <=18.1.0'
 
   '@lancedb/lancedb@0.26.2':
     resolution: {integrity: sha512-umk4WMCTwJntLquwvUbpqE+TXREolcQVL9MHcxr8EhRjsha88+ATJ4QuS/hpyiE1CG3R/XcgrMgJAGkziPC/gA==}
@@ -1696,8 +1756,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  agentlang@0.10.2:
-    resolution: {integrity: sha512-SFMzR4p9foetifdqhwZhmoMr7k8kDe/4bUi1XNO1wFfWMp+o0I494TVRpZATCrZyZuqZFfB2iY8Wpzcr0Xad4g==}
+  agentlang@0.10.3:
+    resolution: {integrity: sha512-397qtVMwcMFAlSm+Vhym/jxuyeP4o5/FugMMQrrR6i3m9KGdw8eAmUYxLFnv0/s/L1C9/33gOMdjXedMDTq6GQ==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -3664,34 +3724,6 @@ packages:
   sql.js@1.13.0:
     resolution: {integrity: sha512-RJbVP1HRDlUUXahJ7VMTcu9Rm1Nzw+EBpoPr94vnbD4LwR715F3CcxE2G2k45PewcaZ57pjetYa+LoSJLAASgA==}
 
-  sqlite-vec-darwin-arm64@0.1.7-alpha.2:
-    resolution: {integrity: sha512-raIATOqFYkeCHhb/t3r7W7Cf2lVYdf4J3ogJ6GFc8PQEgHCPEsi+bYnm2JT84MzLfTlSTIdxr4/NKv+zF7oLPw==}
-    cpu: [arm64]
-    os: [darwin]
-
-  sqlite-vec-darwin-x64@0.1.7-alpha.2:
-    resolution: {integrity: sha512-jeZEELsQjjRsVojsvU5iKxOvkaVuE+JYC8Y4Ma8U45aAERrDYmqZoHvgSG7cg1PXL3bMlumFTAmHynf1y4pOzA==}
-    cpu: [x64]
-    os: [darwin]
-
-  sqlite-vec-linux-arm64@0.1.7-alpha.2:
-    resolution: {integrity: sha512-6Spj4Nfi7tG13jsUG+W7jnT0bCTWbyPImu2M8nWp20fNrd1SZ4g3CSlDAK8GBdavX7wRlbBHCZ+BDa++rbDewA==}
-    cpu: [arm64]
-    os: [linux]
-
-  sqlite-vec-linux-x64@0.1.7-alpha.2:
-    resolution: {integrity: sha512-IcgrbHaDccTVhXDf8Orwdc2+hgDLAFORl6OBUhcvlmwswwBP1hqBTSEhovClG4NItwTOBNgpwOoQ7Qp3VDPWLg==}
-    cpu: [x64]
-    os: [linux]
-
-  sqlite-vec-windows-x64@0.1.7-alpha.2:
-    resolution: {integrity: sha512-TRP6hTjAcwvQ6xpCZvjP00pdlda8J38ArFy1lMYhtQWXiIBmWnhMaMbq4kaeCYwvTTddfidatRS+TJrwIKB/oQ==}
-    cpu: [x64]
-    os: [win32]
-
-  sqlite-vec@0.1.7-alpha.2:
-    resolution: {integrity: sha512-rNgRCv+4V4Ed3yc33Qr+nNmjhtrMnnHzXfLVPeGb28Dx5mmDL3Ngw/Wk8vhCGjj76+oC6gnkmMG8y73BZWGBwQ==}
-
   ssf@0.11.2:
     resolution: {integrity: sha512-+idbmIXoYET47hH+d7dfm2epdOMUDjqcB4648sTZ+t2JwoyBFL/insLfB/racrDmsKB3diwsDA696pZMieAC5g==}
     engines: {node: '>=0.8'}
@@ -5369,26 +5401,64 @@ snapshots:
 
   '@kwsites/promise-deferred@1.1.1': {}
 
+  '@lancedb/lancedb-darwin-arm64@0.15.0':
+    optional: true
+
   '@lancedb/lancedb-darwin-arm64@0.26.2':
+    optional: true
+
+  '@lancedb/lancedb-darwin-x64@0.15.0':
+    optional: true
+
+  '@lancedb/lancedb-linux-arm64-gnu@0.15.0':
     optional: true
 
   '@lancedb/lancedb-linux-arm64-gnu@0.26.2':
     optional: true
 
+  '@lancedb/lancedb-linux-arm64-musl@0.15.0':
+    optional: true
+
   '@lancedb/lancedb-linux-arm64-musl@0.26.2':
+    optional: true
+
+  '@lancedb/lancedb-linux-x64-gnu@0.15.0':
     optional: true
 
   '@lancedb/lancedb-linux-x64-gnu@0.26.2':
     optional: true
 
+  '@lancedb/lancedb-linux-x64-musl@0.15.0':
+    optional: true
+
   '@lancedb/lancedb-linux-x64-musl@0.26.2':
+    optional: true
+
+  '@lancedb/lancedb-win32-arm64-msvc@0.15.0':
     optional: true
 
   '@lancedb/lancedb-win32-arm64-msvc@0.26.2':
     optional: true
 
+  '@lancedb/lancedb-win32-x64-msvc@0.15.0':
+    optional: true
+
   '@lancedb/lancedb-win32-x64-msvc@0.26.2':
     optional: true
+
+  '@lancedb/lancedb@0.15.0(apache-arrow@18.1.0)':
+    dependencies:
+      apache-arrow: 18.1.0
+      reflect-metadata: 0.2.2
+    optionalDependencies:
+      '@lancedb/lancedb-darwin-arm64': 0.15.0
+      '@lancedb/lancedb-darwin-x64': 0.15.0
+      '@lancedb/lancedb-linux-arm64-gnu': 0.15.0
+      '@lancedb/lancedb-linux-arm64-musl': 0.15.0
+      '@lancedb/lancedb-linux-x64-gnu': 0.15.0
+      '@lancedb/lancedb-linux-x64-musl': 0.15.0
+      '@lancedb/lancedb-win32-arm64-msvc': 0.15.0
+      '@lancedb/lancedb-win32-x64-msvc': 0.15.0
 
   '@lancedb/lancedb@0.26.2(apache-arrow@18.1.0)':
     dependencies:
@@ -6404,13 +6474,14 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  agentlang@0.10.2(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3)):
+  agentlang@0.10.3(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(apache-arrow@18.1.0)(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3)):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.984.0
       '@aws-sdk/client-cognito-identity-provider': 3.984.0
       '@aws-sdk/client-s3': 3.986.0
       '@aws-sdk/credential-providers': 3.984.0
       '@isomorphic-git/lightning-fs': 4.6.2
+      '@lancedb/lancedb': 0.15.0(apache-arrow@18.1.0)
       '@langchain/anthropic': 1.3.15(@langchain/core@1.1.19(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@6.18.0(zod@4.3.6)))
       '@langchain/core': 1.1.19(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@6.18.0(zod@4.3.6))
       '@langchain/openai': 1.2.5(@langchain/core@1.1.19(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(openai@6.18.0(zod@4.3.6)))
@@ -6437,7 +6508,6 @@ snapshots:
       pgvector: 0.2.1
       reflect-metadata: 0.2.2
       sql.js: 1.13.0
-      sqlite-vec: 0.1.7-alpha.2
       typeorm: 0.3.28(better-sqlite3@12.6.2)(pg@8.18.0)(sql.js@1.13.0)(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))
       vscode-languageserver: 9.0.1
       winston: 3.19.0
@@ -6451,6 +6521,7 @@ snapshots:
       - '@opentelemetry/exporter-trace-otlp-proto'
       - '@opentelemetry/sdk-trace-base'
       - '@sap/hana-client'
+      - apache-arrow
       - aws-crt
       - axios
       - babel-plugin-macros
@@ -8535,29 +8606,6 @@ snapshots:
   sql-highlight@6.1.0: {}
 
   sql.js@1.13.0: {}
-
-  sqlite-vec-darwin-arm64@0.1.7-alpha.2:
-    optional: true
-
-  sqlite-vec-darwin-x64@0.1.7-alpha.2:
-    optional: true
-
-  sqlite-vec-linux-arm64@0.1.7-alpha.2:
-    optional: true
-
-  sqlite-vec-linux-x64@0.1.7-alpha.2:
-    optional: true
-
-  sqlite-vec-windows-x64@0.1.7-alpha.2:
-    optional: true
-
-  sqlite-vec@0.1.7-alpha.2:
-    optionalDependencies:
-      sqlite-vec-darwin-arm64: 0.1.7-alpha.2
-      sqlite-vec-darwin-x64: 0.1.7-alpha.2
-      sqlite-vec-linux-arm64: 0.1.7-alpha.2
-      sqlite-vec-linux-x64: 0.1.7-alpha.2
-      sqlite-vec-windows-x64: 0.1.7-alpha.2
 
   ssf@0.11.2:
     dependencies:
