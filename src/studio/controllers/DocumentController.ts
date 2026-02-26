@@ -49,7 +49,6 @@ export class DocumentController {
 
       res.json(result);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Error uploading file:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to upload file',
@@ -79,7 +78,6 @@ export class DocumentController {
         offset,
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Error listing files:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to list files',
@@ -106,7 +104,6 @@ export class DocumentController {
 
       res.json(file);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Error getting file:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to get file',
@@ -135,7 +132,6 @@ export class DocumentController {
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
       res.send(result.buffer);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Error downloading file:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to download file',
@@ -157,7 +153,6 @@ export class DocumentController {
 
       res.json({ success: true });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Error deleting file:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to delete file',
@@ -178,7 +173,6 @@ export class DocumentController {
 
       res.json(stats);
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error('Error getting stats:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to get stats',

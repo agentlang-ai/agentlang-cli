@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { execSync } from 'child_process';
@@ -210,8 +209,15 @@ export const initializeProject = async (
     },
     "monitoring": {
       "enabled": true
-    }
-  },
+    },
+    "knowledgeGraph": {
+      /**
+       * Knowledge Graph service configuration
+       * serviceUrl: URL for the knowledge graph service
+       * Uses KNOWLEDGE_SERVICE_URL env var if available, otherwise empty string
+       */
+      "serviceUrl": process.env.KNOWLEDGE_SERVICE_URL || ""
+    },
   "agentlang.ai": [
     {
       "agentlang.ai/LLM": {

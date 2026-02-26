@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import path from 'path';
 import { existsSync } from 'fs';
 import { spawn, ChildProcess, execSync } from 'child_process';

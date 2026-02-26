@@ -30,7 +30,6 @@ export async function loadUISpec(specPath: string): Promise<UISpec> {
       throw new Error('Invalid UI spec: missing appInfo.name');
     }
 
-    // eslint-disable-next-line no-console
     console.log(chalk.green(`✓ Loaded spec for: ${spec.appInfo.title || spec.appInfo.name}`));
 
     return spec;

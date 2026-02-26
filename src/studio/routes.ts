@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { Router } from 'express';
 import path from 'path';
 import multer from 'multer';
@@ -6,11 +5,14 @@ import { StudioServer } from './services/StudioServer.js';
 import { FileService } from './services/FileService.js';
 import { FileController } from './controllers/FileController.js';
 import { DocumentController } from './controllers/DocumentController.js';
+import { KnowledgeController } from './controllers/KnowledgeController.js';
+import { createAgentlangCompatRoutes } from './controllers/AgentlangCompatController.js';
 
 export function createRoutes(studioServer: StudioServer, fileService: FileService): Router {
   const router = Router();
   const fileController = new FileController(fileService);
   const documentController = new DocumentController();
+  const knowledgeController = new KnowledgeController();
 
   // Configure multer for file uploads (memory storage)
   const upload = multer({
@@ -219,6 +221,31 @@ export function createRoutes(studioServer: StudioServer, fileService: FileServic
   router.get('/documents/:id', documentController.get);
   router.get('/documents/:id/download', documentController.download);
   router.delete('/documents/:id', documentController.delete);
+
+  // Knowledge API Routes (local adapter matching knowledge-service contract)
+  router.post('/api/knowledge/query', knowledgeController.query);
+  router.post('/api/knowledge/topics', knowledgeController.createTopic);
+  router.get('/api/knowledge/topics', knowledgeController.listTopics);
+  router.delete('/api/knowledge/topics/:topicId', knowledgeController.deleteTopic);
+  router.post('/api/knowledge/topics/:topicId/documents\\:upload', knowledgeController.uploadDocument);
+  router.post('/api/knowledge/upload', knowledgeController.uploadDocumentVersion);
+  router.get('/api/knowledge/topics/:topicId/documents', knowledgeController.listDocuments);
+  router.delete('/api/knowledge/documents/:documentId', knowledgeController.deleteDocument);
+  router.get('/api/knowledge/jobs', knowledgeController.listJobs);
+
+  // Agentlang-entity-compatible routes for Studio's Knowledge page
+  router.use('/knowledge.core', createAgentlangCompatRoutes());
+
+  // OAuth stub routes for local mode
+  router.get('/agentlang/oauth/authorize-url', (_req, res) => {
+    res.status(501).json({ error: 'OAuth not available in local mode' });
+  });
+  router.post('/agentlang/oauth/exchange', (_req, res) => {
+    res.status(501).json({ error: 'OAuth not available in local mode' });
+  });
+  router.get('/agentlang/oauth/access-token', (_req, res) => {
+    res.status(501).json({ error: 'OAuth not available in local mode' });
+  });
 
   return router;
 }

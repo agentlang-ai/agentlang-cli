@@ -124,7 +124,7 @@ async function processAgentlang(code: string): Promise<string> {
       }
     } catch (error) {
       // If the custom approach fails, fall back to the original method
-      // eslint-disable-next-line no-console
+
       console.warn('Custom parsing failed, falling back to original method:', error);
       await parseAndIntern(code, currentModule);
       return '✓ AgentLang code processed successfully';
@@ -297,36 +297,36 @@ function createReplHelpers() {
   const inspect = {
     modules: () => {
       const modules = getUserModuleNames();
-      // eslint-disable-next-line no-console
+
       console.log(chalk.blue('📦 Available Modules:'));
-      // eslint-disable-next-line no-console
+
       modules.forEach(mod => console.log(`  • ${mod}`));
       return modules;
     },
     entities: (moduleName?: string) => {
       const mod = moduleName ? fetchModule(moduleName) : fetchModule(getActiveModuleName());
       const entities = mod.getEntityNames();
-      // eslint-disable-next-line no-console
+
       console.log(chalk.green(`🏗️  Entities in ${mod.name}:`));
-      // eslint-disable-next-line no-console
+
       entities.forEach(ent => console.log(`  • ${ent}`));
       return entities;
     },
     events: (moduleName?: string) => {
       const mod = moduleName ? fetchModule(moduleName) : fetchModule(getActiveModuleName());
       const events = mod.getEventNames();
-      // eslint-disable-next-line no-console
+
       console.log(chalk.yellow(`⚡ Events in ${mod.name}:`));
-      // eslint-disable-next-line no-console
+
       events.forEach(evt => console.log(`  • ${evt}`));
       return events;
     },
     relationships: (moduleName?: string) => {
       const mod = moduleName ? fetchModule(moduleName) : fetchModule(getActiveModuleName());
       const rels = mod.getRelationshipNames();
-      // eslint-disable-next-line no-console
+
       console.log(chalk.magenta(`🔗 Relationships in ${mod.name}:`));
-      // eslint-disable-next-line no-console
+
       rels.forEach(rel => console.log(`  • ${rel}`));
       return rels;
     },
@@ -335,7 +335,7 @@ function createReplHelpers() {
         throw new Error('entityName is required');
       }
       const instances = await lookupAllInstances(entityName);
-      // eslint-disable-next-line no-console
+
       console.log(chalk.cyan(`🏭 Instances for ${entityName}:`));
 
       return instances;
@@ -345,7 +345,6 @@ function createReplHelpers() {
   // Utility functions
   const utils = {
     help: () => {
-      /* eslint-disable no-console */
       console.log(chalk.blue.bold('\n🚀 AgentLang REPL - Comprehensive Guide\n'));
 
       console.log(chalk.green.bold('📋 Basic Commands:'));
@@ -464,23 +463,19 @@ function createReplHelpers() {
       console.log('  inspect.entities()');
       console.log('  inspect.instances(MyApp/EntityName)');
       console.log('  m.active()');
-      /* eslint-enable no-console */
 
       return '';
     },
     clear: () => {
-      // eslint-disable-next-line no-console
       console.log('\x1b[2J\x1b[0f');
       return '';
     },
     restart: async () => {
-      // eslint-disable-next-line no-console
       console.log(chalk.yellow('🔄 Restarting REPL...'));
       await restartRepl();
       return '';
     },
     exit: () => {
-      // eslint-disable-next-line no-console
       console.log(chalk.yellow('\n👋 Goodbye!'));
       cleanup();
       process.exit(0);
@@ -561,27 +556,23 @@ function setupFileWatcher(appDir: string, options: ReplOptions): chokidar.FSWatc
     })
     .on('change', filePath => {
       if (!options.quiet && isWatcherReady) {
-        // eslint-disable-next-line no-console
         console.log(chalk.blue(`\n📁 File changed: ${path.relative(appDir, filePath)}`));
       }
       debouncedRestart();
     })
     .on('add', filePath => {
       if (!options.quiet && isWatcherReady) {
-        // eslint-disable-next-line no-console
         console.log(chalk.green(`\n📁 File added: ${path.relative(appDir, filePath)}`));
       }
       debouncedRestart();
     })
     .on('unlink', filePath => {
       if (!options.quiet && isWatcherReady) {
-        // eslint-disable-next-line no-console
         console.log(chalk.red(`\n📁 File removed: ${path.relative(appDir, filePath)}`));
       }
       debouncedRestart();
     })
     .on('error', (error: unknown) => {
-      // eslint-disable-next-line no-console
       console.error(chalk.red(`Watcher error: ${String(error)}`));
     });
 
@@ -595,7 +586,6 @@ async function restartRepl(): Promise<void> {
   replState.isRestarting = true;
 
   try {
-    // eslint-disable-next-line no-console
     console.log(chalk.yellow('\n🔄 Restarting AgentLang REPL...'));
 
     // Reload the application
@@ -603,12 +593,10 @@ async function restartRepl(): Promise<void> {
       await loadApplication(replState.appDir);
     }
 
-    // eslint-disable-next-line no-console
     console.log(chalk.green('✅ REPL restarted successfully'));
-    // eslint-disable-next-line no-console
+
     console.log(chalk.blue('💬 Ready for input\n'));
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error(chalk.red(`❌ Failed to restart: ${String(error)}`));
   } finally {
     replState.isRestarting = false;
@@ -624,24 +612,22 @@ async function loadApplication(appDir: string): Promise<void> {
     const configPath = path.join(appDir, 'app.config.json');
     const rawConfig = (await loadRawConfig(configPath)) as Record<string, unknown>;
     replState.config = setAppConfig(rawConfig as Parameters<typeof setAppConfig>[0]);
-    // eslint-disable-next-line no-console
+
     console.log(chalk.blue(`📋 Loaded config from ${configPath}`));
   } catch {
     // Config is optional
     if (!replState.options.quiet) {
-      // eslint-disable-next-line no-console
       console.log(chalk.yellow('⚠️  No app.config.json found, using defaults'));
     }
   }
   // Load the application
-  // eslint-disable-next-line no-console
+
   console.log(chalk.blue(`📂 Loading application from: ${appDir}`));
 
   await load(appDir, undefined, async (appSpec?: ApplicationSpec) => {
     if (replState) {
       replState.appSpec = appSpec;
       if (appSpec && 'name' in appSpec) {
-        // eslint-disable-next-line no-console
         console.log(chalk.green(`✅ Loaded application: ${(appSpec as { name: string }).name}`));
       }
     }
@@ -655,7 +641,6 @@ function setupSignalHandlers(): void {
 
   signals.forEach(signal => {
     process.on(signal, () => {
-      // eslint-disable-next-line no-console
       console.log(chalk.yellow(`\n\n🛑 Received ${signal}, shutting down gracefully...`));
       cleanup();
       process.exit(0);
@@ -678,7 +663,6 @@ function cleanup(): void {
 
 // Main REPL function
 export async function startRepl(appDir = '.', options: ReplOptions = {}): Promise<void> {
-  // eslint-disable-next-line no-console
   console.log(chalk.blue.bold('🚀 Starting AgentLang REPL...\n'));
 
   // Setup signal handlers
@@ -771,13 +755,11 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
       try {
         await loadApplication(process.cwd());
       } catch {
-        // eslint-disable-next-line no-console
         console.log(chalk.blue('📂 Starting REPL without loading an application'));
         await runPostInitTasks();
       }
     }
 
-    // eslint-disable-next-line no-console
     console.log(chalk.green('✅ AgentLang runtime initialized'));
 
     // Setup file watcher AFTER initial load to prevent immediate restart
@@ -785,7 +767,7 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
       // Give the initial load time to complete before starting watcher
       await new Promise<void>(resolve => setTimeout(resolve, 100));
       replState.watcher = setupFileWatcher(resolvedAppDir, options);
-      // eslint-disable-next-line no-console
+
       console.log(chalk.green('👀 File watching enabled'));
     }
 
@@ -795,9 +777,8 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
     // Give any async startup messages time to complete
     await new Promise<void>(resolve => setTimeout(resolve, 50));
 
-    // eslint-disable-next-line no-console
     console.log(chalk.blue('💬 REPL ready - type "help" for help'));
-    // eslint-disable-next-line no-console
+
     console.log(); // Extra newline for clean prompt appearance
 
     // Create and expose helper functions globally
@@ -849,19 +830,15 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
             try {
               const resolved = await (result as Promise<unknown>);
               if (resolved !== undefined && resolved !== '') {
-                // eslint-disable-next-line no-console
                 console.log(chalk.green('→'), resolved);
               }
             } catch (error) {
-              // eslint-disable-next-line no-console
               console.error(chalk.red('Promise rejected:'), error);
             }
           } else if (result !== undefined && result !== '') {
-            // eslint-disable-next-line no-console
             console.log(chalk.green('→'), result);
           }
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.error(chalk.red('Error:'), error);
         }
 
@@ -874,29 +851,24 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
       process.exit(0);
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error(chalk.red('❌ Failed to start REPL:'));
 
     if (error instanceof Error) {
       const nodeError = error as Error & { code?: string; path?: string };
       if (nodeError.code === 'ENOENT') {
-        // eslint-disable-next-line no-console
         console.error(chalk.red('File or directory not found:'), nodeError.path || 'unknown path');
-        // eslint-disable-next-line no-console
+
         console.error(
           chalk.yellow('💡 Tip: Make sure the directory exists and contains a valid AgentLang application'),
         );
       } else if (error.message.includes('app.config.json') || error.message.includes('package.json')) {
-        // eslint-disable-next-line no-console
         console.error(chalk.red('Could not find required configuration files in the specified directory'));
-        // eslint-disable-next-line no-console
+
         console.error(chalk.yellow('💡 Tip: Make sure you are pointing to a valid AgentLang application directory'));
       } else {
-        // eslint-disable-next-line no-console
         console.error(chalk.red('Error:'), error.message);
       }
     } else {
-      // eslint-disable-next-line no-console
       console.error(chalk.red('Unknown error:'), error);
     }
 

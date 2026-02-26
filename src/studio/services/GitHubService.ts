@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import path from 'path';
 import { existsSync } from 'fs';
 import { unlink } from 'fs/promises';

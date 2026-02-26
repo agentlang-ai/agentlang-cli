@@ -80,7 +80,6 @@ function getDefaultRepoUrl(appName: string): string {
 
 async function promptAndPushRepository(git: SimpleGit, appName: string): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    // eslint-disable-next-line no-console
     console.log(chalk.dim('Skipping git push prompt (non-interactive terminal).'));
     return;
   }
@@ -116,10 +115,9 @@ async function promptAndPushRepository(git: SimpleGit, appName: string): Promise
 
     const currentBranch = (await git.branch()).current || 'main';
     await git.push(['-u', 'origin', currentBranch]);
-    // eslint-disable-next-line no-console
+
     console.log(`${chalk.green('✓')} Pushed to ${chalk.cyan(repoUrl)}`);
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.log(
       chalk.yellow(`⚠️  Skipped pushing repository: ${error instanceof Error ? error.message : String(error)}`),
     );
@@ -142,21 +140,20 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
     // Change to the app directory (for CLI context)
     try {
       process.chdir(targetDir);
-      // eslint-disable-next-line no-console
+
       console.log(chalk.cyan(`\n📂 Changed directory to ${chalk.bold(appName)}`));
     } catch {
       // Ignore if can't change directory
     }
 
-    // eslint-disable-next-line no-console
     console.log(chalk.green('\n✨ Successfully initialized Agentlang application!'));
-    // eslint-disable-next-line no-console
+
     console.log(chalk.dim('\nNext steps:'));
-    // eslint-disable-next-line no-console
+
     console.log(chalk.dim('  1. Add your application logic to src/core.al'));
-    // eslint-disable-next-line no-console
+
     console.log(chalk.dim('  2. Run your app with: ') + chalk.cyan('agent run'));
-    // eslint-disable-next-line no-console
+
     console.log(chalk.dim('  3. Or start Studio UI with: ') + chalk.cyan('agent studio'));
 
     // Handle interactive git push
@@ -170,7 +167,6 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
       process.exit(0);
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error(chalk.red('❌ Error initializing application:'), error instanceof Error ? error.message : error);
     process.exit(1);
   }
@@ -610,10 +606,8 @@ export const parseAndValidate = async (fileName: string): Promise<void> => {
   const parseResult = document.parseResult;
   // verify no lexer, parser, or general diagnostic errors show up
   if (parseResult.lexerErrors.length === 0 && parseResult.parserErrors.length === 0) {
-    // eslint-disable-next-line no-console
     console.log(chalk.green(`Parsed and validated ${fileName} successfully!`));
   } else {
-    // eslint-disable-next-line no-console
     console.log(chalk.red(`Failed to parse and validate ${fileName}!`));
   }
 };
@@ -642,10 +636,8 @@ export const runModule = async (fileName: string): Promise<void> => {
     });
   } catch (err: unknown) {
     if (isNodeEnv && chalk) {
-      // eslint-disable-next-line no-console
       console.error(chalk.red(String(err)));
     } else {
-      // eslint-disable-next-line no-console
       console.error(String(err));
     }
   }
@@ -675,7 +667,6 @@ export const replCommand = async (
       verbose: !options?.quiet,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.log(chalk.red(`Failed to start REPL: ${error instanceof Error ? error.message : String(error)}`));
     process.exit(1);
   }
@@ -691,7 +682,6 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   return rm;
 }
 
-/* eslint-disable no-console */
 export const generateUICommand = async (
   specFile?: string,
   options?: { directory?: string; apiKey?: string; push?: boolean; message?: string },
@@ -741,9 +731,7 @@ export const generateUICommand = async (
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export const studioCommand = async (
   projectPath?: string,
   options?: { port?: string; serverOnly?: boolean },
@@ -760,9 +748,7 @@ export const studioCommand = async (
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export const forkCommand = async (
   source: string,
   name?: string,
@@ -821,7 +807,6 @@ export const forkCommand = async (
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
 interface OpenApiConfigItem {
   name: string;

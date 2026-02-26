@@ -80,4 +80,27 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  // CLI source files - allow console for logging
+  {
+    files: ['src/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  // Test files - disable type-aware rules since they're not in tsconfig
+  {
+    files: ['test/**/*.ts', '**/*.test.ts', '**/*.spec.ts'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 );
