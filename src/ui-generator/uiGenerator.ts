@@ -2,8 +2,8 @@ import { query, tool, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk'
 import { z } from 'zod';
 import fs from 'fs-extra';
 import path from 'path';
-import chalk from 'chalk';
 import ora from 'ora';
+import { ui } from '../ui/index.js';
 import { UISpec } from './specLoader.js';
 
 interface ProjectAnalysis {
@@ -81,15 +81,11 @@ async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalys
 
     return analysis;
   } catch (error) {
-    console.log(
-      chalk.yellow(`  ⚠️  Error analyzing directory: ${error instanceof Error ? error.message : String(error)}`),
-    );
+    ui.warn(`Error analyzing directory: ${error instanceof Error ? error.message : String(error)}`);
     return analysis;
   }
 }
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export async function generateUI(
   uiSpec: UISpec,
   outputBaseDir: string,
@@ -133,33 +129,33 @@ export async function generateUI(
 
       // Warn if directory exists with files but we're in fresh mode (shouldn't happen)
       if (projectAnalysis.exists && projectAnalysis.fileCount > 0) {
-        console.log(chalk.yellow(`  ⚠️  Warning: Directory exists with ${projectAnalysis.fileCount} files`));
-        console.log(chalk.yellow('  ⚠️  Switching to incremental mode to preserve existing files'));
+        ui.warn(`Directory exists with ${projectAnalysis.fileCount} files`);
+        ui.warn('Switching to incremental mode to preserve existing files');
         mode = 'incremental';
       } else {
-        console.log(chalk.cyan('  📦 Mode: Fresh generation'));
+        ui.cyan('  📦 Mode: Fresh generation');
       }
     }
 
     if (mode === 'incremental') {
       spinner.succeed('Project analyzed');
       console.log(''); // Empty line for spacing
-      console.log(chalk.cyan('  🔄 Mode: Incremental update'));
-      console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
-      console.log(chalk.gray('  📝 Will add missing files based on spec'));
+      ui.cyan('  🔄 Mode: Incremental update');
+      ui.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`);
+      ui.gray('  📝 Will add missing files based on spec');
       spinner.start('Preparing incremental update...');
     } else if (mode === 'update') {
       spinner.succeed('Project analyzed');
       console.log(''); // Empty line for spacing
-      console.log(chalk.cyan('  ✏️  Mode: User-directed update'));
-      console.log(chalk.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`));
-      console.log(chalk.gray(`  💬 User message: "${userMessage}"`));
+      ui.cyan('  ✏️  Mode: User-directed update');
+      ui.gray(`  📂 Found existing project with ${projectAnalysis.fileCount} files`);
+      ui.gray(`  💬 User message: "${userMessage}"`);
 
       // Check if request is vague
       const vagueKeywords = ['fix', 'make sure', 'properly', 'work', 'working', 'issue', 'problem', 'error'];
       const isVague = vagueKeywords.some(keyword => userMessage?.toLowerCase().includes(keyword));
       if (isVague) {
-        console.log(chalk.yellow('  ⚠️  Note: Request is general - agent will first diagnose issues'));
+        ui.warn('Note: Request is general - agent will first diagnose issues');
       }
 
       spinner.start('Preparing update...');
@@ -260,7 +256,7 @@ export async function generateUI(
 
     // Start clean generation
     console.log('');
-    spinner.start(chalk.cyan('Starting agent...'));
+    spinner.start(ui.format.cyan('Starting agent...'));
 
     // Query Claude with our MCP server
     const session = query({
@@ -346,18 +342,18 @@ export async function generateUI(
         }
 
         // Update spinner with clean progress info
-        let spinnerText = chalk.cyan(`Generating... ${cachedFileCount} files • ${elapsed}s`);
+        let spinnerText = ui.format.cyan(`Generating... ${cachedFileCount} files • ${elapsed}s`);
 
         // Show current tool being used
         if (currentTool) {
-          spinnerText += chalk.blue(` • Tool: ${currentTool}`);
+          spinnerText += ui.format.info(` • Tool: ${currentTool}`);
         }
 
         // Show current thinking or last file created
         if (currentThinking) {
-          spinnerText += chalk.gray(` • ${currentThinking}${currentThinking.length >= 60 ? '...' : ''}`);
+          spinnerText += ui.format.gray(` • ${currentThinking}${currentThinking.length >= 60 ? '...' : ''}`);
         } else if (lastFileCreated) {
-          spinnerText += chalk.gray(` • ${lastFileCreated}`);
+          spinnerText += ui.format.gray(` • ${lastFileCreated}`);
         }
 
         spinner.text = spinnerText;
@@ -365,11 +361,7 @@ export async function generateUI(
         // Show periodic progress updates (every 10 seconds)
         if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL && cachedFileCount > 0) {
           spinner.stop();
-          console.log(
-            chalk.gray(
-              `  📊 Progress: ${cachedFileCount} files created, ${toolCallCount} operations, ${elapsed}s elapsed`,
-            ),
-          );
+          ui.gray(`  📊 Progress: ${cachedFileCount} files created, ${toolCallCount} operations, ${elapsed}s elapsed`);
           spinner.start(spinnerText);
           lastProgressUpdate = now;
         }
@@ -380,24 +372,24 @@ export async function generateUI(
 
         if (message.subtype === 'success') {
           sessionSucceeded = true;
-          console.log(chalk.green('\n✅ Agent completed successfully'));
-          console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
-          console.log(chalk.gray(`  🔄 Turns: ${message.num_turns}`));
-          console.log(chalk.gray(`  🔧 Operations: ${toolCallCount}`));
-          console.log(chalk.gray(`  💰 Cost: $${message.total_cost_usd.toFixed(4)}`));
+          ui.success('Agent completed successfully');
+          ui.gray(`  ⏱  Time: ${finalElapsed}s`);
+          ui.gray(`  🔄 Turns: ${message.num_turns}`);
+          ui.gray(`  🔧 Operations: ${toolCallCount}`);
+          ui.gray(`  💰 Cost: $${message.total_cost_usd.toFixed(4)}`);
         } else {
           sessionSucceeded = false;
           sessionError = message.subtype;
-          console.log(chalk.yellow(`\n⚠️  Agent finished with status: ${message.subtype}`));
-          console.log(chalk.gray(`  ⏱  Time: ${finalElapsed}s`));
+          ui.warn(`Agent finished with status: ${message.subtype}`);
+          ui.gray(`  ⏱  Time: ${finalElapsed}s`);
 
           // Check if agent did no work
           if (toolCallCount === 0) {
-            console.log(chalk.yellow('\n⚠️  Warning: Agent completed but performed no operations.'));
-            console.log(chalk.gray('  This might indicate:'));
-            console.log(chalk.gray('  • The task description was unclear or too vague'));
-            console.log(chalk.gray('  • The agent thought no changes were needed'));
-            console.log(chalk.gray('  • An error occurred before tools could be used'));
+            ui.warn('Agent completed but performed no operations.');
+            ui.gray('  This might indicate:');
+            ui.gray('  • The task description was unclear or too vague');
+            ui.gray('  • The agent thought no changes were needed');
+            ui.gray('  • An error occurred before tools could be used');
           }
         }
       }
@@ -417,35 +409,38 @@ export async function generateUI(
     // Count actual files generated in the ui/ directory
     const actualFileCount = await countGeneratedFiles(projectDir);
 
-    console.log(chalk.green('\n✅ Generation complete!'));
-    console.log(chalk.green('\n📊 Summary:'));
-    console.log(chalk.gray('  • Files created: ') + chalk.white(actualFileCount));
-    console.log(chalk.gray('  • Time elapsed: ') + chalk.white(`${((Date.now() - startTime) / 1000).toFixed(1)}s`));
-    console.log(chalk.gray('  • Output location: ') + chalk.white(projectDir));
+    ui.success('Generation complete!');
+    ui.info('Summary:');
+    ui.row([{ text: '  • Files created: ', color: 'gray' }, { text: String(actualFileCount) }]);
+    ui.row([
+      { text: '  • Time elapsed: ', color: 'gray' },
+      { text: `${((Date.now() - startTime) / 1000).toFixed(1)}s` },
+    ]);
+    ui.row([{ text: '  • Output location: ', color: 'gray' }, { text: projectDir }]);
 
     // Show sample files created (first 8)
     if (filesCreated.length > 0) {
-      console.log(chalk.cyan('\n📄 Sample files created:'));
+      ui.cyan('\n📄 Sample files created:');
       const sampleFiles = filesCreated.slice(0, 8);
       sampleFiles.forEach(file => {
-        console.log(chalk.gray(`  • ${file}`));
+        ui.gray(`  • ${file}`);
       });
       if (filesCreated.length > 8) {
-        console.log(chalk.gray(`  ... and ${filesCreated.length - 8} more files`));
+        ui.gray(`  ... and ${filesCreated.length - 8} more files`);
       }
     }
 
     // Git operations if requested
     if (shouldPush) {
-      console.log(''); // Add newline
+      ui.blank();
       await performGitOperations(projectDir, outputBaseDir, uiSpec.appInfo.title);
     }
 
-    console.log(chalk.cyan('\n📝 Next steps:'));
-    console.log(chalk.white(`   cd ${projectDir}`));
-    console.log(chalk.white('   npm install'));
-    console.log(chalk.white('   npm run build    # Verify build succeeds'));
-    console.log(chalk.white('   npm run dev      # Start development server'));
+    ui.cyan('\n📝 Next steps:');
+    ui.plain(`   cd ${projectDir}`);
+    ui.plain('   npm install');
+    ui.plain('   npm run build    # Verify build succeeds');
+    ui.plain('   npm run dev      # Start development server');
   } catch (error) {
     spinner.fail('UI generation failed');
     throw error;
@@ -482,7 +477,6 @@ async function countGeneratedFiles(projectDir: string): Promise<number> {
   return count;
 }
 
-/* eslint-disable no-console */
 async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
@@ -503,7 +497,7 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
       await execAsync('git rev-parse --git-dir');
     } catch {
       gitSpinner.fail('Not a git repository');
-      console.log(chalk.yellow('  ⚠️  Skipping git operations - not a git repository'));
+      ui.warn('Skipping git operations - not a git repository');
       process.chdir(originalCwd);
       return;
     }
@@ -535,7 +529,7 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
       await execAsync('git remote get-url origin');
     } catch {
       gitSpinner.warn('No remote repository configured');
-      console.log(chalk.yellow('  ⚠️  Skipping push - no remote configured'));
+      ui.warn('Skipping push - no remote configured');
       process.chdir(originalCwd);
       return;
     }
@@ -549,25 +543,24 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
     await execAsync(`git push origin ${currentBranch}`);
     gitSpinner.succeed(`Pushed to remote (${currentBranch})`);
 
-    console.log(chalk.green('\n✅ Successfully committed and pushed UI changes'));
+    ui.success('Successfully committed and pushed UI changes');
 
     // Restore original directory
     process.chdir(originalCwd);
   } catch (error) {
     gitSpinner.fail('Git operations failed');
-    console.log(chalk.yellow('\n⚠️  Warning: Git operations encountered an error'));
+    ui.warn('Git operations encountered an error');
     if (error instanceof Error) {
       // Extract the meaningful part of the error message
       const errorMessage = error.message.split('\n')[0];
-      console.log(chalk.gray(`  ${errorMessage}`));
+      ui.gray(`  ${errorMessage}`);
     }
-    console.log(chalk.yellow('  💡 You may need to commit and push manually:'));
-    console.log(chalk.gray('     git add ui/'));
-    console.log(chalk.gray(`     git commit -m "Add generated UI for ${appTitle}"`));
-    console.log(chalk.gray('     git push'));
+    ui.warn('You may need to commit and push manually:');
+    ui.gray('     git add ui/');
+    ui.gray(`     git commit -m "Add generated UI for ${appTitle}"`);
+    ui.gray('     git push');
   }
 }
-/* eslint-enable no-console */
 
 function createGenerationPrompt(
   uiSpec: UISpec,

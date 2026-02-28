@@ -1,8 +1,8 @@
 import * as readline from 'node:readline';
 import * as path from 'node:path';
 import * as chokidar from 'chokidar';
-import chalk from 'chalk';
 import { existsSync } from 'node:fs';
+import { ui, ansi } from './ui/index.js';
 import type { ApplicationSpec } from 'agentlang/out/runtime/loader.js';
 import type { Config } from 'agentlang/out/runtime/state.js';
 
@@ -297,8 +297,7 @@ function createReplHelpers() {
   const inspect = {
     modules: () => {
       const modules = getUserModuleNames();
-      // eslint-disable-next-line no-console
-      console.log(chalk.blue('📦 Available Modules:'));
+      ui.info('Available Modules:');
       // eslint-disable-next-line no-console
       modules.forEach(mod => console.log(`  • ${mod}`));
       return modules;
@@ -306,8 +305,7 @@ function createReplHelpers() {
     entities: (moduleName?: string) => {
       const mod = moduleName ? fetchModule(moduleName) : fetchModule(getActiveModuleName());
       const entities = mod.getEntityNames();
-      // eslint-disable-next-line no-console
-      console.log(chalk.green(`🏗️  Entities in ${mod.name}:`));
+      ui.success(`Entities in ${mod.name}:`);
       // eslint-disable-next-line no-console
       entities.forEach(ent => console.log(`  • ${ent}`));
       return entities;
@@ -315,8 +313,7 @@ function createReplHelpers() {
     events: (moduleName?: string) => {
       const mod = moduleName ? fetchModule(moduleName) : fetchModule(getActiveModuleName());
       const events = mod.getEventNames();
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow(`⚡ Events in ${mod.name}:`));
+      ui.info(`Events in ${mod.name}:`);
       // eslint-disable-next-line no-console
       events.forEach(evt => console.log(`  • ${evt}`));
       return events;
@@ -324,8 +321,7 @@ function createReplHelpers() {
     relationships: (moduleName?: string) => {
       const mod = moduleName ? fetchModule(moduleName) : fetchModule(getActiveModuleName());
       const rels = mod.getRelationshipNames();
-      // eslint-disable-next-line no-console
-      console.log(chalk.magenta(`🔗 Relationships in ${mod.name}:`));
+      ui.info(`Relationships in ${mod.name}:`);
       // eslint-disable-next-line no-console
       rels.forEach(rel => console.log(`  • ${rel}`));
       return rels;
@@ -335,8 +331,7 @@ function createReplHelpers() {
         throw new Error('entityName is required');
       }
       const instances = await lookupAllInstances(entityName);
-      // eslint-disable-next-line no-console
-      console.log(chalk.cyan(`🏭 Instances for ${entityName}:`));
+      ui.info(`Instances for ${entityName}:`);
 
       return instances;
     },
@@ -346,53 +341,63 @@ function createReplHelpers() {
   const utils = {
     help: () => {
       /* eslint-disable no-console */
-      console.log(chalk.blue.bold('\n🚀 AgentLang REPL - Comprehensive Guide\n'));
+      ui.blank();
+      ui.row([{ text: 'AgentLang REPL — Comprehensive Guide', color: 'blue', bold: true }]);
+      ui.blank();
 
-      console.log(chalk.green.bold('📋 Basic Commands:'));
+      ui.row([{ text: 'Basic Commands:', color: 'green', bold: true }]);
       console.log('  help, ?          // Show this help');
       console.log('  exit, quit       // Exit REPL');
       console.log('  clear            // Clear screen');
       console.log('  restart          // Restart REPL');
 
-      console.log(chalk.cyan.bold('\n🏗️  Entity Creation:'));
+      ui.blank();
+      ui.row([{ text: 'Entity Creation:', color: 'cyan', bold: true }]);
       console.log('  e("User")                           // Empty entity');
       console.log('  e("User", {name: "String"})         // Object syntax');
       console.log('  e("User", "name String, age Int")   // String syntax');
       console.log('  entity("User", {id: "String @id"})  // Alias for e()');
 
-      console.log(chalk.magenta.bold('\n📄 Record Creation:'));
+      ui.blank();
+      ui.row([{ text: 'Record Creation:', color: 'magenta', bold: true }]);
       console.log('  r("Config")                         // Empty record');
       console.log('  r("Config", {key: "String"})        // Object syntax');
       console.log('  r("Config", "key String, val Any")  // String syntax');
       console.log('  record("Config", {settings: "Map"}) // Alias for r()');
 
-      console.log(chalk.yellow.bold('\n⚡ Event Creation:'));
+      ui.blank();
+      ui.row([{ text: 'Event Creation:', color: 'yellow', bold: true }]);
       console.log('  ev("UserCreated")                   // Empty event');
       console.log('  ev("UserCreated", {id: "String"})   // Object syntax');
       console.log('  ev("UserCreated", "id String")      // String syntax');
       console.log('  event("UserCreated", {data: "Map"}) // Alias for ev()');
 
-      console.log(chalk.red.bold('\n🔗 Relationship Creation:'));
+      ui.blank();
+      ui.row([{ text: 'Relationship Creation:', color: 'red', bold: true }]);
       console.log('  rel("UserPosts", "contains", ["User", "Post"])');
       console.log('  rel("Friendship", "between", ["User", "User"])');
       console.log('  relationship("Owns", "contains", ["User", "Asset"])');
 
-      console.log(chalk.blue.bold('\n🔄 Workflow Creation:'));
+      ui.blank();
+      ui.row([{ text: 'Workflow Creation:', color: 'blue', bold: true }]);
       console.log('  w("ProcessUser")                    // Empty workflow');
       console.log('  w("ProcessUser", ["step1", "step2"]) // With steps');
       console.log('  workflow("HandleOrder", ["validate", "process"])');
 
-      console.log(chalk.green.bold('\n🏭 Instance Creation:'));
+      ui.blank();
+      ui.row([{ text: 'Instance Creation:', color: 'green', bold: true }]);
       console.log('  inst("User", {name: "John", age: 30})');
       console.log('  instance("Post", {title: "Hello", content: "World"})');
 
-      console.log(chalk.cyan.bold('\n📝 Template Literal Usage:'));
+      ui.blank();
+      ui.row([{ text: 'Template Literal Usage:', color: 'cyan', bold: true }]);
       console.log('  al`entity User { name String }`     // AgentLang code');
       console.log('  al`record Config { key String }`    // Multi-line supported');
       console.log('  al("entity User { name String }")   // Function syntax');
       console.log('  ag`event Created { id String }`     // Alias for al');
 
-      console.log(chalk.magenta.bold('\n📦 Module Management (m.*):'));
+      ui.blank();
+      ui.row([{ text: 'Module Management (m.*):', color: 'magenta', bold: true }]);
       console.log('  m.active()       // Get active module name');
       console.log('  m.list()         // List all user modules');
       console.log('  m.get("MyApp")   // Get specific module');
@@ -400,7 +405,8 @@ function createReplHelpers() {
       console.log('  m.remove("Mod")  // Remove module');
       console.log('  modules.active() // Alias for m.active()');
 
-      console.log(chalk.yellow.bold('\n🔍 Inspection Commands (inspect.*):'));
+      ui.blank();
+      ui.row([{ text: 'Inspection Commands (inspect.*):', color: 'yellow', bold: true }]);
       console.log('  inspect.modules()              // List all modules');
       console.log('  inspect.entities()             // List entities in active module');
       console.log('  inspect.entities("MyApp")      // List entities in specific module');
@@ -410,78 +416,80 @@ function createReplHelpers() {
       console.log('  inspect.relationships("MyApp") // List relationships in specific module');
       console.log('  inspect.instances("MyApp/EntityName") // List instances created for an entity');
 
-      console.log(
-        chalk.red.bold(
-          '\n🛠️  Direct Runtime Functions (requires full qualified names in string: "<ModuleName>/<Name>"):',
-        ),
-      );
-      console.log(chalk.white('  Entity Management:'));
+      ui.blank();
+      ui.row([
+        {
+          text: 'Direct Runtime Functions (full qualified names: "<ModuleName>/<Name>"):',
+          color: 'red',
+          bold: true,
+        },
+      ]);
+      ui.plain('  Entity Management:');
       console.log('    addEntity(name, definition)    // Add entity to runtime');
       console.log('    removeEntity(name)             // Remove entity from runtime');
       console.log('    getEntity(name)                // Get entity definition');
 
-      console.log(chalk.white('  Record Management:'));
+      ui.plain('  Record Management:');
       console.log('    addRecord(name, definition)    // Add record to runtime');
       console.log('    removeRecord(name)             // Remove record from runtime');
       console.log('    getRecord(name)                // Get record definition');
 
-      console.log(chalk.white('  Event Management:'));
+      ui.plain('  Event Management:');
       console.log('    addEvent(name, definition)     // Add event to runtime');
       console.log('    removeEvent(name)              // Remove event from runtime');
       console.log('    getEvent(name)                 // Get event definition');
 
-      console.log(chalk.white('  Relationship Management:'));
+      ui.plain('  Relationship Management:');
       console.log('    addRelationship(name, def)     // Add relationship to runtime');
       console.log('    removeRelationship(name)       // Remove relationship from runtime');
       console.log('    getRelationship(name)          // Get relationship definition');
 
-      console.log(chalk.white('  Workflow Management:'));
+      ui.plain('  Workflow Management:');
       console.log('    addWorkflow(name, definition)  // Add workflow to runtime');
       console.log('    removeWorkflow(name)           // Remove workflow from runtime');
       console.log('    getWorkflow(name)              // Get workflow definition');
 
-      console.log(chalk.white('  Core Processing:'));
+      ui.plain('  Core Processing:');
       console.log('    processAgentlang(code)         // Process raw AgentLang code');
       console.log('    parseAndEvaluateStatement(stmt) // Parse and evaluate AgentLang statement');
       console.log('    // Example: parseAndEvaluateStatement("{MyApp/User {id 1, name \\"Alice\\"}}");');
 
-      console.log(chalk.gray.bold('\n🛠️  Utility Commands (utils.*):'));
+      ui.blank();
+      ui.row([{ text: 'Utility Commands (utils.*):', color: 'gray', bold: true }]);
       console.log('  utils.help()         // Show this help');
       console.log('  utils.clear()        // Clear screen');
       console.log('  utils.restart()      // Restart REPL');
       console.log('  utils.exit()         // Exit REPL');
 
-      console.log(chalk.gray.bold('\n💡 Tips:'));
+      ui.blank();
+      ui.row([{ text: 'Tips:', color: 'gray', bold: true }]);
       console.log('  • Use tab completion for commands');
       console.log('  • Template literals support multi-line code');
       console.log('  • All functions return promises - use await if needed');
       console.log('  • File watching auto-restarts on changes (if enabled)');
       console.log('  • Use inspect.* commands to explore your application');
 
-      console.log(chalk.blue('\n📚 Examples:'));
+      ui.blank();
+      ui.info('Examples:');
       console.log('  al`entity User { id String @id, name String }`');
       console.log('  inst("User", {id: "123", name: "Alice"})');
       console.log('  inspect.entities()');
       console.log('  inspect.instances(MyApp/EntityName)');
       console.log('  m.active()');
-      /* eslint-enable no-console */
 
       return '';
     },
     clear: () => {
-      // eslint-disable-next-line no-console
       console.log('\x1b[2J\x1b[0f');
       return '';
     },
     restart: async () => {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow('🔄 Restarting REPL...'));
+      ui.warn('Restarting REPL...');
       await restartRepl();
       return '';
     },
     exit: () => {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow('\n👋 Goodbye!'));
+      ui.warn('Goodbye!');
       cleanup();
       process.exit(0);
     },
@@ -561,28 +569,24 @@ function setupFileWatcher(appDir: string, options: ReplOptions): chokidar.FSWatc
     })
     .on('change', filePath => {
       if (!options.quiet && isWatcherReady) {
-        // eslint-disable-next-line no-console
-        console.log(chalk.blue(`\n📁 File changed: ${path.relative(appDir, filePath)}`));
+        ui.info(`File changed: ${path.relative(appDir, filePath)}`);
       }
       debouncedRestart();
     })
     .on('add', filePath => {
       if (!options.quiet && isWatcherReady) {
-        // eslint-disable-next-line no-console
-        console.log(chalk.green(`\n📁 File added: ${path.relative(appDir, filePath)}`));
+        ui.success(`File added: ${path.relative(appDir, filePath)}`);
       }
       debouncedRestart();
     })
     .on('unlink', filePath => {
       if (!options.quiet && isWatcherReady) {
-        // eslint-disable-next-line no-console
-        console.log(chalk.red(`\n📁 File removed: ${path.relative(appDir, filePath)}`));
+        ui.error(`File removed: ${path.relative(appDir, filePath)}`);
       }
       debouncedRestart();
     })
     .on('error', (error: unknown) => {
-      // eslint-disable-next-line no-console
-      console.error(chalk.red(`Watcher error: ${String(error)}`));
+      ui.error(`Watcher error: ${String(error)}`);
     });
 
   return watcher;
@@ -595,21 +599,17 @@ async function restartRepl(): Promise<void> {
   replState.isRestarting = true;
 
   try {
-    // eslint-disable-next-line no-console
-    console.log(chalk.yellow('\n🔄 Restarting AgentLang REPL...'));
+    ui.warn('Restarting AgentLang REPL...');
 
     // Reload the application
     if (replState.appDir) {
       await loadApplication(replState.appDir);
     }
 
-    // eslint-disable-next-line no-console
-    console.log(chalk.green('✅ REPL restarted successfully'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.blue('💬 Ready for input\n'));
+    ui.success('REPL restarted successfully');
+    ui.info('Ready for input');
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(chalk.red(`❌ Failed to restart: ${String(error)}`));
+    ui.error(`Failed to restart: ${String(error)}`);
   } finally {
     replState.isRestarting = false;
   }
@@ -624,25 +624,21 @@ async function loadApplication(appDir: string): Promise<void> {
     const configPath = path.join(appDir, 'app.config.json');
     const rawConfig = (await loadRawConfig(configPath)) as Record<string, unknown>;
     replState.config = setAppConfig(rawConfig as Parameters<typeof setAppConfig>[0]);
-    // eslint-disable-next-line no-console
-    console.log(chalk.blue(`📋 Loaded config from ${configPath}`));
+    ui.info(`Loaded config from ${configPath}`);
   } catch {
     // Config is optional
     if (!replState.options.quiet) {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow('⚠️  No app.config.json found, using defaults'));
+      ui.warn('No app.config.json found, using defaults');
     }
   }
   // Load the application
-  // eslint-disable-next-line no-console
-  console.log(chalk.blue(`📂 Loading application from: ${appDir}`));
+  ui.info(`Loading application from: ${appDir}`);
 
   await load(appDir, undefined, async (appSpec?: ApplicationSpec) => {
     if (replState) {
       replState.appSpec = appSpec;
       if (appSpec && 'name' in appSpec) {
-        // eslint-disable-next-line no-console
-        console.log(chalk.green(`✅ Loaded application: ${(appSpec as { name: string }).name}`));
+        ui.success(`Loaded application: ${(appSpec as { name: string }).name}`);
       }
     }
     await runPostInitTasks(appSpec, replState?.config);
@@ -655,8 +651,7 @@ function setupSignalHandlers(): void {
 
   signals.forEach(signal => {
     process.on(signal, () => {
-      // eslint-disable-next-line no-console
-      console.log(chalk.yellow(`\n\n🛑 Received ${signal}, shutting down gracefully...`));
+      ui.warn(`Received ${signal}, shutting down gracefully...`);
       cleanup();
       process.exit(0);
     });
@@ -678,14 +673,17 @@ function cleanup(): void {
 
 // Main REPL function
 export async function startRepl(appDir = '.', options: ReplOptions = {}): Promise<void> {
-  // eslint-disable-next-line no-console
-  console.log(chalk.blue.bold('🚀 Starting AgentLang REPL...\n'));
+  // Resolve app directory
+  const resolvedAppDir = path.resolve(process.cwd(), appDir);
+
+  ui.blank();
+  ui.banner('Agentlang REPL');
+  ui.blank();
+  ui.label('Directory', resolvedAppDir);
+  ui.blank();
 
   // Setup signal handlers
   setupSignalHandlers();
-
-  // Resolve app directory
-  const resolvedAppDir = path.resolve(process.cwd(), appDir);
 
   // Initialize REPL state
   replState = {
@@ -694,7 +692,7 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
     rl: readline.createInterface({
       input: process.stdin,
       output: process.stdout,
-      prompt: chalk.cyan('agentlang> '),
+      prompt: ansi.cyan('agentlang> '),
       completer: (line: string) => {
         const completions = [
           'help',
@@ -771,22 +769,19 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
       try {
         await loadApplication(process.cwd());
       } catch {
-        // eslint-disable-next-line no-console
-        console.log(chalk.blue('📂 Starting REPL without loading an application'));
+        ui.dim('Starting in standalone mode (no application loaded)');
         await runPostInitTasks();
       }
     }
 
-    // eslint-disable-next-line no-console
-    console.log(chalk.green('✅ AgentLang runtime initialized'));
+    ui.success('AgentLang runtime initialized');
 
     // Setup file watcher AFTER initial load to prevent immediate restart
     if (options.watch && appDir !== '') {
       // Give the initial load time to complete before starting watcher
       await new Promise<void>(resolve => setTimeout(resolve, 100));
       replState.watcher = setupFileWatcher(resolvedAppDir, options);
-      // eslint-disable-next-line no-console
-      console.log(chalk.green('👀 File watching enabled'));
+      ui.success('File watching enabled');
     }
 
     // Mark initialization as complete
@@ -795,9 +790,7 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
     // Give any async startup messages time to complete
     await new Promise<void>(resolve => setTimeout(resolve, 50));
 
-    // eslint-disable-next-line no-console
-    console.log(chalk.blue('💬 REPL ready - type "help" for help'));
-    // eslint-disable-next-line no-console
+    ui.info('Type "help" for commands');
     console.log(); // Extra newline for clean prompt appearance
 
     // Create and expose helper functions globally
@@ -849,20 +842,16 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
             try {
               const resolved = await (result as Promise<unknown>);
               if (resolved !== undefined && resolved !== '') {
-                // eslint-disable-next-line no-console
-                console.log(chalk.green('→'), resolved);
+                console.log(ui.format.success('→'), resolved);
               }
             } catch (error) {
-              // eslint-disable-next-line no-console
-              console.error(chalk.red('Promise rejected:'), error);
+              console.error(ui.format.error('Promise rejected:'), error);
             }
           } else if (result !== undefined && result !== '') {
-            // eslint-disable-next-line no-console
-            console.log(chalk.green('→'), result);
+            console.log(ui.format.success('→'), result);
           }
         } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error(chalk.red('Error:'), error);
+          console.error(ui.format.error('Error:'), error);
         }
 
         replState?.rl.prompt();
@@ -874,30 +863,21 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
       process.exit(0);
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(chalk.red('❌ Failed to start REPL:'));
+    ui.error('Failed to start REPL:');
 
     if (error instanceof Error) {
       const nodeError = error as Error & { code?: string; path?: string };
       if (nodeError.code === 'ENOENT') {
-        // eslint-disable-next-line no-console
-        console.error(chalk.red('File or directory not found:'), nodeError.path || 'unknown path');
-        // eslint-disable-next-line no-console
-        console.error(
-          chalk.yellow('💡 Tip: Make sure the directory exists and contains a valid AgentLang application'),
-        );
+        ui.error(`File or directory not found: ${nodeError.path || 'unknown path'}`);
+        ui.warn('Tip: Make sure the directory exists and contains a valid AgentLang application');
       } else if (error.message.includes('app.config.json') || error.message.includes('package.json')) {
-        // eslint-disable-next-line no-console
-        console.error(chalk.red('Could not find required configuration files in the specified directory'));
-        // eslint-disable-next-line no-console
-        console.error(chalk.yellow('💡 Tip: Make sure you are pointing to a valid AgentLang application directory'));
+        ui.error('Could not find required configuration files in the specified directory');
+        ui.warn('Tip: Make sure you are pointing to a valid AgentLang application directory');
       } else {
-        // eslint-disable-next-line no-console
-        console.error(chalk.red('Error:'), error.message);
+        ui.error(`Error: ${error.message}`);
       }
     } else {
-      // eslint-disable-next-line no-console
-      console.error(chalk.red('Unknown error:'), error);
+      ui.error(`Unknown error: ${String(error)}`);
     }
 
     cleanup();

@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import { Command } from 'commander';
 import { NodeFileSystem } from 'langium/node';
 import * as path from 'node:path';
@@ -9,6 +8,10 @@ import { initializeProject } from './utils/projectInitializer.js';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { renderToString } from 'ink';
+import React from 'react';
+import Help from './ui/components/Help.js';
+import { ui, ansi } from './ui/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,8 +83,7 @@ function getDefaultRepoUrl(appName: string): string {
 
 async function promptAndPushRepository(git: SimpleGit, appName: string): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('Skipping git push prompt (non-interactive terminal).'));
+    ui.dim('Skipping git push prompt (non-interactive terminal).');
     return;
   }
 
@@ -91,7 +93,7 @@ async function promptAndPushRepository(git: SimpleGit, appName: string): Promise
   });
 
   try {
-    const pushAnswer = (await rl.question(chalk.cyan('Would you like to push this repo now? (y/N) ')))
+    const pushAnswer = (await rl.question(ansi.cyan('Would you like to push this repo now? (y/N) ')))
       .trim()
       .toLowerCase();
 
@@ -100,7 +102,7 @@ async function promptAndPushRepository(git: SimpleGit, appName: string): Promise
     }
 
     const defaultRepoUrl = getDefaultRepoUrl(appName);
-    const repoUrlInputPromise = rl.question(chalk.cyan('Repository URL: '));
+    const repoUrlInputPromise = rl.question(ansi.cyan('Repository URL: '));
     rl.write(defaultRepoUrl);
 
     const repoUrlInput = await repoUrlInputPromise;
@@ -116,13 +118,9 @@ async function promptAndPushRepository(git: SimpleGit, appName: string): Promise
 
     const currentBranch = (await git.branch()).current || 'main';
     await git.push(['-u', 'origin', currentBranch]);
-    // eslint-disable-next-line no-console
-    console.log(`${chalk.green('✓')} Pushed to ${chalk.cyan(repoUrl)}`);
+    ui.step('✓', 'Pushed to', repoUrl);
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.log(
-      chalk.yellow(`⚠️  Skipped pushing repository: ${error instanceof Error ? error.message : String(error)}`),
-    );
+    ui.warn(`Skipped pushing repository: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     rl.close();
   }
@@ -133,35 +131,44 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
   const currentDir = process.cwd();
   const targetDir = join(currentDir, appName);
 
+  ui.blank();
+  ui.banner('Initialize App');
+  ui.blank();
+  ui.label('App', appName, 'cyan');
+  ui.label('Location', targetDir);
+  ui.blank();
+
   try {
     await initializeProject(targetDir, appName, {
       prompt: options?.prompt,
-      silent: false, // Maintain logs for CLI
+      silent: false,
     });
 
-    // Change to the app directory (for CLI context)
     try {
       process.chdir(targetDir);
-      // eslint-disable-next-line no-console
-      console.log(chalk.cyan(`\n📂 Changed directory to ${chalk.bold(appName)}`));
     } catch {
       // Ignore if can't change directory
     }
 
-    // eslint-disable-next-line no-console
-    console.log(chalk.green('\n✨ Successfully initialized Agentlang application!'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('\nNext steps:'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('  1. Add your application logic to src/core.al'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('  2. Run your app with: ') + chalk.cyan('agent run'));
-    // eslint-disable-next-line no-console
-    console.log(chalk.dim('  3. Or start Studio UI with: ') + chalk.cyan('agent studio'));
+    ui.blank();
+    ui.divider(50);
+    ui.success(`${appName} initialized successfully!`);
+    ui.blank();
+    ui.dim('Next steps:');
+    ui.dim('  1. Add your application logic to src/core.al');
+    ui.row([
+      { text: '  2. Run your app with: ', dimColor: true },
+      { text: 'agent run', color: 'cyan' },
+    ]);
+    ui.row([
+      { text: '  3. Or start Studio UI with: ', dimColor: true },
+      { text: 'agent studio', color: 'cyan' },
+    ]);
+    ui.divider(50);
+    ui.blank();
 
     // Handle interactive git push
     const git = simpleGit(targetDir);
-    // Check if git is initialized (initializeProject does it, but let's be safe)
     if (await git.checkIsRepo()) {
       await promptAndPushRepository(git, appName);
     }
@@ -170,110 +177,10 @@ export const initCommand = async (appName: string, options?: { prompt?: string }
       process.exit(0);
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(chalk.red('❌ Error initializing application:'), error instanceof Error ? error.message : error);
+    ui.error(`Error initializing application: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 };
-
-// Custom help formatter
-function customHelp(): string {
-  const gradient = [chalk.hex('#00D9FF'), chalk.hex('#00C4E6'), chalk.hex('#00AFCC'), chalk.hex('#009AB3')];
-
-  const header = `
-  ${gradient[0]('█████╗')} ${gradient[1]('  ██████╗')} ${gradient[2]('███████╗')}${gradient[3]('███╗   ██╗')}${gradient[0]('████████╗')}
-  ${gradient[0]('██╔══██╗')}${gradient[1]('██╔════╝')} ${gradient[2]('██╔════╝')}${gradient[3]('████╗  ██║')}${gradient[0]('╚══██╔══╝')}
-  ${gradient[0]('███████║')}${gradient[1]('██║  ███╗')}${gradient[2]('█████╗')}  ${gradient[3]('██╔██╗ ██║')}${gradient[0]('   ██║')}
-  ${gradient[0]('██╔══██║')}${gradient[1]('██║   ██║')}${gradient[2]('██╔══╝')}  ${gradient[3]('██║╚██╗██║')}${gradient[0]('   ██║')}
-  ${gradient[0]('██║  ██║')}${gradient[1]('╚██████╔╝')}${gradient[2]('███████╗')}${gradient[3]('██║ ╚████║')}${gradient[0]('   ██║')}
-  ${gradient[0]('╚═╝  ╚═╝')} ${gradient[1]('╚═════╝')} ${gradient[2]('╚══════╝')}${gradient[3]('╚═╝  ╚═══╝')}${gradient[0]('   ╚═╝')}
-
-  ${chalk.bold.white('Agentlang CLI')} ${chalk.dim(`v${packageVersion}`)}
-  ${chalk.dim('CLI for all things Agentlang')}
-`;
-
-  const usage = `
-  ${chalk.bold.white('USAGE')}
-    ${chalk.dim('$')} ${chalk.cyan('agent')} ${chalk.yellow('<command>')} ${chalk.dim('[options]')}
-
-  ${chalk.bold.white('COMMANDS')}
-
-    ${chalk.cyan.bold('init')} ${chalk.dim('<appname>')}
-      ${chalk.white('▸')} Initialize a new Agentlang application
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-p, --prompt')} ${chalk.dim('<description>')}  Description or prompt for the application
-
-    ${chalk.cyan.bold('run')} ${chalk.dim('[file]')}
-      ${chalk.white('▸')} Load and execute an Agentlang module
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-c, --config')} ${chalk.dim('<file>')}    Configuration file path
-
-    ${chalk.cyan.bold('repl')} ${chalk.dim('[directory]')}
-      ${chalk.white('▸')} Start interactive REPL environment
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-w, --watch')}           Watch files and reload automatically
-        ${chalk.cyan('-q, --quiet')}           Suppress startup messages
-
-    ${chalk.cyan.bold('doc')} ${chalk.dim('[file]')}
-      ${chalk.white('▸')} Generate API documentation (Swagger/OpenAPI)
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-h, --outputHtml')} ${chalk.dim('<file>')}     Generate HTML documentation
-        ${chalk.cyan('-p, --outputPostman')} ${chalk.dim('<file>')}  Generate Postman collection
-
-    ${chalk.cyan.bold('parseAndValidate')} ${chalk.dim('<file>')}
-      ${chalk.white('▸')} Parse and validate Agentlang source code
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-d, --destination')} ${chalk.dim('<dir>')}  Output directory
-
-    ${chalk.cyan.bold('ui-gen')} ${chalk.dim('[spec-file]')}
-      ${chalk.white('▸')} Generate UI from specification ${chalk.dim('(requires Anthropic API key)')}
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-d, --directory')} ${chalk.dim('<dir>')}   Target directory
-        ${chalk.cyan('-k, --api-key')} ${chalk.dim('<key>')}      Anthropic API key
-        ${chalk.cyan('-p, --push')}               Commit and push to git
-        ${chalk.cyan('-m, --message')} ${chalk.dim('<text>')}     Update instructions
-
-    ${chalk.cyan.bold('fork')} ${chalk.dim('<source> [name]')}
-      ${chalk.white('▸')} Fork an app from a local directory or git repository
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-b, --branch')} ${chalk.dim('<branch>')}     Git branch to clone (for git URLs)
-        ${chalk.cyan('-u, --username')} ${chalk.dim('<username>')}  GitHub username for authenticated access
-        ${chalk.cyan('-t, --token')} ${chalk.dim('<token>')}       GitHub token for authenticated access
-
-    ${chalk.cyan.bold('import')} ${chalk.dim('<source> [name]')}
-      ${chalk.white('▸')} Import an app (alias for fork)
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-b, --branch')} ${chalk.dim('<branch>')}     Git branch to clone (for git URLs)
-        ${chalk.cyan('-u, --username')} ${chalk.dim('<username>')}  GitHub username for authenticated access
-        ${chalk.cyan('-t, --token')} ${chalk.dim('<token>')}       GitHub token for authenticated access
-
-    ${chalk.cyan.bold('studio')} ${chalk.dim('[path]')}
-      ${chalk.white('▸')} Start Agentlang Studio with local server
-      ${chalk.dim('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')}
-      ${chalk.yellow('OPTIONS')}
-        ${chalk.cyan('-p, --port')} ${chalk.dim('<port>')}        Port to run Studio server on (default: 4000)
-
-  ${chalk.bold.white('GLOBAL OPTIONS')}
-    ${chalk.cyan('-h, --help')}       Display help information
-    ${chalk.cyan('-V, --version')}    Display version number
-
-  ${chalk.bold.white('LEARN MORE')}
-    ${chalk.white('Docs')}      ${chalk.cyan('https://github.com/agentlang/agentlang-cli')}
-    ${chalk.white('Issues')}    ${chalk.cyan('https://github.com/agentlang/agentlang-cli/issues')}
-
-  ${chalk.dim('Run')} ${chalk.cyan('agent <command> --help')} ${chalk.dim('for detailed command information')}
-`;
-
-  return header + usage;
-}
 
 export default function (): void {
   const program = new Command();
@@ -281,17 +188,29 @@ export default function (): void {
   // Configure program
   program
     .name('agent')
-    .description(chalk.gray('CLI for all things Agentlang'))
+    .description('CLI for all things Agentlang')
     .version(packageVersion, '-V, --version', 'Display version number')
-    .helpOption('-h, --help', 'Show help information')
+    .helpOption(false)
     .helpCommand(false)
     .configureHelp({
       sortSubcommands: true,
       sortOptions: true,
     });
 
-  // Override help display
-  program.helpInformation = customHelp;
+  // Use ink-rendered help via renderToString
+  program.helpInformation = () => {
+    return renderToString(React.createElement(Help, { version: packageVersion }), {
+      columns: process.stdout.columns || 80,
+    });
+  };
+
+  // Add explicit help flag since we disabled the built-in one
+  program.option('-h, --help', 'Show help information');
+  program.on('option:help', () => {
+    // eslint-disable-next-line no-console
+    console.log(program.helpInformation());
+    process.exit(0);
+  });
 
   const fileExtensions = AgentlangLanguageMetaData.fileExtensions.join(', ');
 
@@ -303,7 +222,7 @@ export default function (): void {
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Creates a new Agentlang application with the necessary project structure.
   This command will create:
     • package.json with your app name and version
@@ -313,18 +232,18 @@ ${chalk.bold.white('DESCRIPTION')}
   The command checks if the directory is already initialized by looking for
   existing package.json or .al files (excluding config.al).
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Initialize a new app called CarDealership')}
-  ${chalk.dim('$')} ${chalk.cyan('agent init CarDealership')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Initialize a new app called CarDealership')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent init CarDealership')}
 
-  ${chalk.dim('Initialize a new e-commerce app')}
-  ${chalk.dim('$')} ${chalk.cyan('agent init MyShop')}
+  ${ui.format.dim('Initialize a new e-commerce app')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent init MyShop')}
 
-  ${chalk.dim('Initialize with multiple words (use PascalCase)')}
-  ${chalk.dim('$')} ${chalk.cyan('agent init InventoryManagement')}
+  ${ui.format.dim('Initialize with multiple words (use PascalCase)')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent init InventoryManagement')}
 
-  ${chalk.dim('Initialize with a description/prompt')}
-  ${chalk.dim('$')} ${chalk.cyan('agent init ShowroomApp --prompt "a showroom app"')}
+  ${ui.format.dim('Initialize with a description/prompt')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent init ShowroomApp --prompt "a showroom app"')}
 `,
     )
     .action(initCommand);
@@ -337,22 +256,22 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Loads and executes an Agentlang module, starting the runtime environment
   and initializing all configured services, databases, and integrations.
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Run module in current directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent run')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Run module in current directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent run')}
 
-  ${chalk.dim('Run specific module file')}
-  ${chalk.dim('$')} ${chalk.cyan('agent run ./my-app/main.al')}
+  ${ui.format.dim('Run specific module file')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent run ./my-app/main.al')}
 
-  ${chalk.dim('Run with custom configuration')}
-  ${chalk.dim('$')} ${chalk.cyan('agent run ./my-app -c config.json')}
+  ${ui.format.dim('Run with custom configuration')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent run ./my-app -c config.json')}
 
-  ${chalk.dim('Run module from specific directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent run ~/projects/erp-system')}
+  ${ui.format.dim('Run module from specific directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent run ~/projects/erp-system')}
 `,
     )
     .action(runModule);
@@ -366,26 +285,26 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Starts an interactive Read-Eval-Print Loop (REPL) environment for
   Agentlang, allowing you to execute code interactively, test functions,
   and explore your application in real-time.
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Start REPL in current directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent repl')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Start REPL in current directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent repl')}
 
-  ${chalk.dim('Start REPL in specific directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent repl ./my-app')}
+  ${ui.format.dim('Start REPL in specific directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent repl ./my-app')}
 
-  ${chalk.dim('Start with file watching enabled')}
-  ${chalk.dim('$')} ${chalk.cyan('agent repl --watch')}
+  ${ui.format.dim('Start with file watching enabled')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent repl --watch')}
 
-  ${chalk.dim('Start in quiet mode (no startup messages)')}
-  ${chalk.dim('$')} ${chalk.cyan('agent repl --quiet')}
+  ${ui.format.dim('Start in quiet mode (no startup messages)')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent repl --quiet')}
 
-  ${chalk.dim('Combine options for development workflow')}
-  ${chalk.dim('$')} ${chalk.cyan('agent repl . --watch')}
+  ${ui.format.dim('Combine options for development workflow')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent repl . --watch')}
 `,
     )
     .action(replCommand);
@@ -399,26 +318,26 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Generates comprehensive API documentation from your Agentlang module
   in Swagger/OpenAPI format. Supports both HTML and Postman collection
   output formats for easy API exploration and testing.
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Generate OpenAPI spec (outputs to console)')}
-  ${chalk.dim('$')} ${chalk.cyan('agent doc')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Generate OpenAPI spec (outputs to console)')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent doc')}
 
-  ${chalk.dim('Generate HTML documentation')}
-  ${chalk.dim('$')} ${chalk.cyan('agent doc --outputHtml api-docs.html')}
+  ${ui.format.dim('Generate HTML documentation')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent doc --outputHtml api-docs.html')}
 
-  ${chalk.dim('Generate Postman collection')}
-  ${chalk.dim('$')} ${chalk.cyan('agent doc --outputPostman collection.json')}
+  ${ui.format.dim('Generate Postman collection')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent doc --outputPostman collection.json')}
 
-  ${chalk.dim('Generate both HTML and Postman')}
-  ${chalk.dim('$')} ${chalk.cyan('agent doc -h docs.html -p collection.json')}
+  ${ui.format.dim('Generate both HTML and Postman')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent doc -h docs.html -p collection.json')}
 
-  ${chalk.dim('Generate docs for specific module')}
-  ${chalk.dim('$')} ${chalk.cyan('agent doc ./my-api -h api.html')}
+  ${ui.format.dim('Generate docs for specific module')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent doc ./my-api -h api.html')}
 `,
     )
     .action(generateDoc);
@@ -431,20 +350,20 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Parses and validates an Agentlang source file, checking for syntax
   errors, lexer issues, and semantic validation problems. Useful for
   CI/CD pipelines and pre-deployment validation.
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Validate a source file')}
-  ${chalk.dim('$')} ${chalk.cyan('agent parseAndValidate ./src/main.al')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Validate a source file')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent parseAndValidate ./src/main.al')}
 
-  ${chalk.dim('Parse and validate with output directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent parseAndValidate main.al -d ./out')}
+  ${ui.format.dim('Parse and validate with output directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent parseAndValidate main.al -d ./out')}
 
-  ${chalk.dim('Validate in CI/CD pipeline')}
-  ${chalk.dim('$')} ${chalk.cyan('agent parseAndValidate app.al && npm run deploy')}
+  ${ui.format.dim('Validate in CI/CD pipeline')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent parseAndValidate app.al && npm run deploy')}
 `,
     )
     .action(parseAndValidate);
@@ -460,36 +379,36 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Generates a complete UI application from a ui-spec.json specification
   using AI. Supports incremental updates, allowing you to evolve your UI
   over time with natural language instructions.
 
-${chalk.yellow.bold('API KEY REQUIRED')}
-  Set ${chalk.cyan('ANTHROPIC_API_KEY')} environment variable or use ${chalk.cyan('--api-key')} flag
-  ${chalk.dim('Get your key at: https://console.anthropic.com')}
+${ui.format.row([{ text: 'API KEY REQUIRED', color: 'yellow', bold: true }])}
+  Set ${ui.format.cyan('ANTHROPIC_API_KEY')} environment variable or use ${ui.format.cyan('--api-key')} flag
+  ${ui.format.dim('Get your key at: https://console.anthropic.com')}
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Generate UI with auto-detected spec')}
-  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Generate UI with auto-detected spec')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent ui-gen')}
 
-  ${chalk.dim('Generate from specific spec file')}
-  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen ui-spec.json')}
+  ${ui.format.dim('Generate from specific spec file')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent ui-gen ui-spec.json')}
 
-  ${chalk.dim('Generate and commit to git')}
-  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen --push')}
+  ${ui.format.dim('Generate and commit to git')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent ui-gen --push')}
 
-  ${chalk.dim('Generate in specific directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen -d ./frontend')}
+  ${ui.format.dim('Generate in specific directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent ui-gen -d ./frontend')}
 
-  ${chalk.dim('Update existing UI with changes')}
-  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen -m "Add dark mode toggle"')}
+  ${ui.format.dim('Update existing UI with changes')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent ui-gen -m "Add dark mode toggle"')}
 
-  ${chalk.dim('Incremental update with git push')}
-  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen -m "Fix login validation" -p')}
+  ${ui.format.dim('Incremental update with git push')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent ui-gen -m "Fix login validation" -p')}
 
-  ${chalk.dim('Use custom API key')}
-  ${chalk.dim('$')} ${chalk.cyan('agent ui-gen --api-key sk-ant-...')}
+  ${ui.format.dim('Use custom API key')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent ui-gen --api-key sk-ant-...')}
 `,
     )
     .action(generateUICommand);
@@ -505,26 +424,26 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Forks an Agentlang application from a source path (local directory or git URL)
   into the current workspace. The forked app will be initialized with dependencies
   installed and a fresh git repository.
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Fork from local directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent fork ./my-app MyForkedApp')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Fork from local directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent fork ./my-app MyForkedApp')}
 
-  ${chalk.dim('Fork from GitHub repository')}
-  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp')}
+  ${ui.format.dim('Fork from GitHub repository')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent fork https://github.com/user/repo.git MyApp')}
 
-  ${chalk.dim('Fork from GitHub with specific branch')}
-  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp --branch develop')}
+  ${ui.format.dim('Fork from GitHub with specific branch')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent fork https://github.com/user/repo.git MyApp --branch develop')}
 
-  ${chalk.dim('Fork private repository with authentication')}
-  ${chalk.dim('$')} ${chalk.cyan('agent fork https://github.com/user/repo.git MyApp -u username -t token')}
+  ${ui.format.dim('Fork private repository with authentication')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent fork https://github.com/user/repo.git MyApp -u username -t token')}
 
-  ${chalk.dim('Fork using git@ URL')}
-  ${chalk.dim('$')} ${chalk.cyan('agent fork git@github.com:user/repo.git MyApp')}
+  ${ui.format.dim('Fork using git@ URL')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent fork git@github.com:user/repo.git MyApp')}
 `,
     )
     .action(forkCommand);
@@ -540,16 +459,16 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Imports an Agentlang application from a source path. This is an alias for the
   'fork' command and uses the same functionality.
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Import from local directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent import ./my-app MyImportedApp')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Import from local directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent import ./my-app MyImportedApp')}
 
-  ${chalk.dim('Import from GitHub repository')}
-  ${chalk.dim('$')} ${chalk.cyan('agent import https://github.com/user/repo.git MyApp')}
+  ${ui.format.dim('Import from GitHub repository')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent import https://github.com/user/repo.git MyApp')}
 `,
     )
     .action(forkCommand);
@@ -563,7 +482,7 @@ ${chalk.bold.white('EXAMPLES')}
     .addHelpText(
       'after',
       `
-${chalk.bold.white('DESCRIPTION')}
+${ui.format.boldWhite('DESCRIPTION')}
   Starts the Agentlang Design Studio locally for your project. This command:
     • Starts the Agentlang server (via 'agent run')
     • Serves the Studio UI on a local web server
@@ -572,21 +491,21 @@ ${chalk.bold.white('DESCRIPTION')}
   The Studio UI allows you to visually edit Agents, Data Models, and Workflows,
   with changes saved directly to your project files (.al files, package.json, etc.).
 
-${chalk.bold.white('EXAMPLES')}
-  ${chalk.dim('Start Studio in current directory')}
-  ${chalk.dim('$')} ${chalk.cyan('agent studio')}
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('Start Studio in current directory')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent studio')}
 
-  ${chalk.dim('Start Studio for specific project')}
-  ${chalk.dim('$')} ${chalk.cyan('agent studio ./my-project')}
+  ${ui.format.dim('Start Studio for specific project')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent studio ./my-project')}
 
-  ${chalk.dim('Start Studio on custom port')}
-  ${chalk.dim('$')} ${chalk.cyan('agent studio --port 5000')}
+  ${ui.format.dim('Start Studio on custom port')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent studio --port 5000')}
 
-  ${chalk.dim('Start Studio with path and custom port')}
-  ${chalk.dim('$')} ${chalk.cyan('agent studio ./monitoring -p 5000')}
+  ${ui.format.dim('Start Studio with path and custom port')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent studio ./monitoring -p 5000')}
 
-  ${chalk.dim('Start only the backend server (for development)')}
-  ${chalk.dim('$')} ${chalk.cyan('agent studio --server-only')}
+  ${ui.format.dim('Start only the backend server (for development)')}
+  ${ui.format.dim('$')} ${ui.format.cyan('agent studio --server-only')}
 `,
     )
     .action(studioCommand);
@@ -610,11 +529,9 @@ export const parseAndValidate = async (fileName: string): Promise<void> => {
   const parseResult = document.parseResult;
   // verify no lexer, parser, or general diagnostic errors show up
   if (parseResult.lexerErrors.length === 0 && parseResult.parserErrors.length === 0) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.green(`Parsed and validated ${fileName} successfully!`));
+    ui.success(`Parsed and validated ${fileName} successfully!`);
   } else {
-    // eslint-disable-next-line no-console
-    console.log(chalk.red(`Failed to parse and validate ${fileName}!`));
+    ui.error(`Failed to parse and validate ${fileName}!`);
   }
 };
 
@@ -641,9 +558,8 @@ export const runModule = async (fileName: string): Promise<void> => {
       await runPostInitTasks(appSpec, config);
     });
   } catch (err: unknown) {
-    if (isNodeEnv && chalk) {
-      // eslint-disable-next-line no-console
-      console.error(chalk.red(String(err)));
+    if (isNodeEnv) {
+      ui.error(String(err));
     } else {
       // eslint-disable-next-line no-console
       console.error(String(err));
@@ -675,8 +591,7 @@ export const replCommand = async (
       verbose: !options?.quiet,
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.log(chalk.red(`Failed to start REPL: ${error instanceof Error ? error.message : String(error)}`));
+    ui.error(`Failed to start REPL: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 };
@@ -691,24 +606,27 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   return rm;
 }
 
-/* eslint-disable no-console */
 export const generateUICommand = async (
   specFile?: string,
   options?: { directory?: string; apiKey?: string; push?: boolean; message?: string },
 ): Promise<void> => {
   try {
-    console.log(chalk.blue('🚀 Agentlang UI Generator\n'));
+    ui.blank();
+    ui.banner('UI Generator');
+    ui.blank();
 
     // Get API key from options or environment
     const apiKey = options?.apiKey || process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      console.error(chalk.red('❌ Error: Anthropic API key is required.'));
-      console.log(chalk.yellow('   Set ANTHROPIC_API_KEY environment variable or use --api-key flag.'));
-      console.log(chalk.gray('\n   Example:'));
-      console.log(chalk.gray('   $ export ANTHROPIC_API_KEY=sk-ant-...'));
-      console.log(chalk.gray('   $ agent ui-gen'));
-      console.log(chalk.gray('\n   Or:'));
-      console.log(chalk.gray('   $ agent ui-gen --api-key sk-ant-...'));
+      ui.error('Anthropic API key is required.');
+      ui.warn('Set ANTHROPIC_API_KEY environment variable or use --api-key flag.');
+      ui.blank();
+      ui.gray('   Example:');
+      ui.gray('   $ export ANTHROPIC_API_KEY=sk-ant-...');
+      ui.gray('   $ agent ui-gen');
+      ui.blank();
+      ui.gray('   Or:');
+      ui.gray('   $ agent ui-gen --api-key sk-ant-...');
       process.exit(1);
     }
 
@@ -719,31 +637,34 @@ export const generateUICommand = async (
     // Auto-detect spec file if not provided
     let specFilePath: string;
     if (!specFile) {
-      console.log(chalk.cyan('📄 Searching for UI spec file...'));
+      ui.dim('Searching for UI spec file...');
       specFilePath = await findSpecFile(absoluteTargetDir);
     } else {
       specFilePath = path.resolve(process.cwd(), specFile);
     }
 
     // Load the UI spec
-    console.log(chalk.cyan(`📄 Loading UI spec from: ${specFilePath}`));
     const uiSpec = await loadUISpec(specFilePath);
 
-    console.log(chalk.cyan(`📂 Target directory: ${absoluteTargetDir}`));
-    console.log(chalk.cyan(`📦 Output will be created in: ${path.join(absoluteTargetDir, 'ui')}`));
+    ui.label('Spec', specFilePath, 'cyan');
+    ui.label('Target', absoluteTargetDir);
+    ui.label('Output', path.join(absoluteTargetDir, 'ui'));
+    ui.blank();
 
     // Generate or update the UI
     await generateUI(uiSpec, absoluteTargetDir, apiKey, options?.push || false, options?.message);
 
-    console.log(chalk.green('\n✅ UI generation completed successfully!'));
+    ui.blank();
+    ui.divider(50);
+    ui.success('UI generation completed!');
+    ui.divider(50);
+    ui.blank();
   } catch (error) {
-    console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+    ui.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export const studioCommand = async (
   projectPath?: string,
   options?: { port?: string; serverOnly?: boolean },
@@ -751,31 +672,26 @@ export const studioCommand = async (
   try {
     const port = parseInt(options?.port || '4000', 10);
     if (isNaN(port) || port < 1 || port > 65535) {
-      console.error(chalk.red('Invalid port number. Port must be between 1 and 65535.'));
+      ui.error('Invalid port number. Port must be between 1 and 65535.');
       process.exit(1);
     }
     await startStudio(projectPath || '.', port, options?.serverOnly);
   } catch (error) {
-    console.error(chalk.red(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`));
+    ui.error(`Failed to start Studio: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export const forkCommand = async (
   source: string,
   name?: string,
   options?: { branch?: string; username?: string; token?: string },
 ): Promise<void> => {
   try {
-    console.log(chalk.blue('🚀 Forking Agentlang application...\n'));
-
     // Determine destination name
     let appName = name;
     if (!appName) {
       if (source.startsWith('http') || source.startsWith('git@')) {
-        // Try to infer from URL
         const parts = source.split('/');
         const lastPart = parts[parts.length - 1].replace('.git', '');
         appName = lastPart;
@@ -799,29 +715,45 @@ export const forkCommand = async (
       };
     }
 
-    console.log(chalk.cyan(`📦 Source: ${source}`));
-    console.log(chalk.cyan(`📂 Destination: ${destPath}`));
+    ui.blank();
+    ui.banner('Fork App');
+    ui.blank();
+    ui.label('Source', source, 'cyan');
+    ui.label('Destination', destPath);
     if (options?.branch) {
-      console.log(chalk.cyan(`🌿 Branch: ${options.branch}`));
+      ui.label('Branch', options.branch, 'cyan');
     }
     if (forkOptions.credentials) {
-      console.log(chalk.cyan(`🔐 Authenticated as: ${forkOptions.credentials.username}`));
+      ui.label('Auth', forkOptions.credentials.username, 'cyan');
     }
+    ui.blank();
 
     // Perform the fork
     const result = await forkApp(source, destPath, forkOptions);
 
-    console.log(chalk.green(`\n✅ Successfully forked app "${result.name}"!`));
-    console.log(chalk.dim('\nNext steps:'));
-    console.log(chalk.dim('  1. Change directory: ') + chalk.cyan(`cd ${result.name}`));
-    console.log(chalk.dim('  2. Run your app: ') + chalk.cyan('agent run'));
-    console.log(chalk.dim('  3. Or start Studio: ') + chalk.cyan('agent studio'));
+    ui.divider(50);
+    ui.success(`Forked "${result.name}" successfully!`);
+    ui.blank();
+    ui.dim('Next steps:');
+    ui.row([
+      { text: '  1. Change directory: ', dimColor: true },
+      { text: `cd ${result.name}`, color: 'cyan' },
+    ]);
+    ui.row([
+      { text: '  2. Run your app: ', dimColor: true },
+      { text: 'agent run', color: 'cyan' },
+    ]);
+    ui.row([
+      { text: '  3. Or start Studio: ', dimColor: true },
+      { text: 'agent studio', color: 'cyan' },
+    ]);
+    ui.divider(50);
+    ui.blank();
   } catch (error) {
-    console.error(chalk.red('\n❌ Error:'), error instanceof Error ? error.message : error);
+    ui.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
 interface OpenApiConfigItem {
   name: string;

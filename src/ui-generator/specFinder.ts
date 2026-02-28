@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import chalk from 'chalk';
+import { ui } from '../ui/index.js';
 
 /**
  * Searches for a UI spec file in the given directory
@@ -21,8 +21,7 @@ export async function findSpecFile(searchDir: string = process.cwd()): Promise<s
   for (const fileName of specFileNames) {
     const filePath = path.join(searchDir, fileName);
     if (await fs.pathExists(filePath)) {
-      // eslint-disable-next-line no-console
-      console.log(chalk.gray(`  Found spec file: ${fileName}`));
+      ui.gray(`  Found spec file: ${fileName}`);
       return filePath;
     }
   }
@@ -34,14 +33,10 @@ export async function findSpecFile(searchDir: string = process.cwd()): Promise<s
 
     if (uiSpecFiles.length > 0) {
       const filePath = path.join(searchDir, uiSpecFiles[0]);
-      // eslint-disable-next-line no-console
-      console.log(chalk.gray(`  Found spec file: ${uiSpecFiles[0]}`));
+      ui.gray(`  Found spec file: ${uiSpecFiles[0]}`);
       if (uiSpecFiles.length > 1) {
-        // eslint-disable-next-line no-console
-        console.log(
-          chalk.yellow(
-            `  Note: Multiple spec files found, using ${uiSpecFiles[0]}. Other files: ${uiSpecFiles.slice(1).join(', ')}`,
-          ),
+        ui.warn(
+          `  Note: Multiple spec files found, using ${uiSpecFiles[0]}. Other files: ${uiSpecFiles.slice(1).join(', ')}`,
         );
       }
       return filePath;

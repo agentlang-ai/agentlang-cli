@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import chalk from 'chalk';
+import { ui } from '../ui/index.js';
 
 export interface UISpec {
   appInfo: {
@@ -30,8 +30,7 @@ export async function loadUISpec(specPath: string): Promise<UISpec> {
       throw new Error('Invalid UI spec: missing appInfo.name');
     }
 
-    // eslint-disable-next-line no-console
-    console.log(chalk.green(`✓ Loaded spec for: ${spec.appInfo.title || spec.appInfo.name}`));
+    ui.step('✓', ` Loaded spec for: ${spec.appInfo.title || spec.appInfo.name}`);
 
     return spec;
   } catch (error) {

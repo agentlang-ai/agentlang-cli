@@ -2,7 +2,7 @@
 import path from 'path';
 import { existsSync } from 'fs';
 import { rm } from 'fs/promises';
-import chalk from 'chalk';
+import { ui } from '../../ui/index.js';
 import { initializeProject } from '../../utils/projectInitializer.js';
 import { forkApp as forkAppUtil, type ForkOptions } from '../../utils/forkApp.js';
 import { AppInfo } from '../types.js';
@@ -12,30 +12,15 @@ export class AppManagementService {
 
   async createApp(name: string): Promise<AppInfo> {
     const appPath = path.join(this.workspaceRoot, name);
-    console.log(`[AppManagement] createApp: Creating app "${name}" at path: ${appPath}`);
 
     try {
-      // Use the shared initialization logic
-      console.log(`[AppManagement] createApp: Starting project initialization for "${name}"`);
-      const initStartTime = Date.now();
-
       await initializeProject(appPath, name, {
-        silent: false, // Enable logging for better visibility
-        skipInstall: false, // Install dependencies so the app is ready to run
-        skipGit: false, // Initialize git repo
+        silent: false,
+        skipInstall: false,
+        skipGit: false,
       });
 
-      const initDuration = Date.now() - initStartTime;
-      console.log(`[AppManagement] createApp: Project initialization completed for "${name}" in ${initDuration}ms`);
-
-      const appInfo = {
-        name,
-        path: appPath,
-        isInitialApp: false,
-      };
-
-      console.log(`[AppManagement] createApp: Successfully created app "${name}"`);
-      return appInfo;
+      return { name, path: appPath, isInitialApp: false };
     } catch (error) {
       console.error(`[AppManagement] createApp: Failed to create app "${name}":`, error);
       throw error;
@@ -73,8 +58,8 @@ export class AppManagementService {
     }
 
     // Delete the app directory
-    console.log(chalk.yellow(`Deleting app: ${appPath}`));
+    ui.warn(`Deleting app: ${appPath}`);
     await rm(appPath, { recursive: true, force: true });
-    console.log(chalk.green(`Successfully deleted app: ${appPath}`));
+    ui.success(`Successfully deleted app: ${appPath}`);
   }
 }
