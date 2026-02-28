@@ -16,6 +16,25 @@ import { ui, ansi } from './ui/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Read version before heavy imports so --version works without agentlang loaded
+let packageVersion = '0.0.0';
+try {
+  const packagePath = join(__dirname, '..', 'package.json');
+  const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8')) as { version?: string };
+  packageVersion = packageJson.version || '0.0.0';
+} catch {
+  // Fallback to default version
+}
+
+// Early exit for --version/-V — intercepts before heavy agentlang imports
+if (process.argv.includes('--version') || process.argv.includes('-V')) {
+  ui.row([
+    { text: 'agent', bold: true, color: 'cyan' },
+    { text: `  v${packageVersion}`, color: 'white' },
+  ]);
+  process.exit(0);
+}
+
 let agPath = 'agentlang';
 // Check if ./node_modules/agentlang exists in the current directory, add to agPath
 const nodeModulesPath = path.resolve(process.cwd(), 'node_modules/agentlang');
@@ -60,16 +79,6 @@ import { findSpecFile } from './ui-generator/specFinder.js';
 import { startStudio } from './studio.js';
 import { OpenAPIClientAxios } from 'openapi-client-axios';
 import { forkApp, type ForkOptions } from './utils/forkApp.js';
-
-// Read package.json for version
-let packageVersion = '0.0.0';
-try {
-  const packagePath = join(__dirname, '..', 'package.json');
-  const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8')) as { version?: string };
-  packageVersion = packageJson.version || '0.0.0';
-} catch {
-  // Fallback to a default version
-}
 
 export interface GenerateOptions {
   destination?: string;
