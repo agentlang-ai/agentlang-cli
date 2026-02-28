@@ -2,7 +2,7 @@
 import path from 'path';
 import { existsSync } from 'fs';
 import { spawn, ChildProcess, execSync } from 'child_process';
-import chalk from 'chalk';
+import { ui, ansi } from '../../ui/index.js';
 import { FileService } from './FileService.js';
 import { runPreInitTasks } from '../runtime.js';
 import { fileURLToPath } from 'url';
@@ -17,7 +17,7 @@ export class AppRuntimeService {
   constructor(private fileService: FileService) {}
 
   async launchApp(appPath: string): Promise<void> {
-    console.log(chalk.blue(`\nLaunching app: ${appPath}`));
+    ui.dim(`  Starting ${path.basename(appPath)}...`);
 
     // 1. Stop existing app if any
     this.stopApp(false); // false = don't reset to root yet, we are switching
@@ -30,10 +30,10 @@ export class AppRuntimeService {
     try {
       const preInitSuccess = await runPreInitTasks();
       if (!preInitSuccess) {
-        console.warn(chalk.yellow('Warning: Failed to initialize Agentlang runtime'));
+        ui.warn('Failed to initialize Agentlang runtime');
       }
     } catch (error) {
-      console.warn(chalk.yellow('Warning: Runtime initialization error:'), error);
+      ui.warn(`Runtime initialization error: ${String(error)}`);
     }
 
     // 4. Check and install dependencies if needed
@@ -44,7 +44,7 @@ export class AppRuntimeService {
       const needsInstall = !existsSync(nodeModulesPath) || !existsSync(path.join(nodeModulesPath, 'sqlite3'));
 
       if (needsInstall) {
-        console.log(chalk.yellow('📦 Dependencies not found. Installing...'));
+        ui.warn('Dependencies not found. Installing...');
         try {
           execSync('npm install', {
             cwd: appPath,
@@ -55,9 +55,9 @@ export class AppRuntimeService {
               GIT_TERMINAL_PROMPT: '0',
             },
           });
-          console.log(chalk.green('✓ Dependencies installed'));
+          ui.success('Dependencies installed');
         } catch (error) {
-          console.error(chalk.red('Failed to install dependencies:'), error);
+          ui.error(`Failed to install dependencies: ${String(error)}`);
           throw new Error('Failed to install dependencies. Please run "npm install" manually in the app directory.');
         }
       }
@@ -67,7 +67,7 @@ export class AppRuntimeService {
     try {
       await this.fileService.loadProject();
     } catch (error) {
-      console.error(chalk.red('Failed to load project runtime:'), error);
+      ui.error(`Failed to load project runtime: ${String(error)}`);
       // Continue anyway to allow editing
     }
 
@@ -107,22 +107,22 @@ export class AppRuntimeService {
 
       if (this.agentProcess) {
         this.agentProcess.stdout?.on('data', (data: Buffer) => {
-          process.stdout.write(chalk.dim(`[Agent ${path.basename(appPath)}] ${data.toString()}`));
+          process.stdout.write(ansi.dim(`[Agent ${path.basename(appPath)}] ${data.toString()}`));
         });
         this.agentProcess.stderr?.on('data', (data: Buffer) => {
-          process.stderr.write(chalk.dim(`[Agent ${path.basename(appPath)}] ${data.toString()}`));
+          process.stderr.write(ansi.dim(`[Agent ${path.basename(appPath)}] ${data.toString()}`));
         });
 
-        console.log(chalk.green(`✓ Agent process started (PID: ${this.agentProcess.pid})`));
+        ui.success(`Agent process started (PID: ${this.agentProcess.pid})`);
       }
     } catch (error) {
-      console.error(chalk.red('Failed to spawn agent process:'), error);
+      ui.error(`Failed to spawn agent process: ${String(error)}`);
     }
   }
 
   stopApp(resetToRoot = true, workspaceRoot?: string): void {
     if (this.agentProcess) {
-      console.log(chalk.yellow('\nStopping active app...'));
+      ui.warn('Stopping active app...');
       this.agentProcess.kill();
       this.agentProcess = null;
     }
@@ -130,7 +130,7 @@ export class AppRuntimeService {
     if (resetToRoot && workspaceRoot) {
       this.currentAppPath = null;
       this.fileService.setTargetDir(workspaceRoot);
-      console.log(chalk.green('✓ Returned to Dashboard Mode'));
+      ui.success('Returned to Dashboard Mode');
     } else if (resetToRoot) {
       this.currentAppPath = null;
     }
