@@ -476,12 +476,10 @@ function createReplHelpers() {
       console.log('  inspect.entities()');
       console.log('  inspect.instances(MyApp/EntityName)');
       console.log('  m.active()');
-      /* eslint-enable no-console */
 
       return '';
     },
     clear: () => {
-      // eslint-disable-next-line no-console
       console.log('\x1b[2J\x1b[0f');
       return '';
     },
@@ -793,7 +791,6 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
     await new Promise<void>(resolve => setTimeout(resolve, 50));
 
     ui.info('Type "help" for commands');
-    // eslint-disable-next-line no-console
     console.log(); // Extra newline for clean prompt appearance
 
     // Create and expose helper functions globally
@@ -845,19 +842,15 @@ export async function startRepl(appDir = '.', options: ReplOptions = {}): Promis
             try {
               const resolved = await (result as Promise<unknown>);
               if (resolved !== undefined && resolved !== '') {
-                // eslint-disable-next-line no-console
                 console.log(ui.format.success('→'), resolved);
               }
             } catch (error) {
-              // eslint-disable-next-line no-console
               console.error(ui.format.error('Promise rejected:'), error);
             }
           } else if (result !== undefined && result !== '') {
-            // eslint-disable-next-line no-console
             console.log(ui.format.success('→'), result);
           }
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.error(ui.format.error('Error:'), error);
         }
 

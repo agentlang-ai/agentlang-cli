@@ -85,9 +85,7 @@ async function analyzeExistingProject(projectDir: string): Promise<ProjectAnalys
     return analysis;
   }
 }
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export async function generateUI(
   uiSpec: UISpec,
   outputBaseDir: string,
@@ -414,7 +412,10 @@ export async function generateUI(
     ui.success('Generation complete!');
     ui.info('Summary:');
     ui.row([{ text: '  • Files created: ', color: 'gray' }, { text: String(actualFileCount) }]);
-    ui.row([{ text: '  • Time elapsed: ', color: 'gray' }, { text: `${((Date.now() - startTime) / 1000).toFixed(1)}s` }]);
+    ui.row([
+      { text: '  • Time elapsed: ', color: 'gray' },
+      { text: `${((Date.now() - startTime) / 1000).toFixed(1)}s` },
+    ]);
     ui.row([{ text: '  • Output location: ', color: 'gray' }, { text: projectDir }]);
 
     // Show sample files created (first 8)
@@ -431,8 +432,7 @@ export async function generateUI(
 
     // Git operations if requested
     if (shouldPush) {
-      // eslint-disable-next-line no-console
-      console.log(''); // Add newline
+      ui.blank();
       await performGitOperations(projectDir, outputBaseDir, uiSpec.appInfo.title);
     }
 
@@ -477,7 +477,6 @@ async function countGeneratedFiles(projectDir: string): Promise<number> {
   return count;
 }
 
-/* eslint-disable no-console */
 async function performGitOperations(projectDir: string, repoRoot: string, appTitle: string): Promise<void> {
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
@@ -562,7 +561,6 @@ async function performGitOperations(projectDir: string, repoRoot: string, appTit
     ui.gray('     git push');
   }
 }
-/* eslint-enable no-console */
 
 function createGenerationPrompt(
   uiSpec: UISpec,

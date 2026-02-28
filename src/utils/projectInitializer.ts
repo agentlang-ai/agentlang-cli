@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { execSync } from 'child_process';
@@ -221,7 +220,7 @@ export const initializeProject = async (
       if (!silent) ui.info('Installing dependencies...');
       try {
         installDependencies(targetDir, silent);
-      } catch (error) {
+      } catch {
         if (!silent) ui.warn('Failed to install dependencies. You may need to run npm install manually.');
       }
       if (!silent) ui.step('✓', ' Dependencies installed');

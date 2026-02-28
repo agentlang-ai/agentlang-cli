@@ -606,7 +606,6 @@ export async function internAndRunModule(module: ModuleDefinition, appSpec?: App
   return rm;
 }
 
-/* eslint-disable no-console */
 export const generateUICommand = async (
   specFile?: string,
   options?: { directory?: string; apiKey?: string; push?: boolean; message?: string },
@@ -665,9 +664,7 @@ export const generateUICommand = async (
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export const studioCommand = async (
   projectPath?: string,
   options?: { port?: string; serverOnly?: boolean },
@@ -684,9 +681,7 @@ export const studioCommand = async (
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
-/* eslint-disable no-console */
 export const forkCommand = async (
   source: string,
   name?: string,
@@ -759,7 +754,6 @@ export const forkCommand = async (
     process.exit(1);
   }
 };
-/* eslint-enable no-console */
 
 interface OpenApiConfigItem {
   name: string;

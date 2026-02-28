@@ -1,12 +1,12 @@
 import React from 'react';
 import { renderToString, Text, Box } from 'ink';
 
-type Part = {
+interface Part {
   text: string;
   color?: string;
   bold?: boolean;
   dimColor?: boolean;
-};
+}
 
 function p(el: React.ReactElement): void {
   // eslint-disable-next-line no-console
@@ -14,7 +14,7 @@ function p(el: React.ReactElement): void {
 }
 
 function pe(el: React.ReactElement): void {
-  process.stderr.write(renderToString(el) + '\n');
+  process.stderr.write(`${renderToString(el)}\n`);
 }
 
 export const ui = {
