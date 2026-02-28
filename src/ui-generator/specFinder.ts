@@ -35,7 +35,9 @@ export async function findSpecFile(searchDir: string = process.cwd()): Promise<s
       const filePath = path.join(searchDir, uiSpecFiles[0]);
       ui.gray(`  Found spec file: ${uiSpecFiles[0]}`);
       if (uiSpecFiles.length > 1) {
-        ui.warn(`  Note: Multiple spec files found, using ${uiSpecFiles[0]}. Other files: ${uiSpecFiles.slice(1).join(', ')}`);
+        ui.warn(
+          `  Note: Multiple spec files found, using ${uiSpecFiles[0]}. Other files: ${uiSpecFiles.slice(1).join(', ')}`,
+        );
       }
       return filePath;
     }

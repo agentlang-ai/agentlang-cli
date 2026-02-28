@@ -230,8 +230,7 @@ export const initializeProject = async (
       await setupGitRepository(targetDir, silent);
     }
   } catch (error) {
-    if (!silent)
-      ui.error(`Error initializing application: ${error instanceof Error ? error.message : String(error)}`);
+    if (!silent) ui.error(`Error initializing application: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 };

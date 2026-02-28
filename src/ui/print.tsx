@@ -19,21 +19,42 @@ function pe(el: React.ReactElement): void {
 
 export const ui = {
   // Bold green with ✔ prefix
-  success: (msg: string) => p(<Text bold color="green">{'✔  '}{msg}</Text>),
+  success: (msg: string) =>
+    p(
+      <Text bold color="green">
+        {'✔  '}
+        {msg}
+      </Text>,
+    ),
 
   // Red rounded border box with ✖ prefix — draws maximum attention
   error: (msg: string) =>
     pe(
       <Box borderStyle="round" borderColor="red" paddingX={1}>
-        <Text color="red">{'✖  '}{msg}</Text>
+        <Text color="red">
+          {'✖  '}
+          {msg}
+        </Text>
       </Box>,
     ),
 
   // Bold yellow with ⚠ prefix
-  warn: (msg: string) => p(<Text bold color="yellow">{'⚠  '}{msg}</Text>),
+  warn: (msg: string) =>
+    p(
+      <Text bold color="yellow">
+        {'⚠  '}
+        {msg}
+      </Text>,
+    ),
 
   // Cyan with › prefix — uses › instead of ℹ which breaks on many terminals
-  info: (msg: string) => p(<Text color="cyan">{'›  '}{msg}</Text>),
+  info: (msg: string) =>
+    p(
+      <Text color="cyan">
+        {'›  '}
+        {msg}
+      </Text>,
+    ),
 
   cyan: (msg: string) => p(<Text color="cyan">{msg}</Text>),
 
@@ -52,9 +73,14 @@ export const ui = {
     p(
       <Box flexDirection="column">
         <Text>
-          <Text bold color="white">{title}</Text>
+          <Text bold color="white">
+            {title}
+          </Text>
           {subtitle !== undefined && subtitle !== '' && (
-            <Text dimColor>{'  '}{subtitle}</Text>
+            <Text dimColor>
+              {'  '}
+              {subtitle}
+            </Text>
           )}
         </Text>
         <Text color="cyan">{'─'.repeat(title.length + (subtitle ? subtitle.length + 2 : 0))}</Text>
@@ -124,7 +150,12 @@ export const ui = {
     dim: (msg: string) => renderToString(<Text dimColor>{msg}</Text>),
     gray: (msg: string) => renderToString(<Text color="gray">{msg}</Text>),
     bold: (msg: string) => renderToString(<Text bold>{msg}</Text>),
-    boldWhite: (msg: string) => renderToString(<Text bold color="white">{msg}</Text>),
+    boldWhite: (msg: string) =>
+      renderToString(
+        <Text bold color="white">
+          {msg}
+        </Text>,
+      ),
     hex: (color: string) => (msg: string) => renderToString(<Text color={color}>{msg}</Text>),
     row: (parts: Part[]) =>
       renderToString(

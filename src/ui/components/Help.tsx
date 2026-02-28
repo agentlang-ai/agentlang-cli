@@ -28,7 +28,10 @@ function Command({ name, args, description }: { name: string; args?: string; des
         </Text>
         {args && <Text dimColor> {args}</Text>}
       </Text>
-      <Text dimColor>{'    '}{description}</Text>
+      <Text dimColor>
+        {'    '}
+        {description}
+      </Text>
     </Box>
   );
 }
@@ -63,14 +66,7 @@ export default function Help({ version }: HelpProps) {
   return (
     <Box flexDirection="column">
       {/* ASCII Art Header — wrapped in a rounded cyan border */}
-      <Box
-        flexDirection="column"
-        borderStyle="round"
-        borderColor="cyan"
-        paddingX={2}
-        paddingY={1}
-        marginBottom={1}
-      >
+      <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1} marginBottom={1}>
         <Text>
           <Text color={g0}>{'█████╗ '}</Text>
           <Text color={g1}>{' ██████╗ '}</Text>
@@ -115,7 +111,9 @@ export default function Help({ version }: HelpProps) {
         </Text>
         <Text> </Text>
         <Text>
-          <Text bold color="white">Agentlang CLI</Text>
+          <Text bold color="white">
+            Agentlang CLI
+          </Text>
           {'  '}
           <Text dimColor>v{version}</Text>
         </Text>
@@ -129,11 +127,7 @@ export default function Help({ version }: HelpProps) {
         <Box marginTop={1} marginLeft={2}>
           <Text>
             <Text dimColor>$ </Text>
-            <Text color="cyan">agent</Text>
-            {' '}
-            <Text color="yellow">{'<command>'}</Text>
-            {' '}
-            <Text dimColor>[options]</Text>
+            <Text color="cyan">agent</Text> <Text color="yellow">{'<command>'}</Text> <Text dimColor>[options]</Text>
           </Text>
         </Box>
       </Box>
@@ -182,7 +176,11 @@ export default function Help({ version }: HelpProps) {
             <Option flag="-m, --message" arg="<text>" desc="Update instructions" />
           </SubOptions>
 
-          <Command name="fork" args="<source> [name]" description="Fork an app from a local directory or git repository" />
+          <Command
+            name="fork"
+            args="<source> [name]"
+            description="Fork an app from a local directory or git repository"
+          />
           <SubOptions>
             <Option flag="-b, --branch" arg="<branch>" desc="Git branch to clone (for git URLs)" />
             <Option flag="-u, --username" arg="<username>" desc="GitHub username for authenticated access" />
