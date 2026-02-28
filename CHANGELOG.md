@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.12.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.0...0.12.1) (2026-02-28)
+
+### Changes
+
+- chore: release 0.12.0
+  ([da6a97d](https://github.com/agentlang-ai/agentlang-cli/commit/da6a97d9c5559f8be9221daaeb5f3f355f4db3d3)) -
+  @HamzaFractl
+- Fixed formatting issue
+  ([33afc94](https://github.com/agentlang-ai/agentlang-cli/commit/33afc94b076200c198ab2b2e1f0e24c8b0782c57)) -
+  @mhamzachippa
+- Fixed linting issues
+  ([1237862](https://github.com/agentlang-ai/agentlang-cli/commit/1237862bf121912d40c85e02dc9e78921eb87a4d)) -
+  @mhamzachippa
+- Fixed package.json
+  ([d0860b2](https://github.com/agentlang-ai/agentlang-cli/commit/d0860b2fe89f9098ddb19a0e0911f72d7cf473c6)) -
+  @mhamzachippa
+
+---
+
 ## [0.12.0](https://github.com/agentlang-ai/agentlang-cli/compare/0.11.10...0.12.0) (2026-02-28)
 
 ### Changes
