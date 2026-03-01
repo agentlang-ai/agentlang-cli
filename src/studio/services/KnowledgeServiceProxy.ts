@@ -13,7 +13,7 @@ interface ProxyResponse<T = unknown> {
 
 /**
  * KnowledgeServiceProxy - Proxies knowledge API requests to the knowledge-service
- * 
+ *
  * This class replaces the LocalKnowledgeService with a simple HTTP proxy.
  * All knowledge operations are forwarded to the knowledge-service.
  */
@@ -23,7 +23,7 @@ export class KnowledgeServiceProxy {
   constructor(config: ProxyConfig) {
     this.config = {
       timeout: 30000,
-      ...config
+      ...config,
     };
   }
 
@@ -34,18 +34,18 @@ export class KnowledgeServiceProxy {
     method: 'GET' | 'POST' | 'DELETE',
     path: string,
     body?: unknown,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
   ): Promise<T> {
     const url = `${this.config.serviceUrl}${path}`;
-    
+
     const response = await fetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
-        ...headers
+        ...headers,
       },
       body: body ? JSON.stringify(body) : undefined,
-      timeout: this.config.timeout
+      timeout: this.config.timeout,
     });
 
     if (!response.ok) {
@@ -57,38 +57,42 @@ export class KnowledgeServiceProxy {
     if (contentType?.includes('application/json')) {
       return response.json() as Promise<T>;
     }
-    
+
     return response.text() as Promise<T>;
   }
 
   /**
    * Query knowledge context
    */
-  async query(queryText: string, containerTags: string[], options?: {
-    documentTitles?: string[];
-    documentRefs?: string[];
-    chunkLimit?: number;
-    entityLimit?: number;
-  }): Promise<{
-    chunks: Array<{
+  async query(
+    queryText: string,
+    containerTags: string[],
+    options?: {
+      documentTitles?: string[];
+      documentRefs?: string[];
+      chunkLimit?: number;
+      entityLimit?: number;
+    },
+  ): Promise<{
+    chunks: {
       id: string;
       content: string;
       similarity: number;
       containerTag: string;
-    }>;
-    entities: Array<{
+    }[];
+    entities: {
       id: string;
       name: string;
       entityType: string;
       description: string;
       confidence: number;
-    }>;
-    edges: Array<{
+    }[];
+    edges: {
       sourceId: string;
       targetId: string;
       relType: string;
       weight: number;
-    }>;
+    }[];
     contextString: string;
   }> {
     return this.proxyRequest('POST', '/KnowledgeService.core/queryKnowledgeContext', {
@@ -123,21 +127,26 @@ export class KnowledgeServiceProxy {
   /**
    * List topics
    */
-  async listTopics(tenantId?: string, appId?: string): Promise<Array<{
-    id: string;
-    name: string;
-    description: string;
-    containerTag: string;
-    documentCount: number;
-  }>> {
+  async listTopics(
+    tenantId?: string,
+    appId?: string,
+  ): Promise<
+    {
+      id: string;
+      name: string;
+      description: string;
+      containerTag: string;
+      documentCount: number;
+    }[]
+  > {
     const params = new URLSearchParams();
     if (tenantId) params.append('tenantId', tenantId);
     if (appId) params.append('appId', appId);
-    
+
     const result = await this.proxyRequest<{
       topicsJson: string;
     }>('GET', `/KnowledgeService.core/Topic?${params.toString()}`);
-    
+
     return JSON.parse(result.topicsJson || '[]');
   }
 
@@ -160,11 +169,11 @@ export class KnowledgeServiceProxy {
       tenantId?: string;
       appId?: string;
       uploadedBy?: string;
-    }
+    },
   ): Promise<{ documentId: string; versionId: string }> {
     // Convert buffer to base64 for transport
     const base64Content = fileBuffer.toString('base64');
-    
+
     return this.proxyRequest('POST', '/KnowledgeService.core/uploadDocumentVersion', {
       tenantId: options?.tenantId || 'local',
       appId: options?.appId,
@@ -186,9 +195,9 @@ export class KnowledgeServiceProxy {
       appId?: string;
       page?: number;
       pageSize?: number;
-    }
+    },
   ): Promise<{
-    documents: Array<{
+    documents: {
       id: string;
       title: string;
       fileName: string;
@@ -196,7 +205,7 @@ export class KnowledgeServiceProxy {
       sizeBytes: number;
       currentVersion: number;
       createdAt: string;
-    }>;
+    }[];
     total: number;
     page: number;
     pageSize: number;
@@ -213,7 +222,7 @@ export class KnowledgeServiceProxy {
       page: options?.page || 1,
       pageSize: options?.pageSize || 20,
     });
-    
+
     return {
       documents: JSON.parse(result.documentsJson || '[]'),
       total: result.total,
@@ -234,21 +243,23 @@ export class KnowledgeServiceProxy {
   /**
    * List ingestion jobs
    */
-  async listJobs(containerTag?: string): Promise<Array<{
-    id: string;
-    documentId: string;
-    status: string;
-    progress: number;
-    progressStage: string;
-    errorMessage?: string;
-  }>> {
+  async listJobs(containerTag?: string): Promise<
+    {
+      id: string;
+      documentId: string;
+      status: string;
+      progress: number;
+      progressStage: string;
+      errorMessage?: string;
+    }[]
+  > {
     const params = new URLSearchParams();
     if (containerTag) params.append('containerTag', containerTag);
-    
+
     const result = await this.proxyRequest<{
       itemsJson: string;
     }>('GET', `/KnowledgeService.core/VectorIngestionQueueItem?${params.toString()}`);
-    
+
     return JSON.parse(result.itemsJson || '[]');
   }
 }

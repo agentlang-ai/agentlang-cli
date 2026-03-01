@@ -6,13 +6,13 @@ interface ManagerConfig {
 
 /**
  * KnowledgeServiceManager - Manages connection to external knowledge-service
- * 
+ *
  * Architecture (Option 2): Knowledge-service runs as a separate process
- * 
+ *
  * User workflow:
  *   Terminal 1: cd knowledge-service && agentlang run src/core.al
  *   Terminal 2: cd my-app && KNOWLEDGE_SERVICE_URL=http://localhost:8080 agentlang dev
- * 
+ *
  * This class:
  * - Validates connection to knowledge-service
  * - Provides proxy for API calls
@@ -21,7 +21,7 @@ interface ManagerConfig {
 export class KnowledgeServiceManager {
   private proxy: KnowledgeServiceProxy;
   private serviceUrl: string;
-  private ready: boolean = false;
+  private ready = false;
 
   constructor(config: ManagerConfig) {
     this.serviceUrl = config.serviceUrl || process.env.KNOWLEDGE_SERVICE_URL || 'http://localhost:8080';
@@ -46,12 +46,12 @@ export class KnowledgeServiceManager {
         }
         return { ok: false, message: `Service unhealthy: ${health.status}` };
       }
-      
+
       return { ok: false, message: `HTTP ${response.status}` };
     } catch (err) {
-      return { 
-        ok: false, 
-        message: `Cannot connect to ${this.serviceUrl}. Is knowledge-service running?` 
+      return {
+        ok: false,
+        message: `Cannot connect to ${this.serviceUrl}. Is knowledge-service running?`,
       };
     }
   }
@@ -61,7 +61,7 @@ export class KnowledgeServiceManager {
    */
   async ensureAvailable(): Promise<void> {
     const check = await this.checkConnection();
-    
+
     if (!check.ok) {
       throw new Error(`
 ╔════════════════════════════════════════════════════════════════╗
@@ -87,7 +87,7 @@ export class KnowledgeServiceManager {
 ╚════════════════════════════════════════════════════════════════╝
 `);
     }
-    
+
     this.ready = true;
   }
 

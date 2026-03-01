@@ -788,6 +788,46 @@ agent studio
 | ----------------------- | ------- | -------------------------------------------------------- |
 | `KNOWLEDGE_SERVICE_URL` | -       | URL of external knowledge service (when not using local) |
 
+**New in v0.12.0:** Knowledge-service now runs as external service. See
+[Knowledge Service Setup](#knowledge-service-setup) below.
+
+### Knowledge Service Setup
+
+Starting with version 0.12.0, knowledge graph functionality is provided by an
+external **knowledge-service** that must be started separately.
+
+**Quick Start:**
+
+```bash
+# Terminal 1: Start knowledge-service
+cd /path/to/knowledge-service
+./start-local.sh
+# Service runs on http://localhost:8080
+
+# Terminal 2: Start your app with knowledge service URL
+cd /path/to/your-app
+export KNOWLEDGE_SERVICE_URL=http://localhost:8080
+agentlang dev
+```
+
+**Why External Service?**
+
+1. **Clean Separation**: Knowledge-service runs independently
+2. **Port Isolation**: No conflicts with your app's port
+3. **Better Debugging**: Separate logs and monitoring
+4. **Production Parity**: Same architecture as cloud deployment
+
+**Troubleshooting:**
+
+If knowledge-service is not running, you'll see a helpful error message with
+instructions on how to start it.
+
+**Deployment Options:**
+
+- **Local Dev**: `./start-local.sh` (SQLite + LanceDB)
+- **Docker**: `docker-compose up` (PostgreSQL + pgvector)
+- **Kubernetes**: `kubectl apply -f k8s/` (Production)
+
 ---
 
 ## Development

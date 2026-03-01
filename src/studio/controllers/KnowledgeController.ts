@@ -3,7 +3,7 @@ import { KnowledgeServiceManager } from '../services/KnowledgeServiceManager.js'
 
 /**
  * Controller that proxies all knowledge API requests to knowledge-service.
- * 
+ *
  * This replaces the LocalKnowledgeService with a proxy pattern that forwards
  * all requests to a local instance of knowledge-service running in LanceDB mode.
  */
@@ -30,14 +30,7 @@ export class KnowledgeController {
       const manager = await this.getManager();
       const proxy = manager.getProxy();
 
-      const { 
-        query, 
-        queryText, 
-        containerTags, 
-        containerTagsJson, 
-        chunkLimit, 
-        entityLimit 
-      } = req.body;
+      const { query, queryText, containerTags, containerTagsJson, chunkLimit, entityLimit } = req.body;
 
       const resolvedQuery = query || queryText || '';
       const resolvedTags: string[] =
@@ -71,7 +64,7 @@ export class KnowledgeController {
       const proxy = manager.getProxy();
 
       const { tenantId, appId, name, description, documentTitles } = req.body;
-      
+
       const topic = await proxy.createTopic({
         tenantId,
         appId,
@@ -103,9 +96,9 @@ export class KnowledgeController {
 
       const tenantId = (req.query.tenantId as string) || undefined;
       const appId = (req.query.appId as string) || undefined;
-      
+
       const topics = await proxy.listTopics(tenantId, appId);
-      
+
       res.json(topics);
     } catch (error) {
       console.error('[KNOWLEDGE-PROXY] List topics error:', error);
@@ -127,12 +120,10 @@ export class KnowledgeController {
       const manager = await this.getManager();
       const proxy = manager.getProxy();
 
-      const topicId = typeof req.params.topicId === 'string' 
-        ? req.params.topicId 
-        : req.params.topicId?.[0] || '';
-      
+      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
+
       await proxy.deleteTopic(topicId);
-      
+
       res.json({ success: true });
     } catch (error) {
       console.error('[KNOWLEDGE-PROXY] Delete topic error:', error);
@@ -154,19 +145,9 @@ export class KnowledgeController {
       const manager = await this.getManager();
       const proxy = manager.getProxy();
 
-      const topicId = typeof req.params.topicId === 'string' 
-        ? req.params.topicId 
-        : req.params.topicId?.[0] || '';
-      
-      const { 
-        tenantId, 
-        appId, 
-        title, 
-        fileName, 
-        fileType, 
-        content, 
-        uploadedBy 
-      } = req.body;
+      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
+
+      const { tenantId, appId, title, fileName, fileType, content, uploadedBy } = req.body;
 
       if (!content) {
         res.status(400).json({ error: 'Content is required' });
@@ -209,10 +190,8 @@ export class KnowledgeController {
       const manager = await this.getManager();
       const proxy = manager.getProxy();
 
-      const topicId = typeof req.params.topicId === 'string' 
-        ? req.params.topicId 
-        : req.params.topicId?.[0] || '';
-      
+      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
+
       const tenantId = (req.query.tenantId as string) || undefined;
       const appId = (req.query.appId as string) || undefined;
       const page = parseInt((req.query.page as string) || '1', 10);
@@ -246,12 +225,11 @@ export class KnowledgeController {
       const manager = await this.getManager();
       const proxy = manager.getProxy();
 
-      const documentId = typeof req.params.documentId === 'string' 
-        ? req.params.documentId 
-        : req.params.documentId?.[0] || '';
-      
+      const documentId =
+        typeof req.params.documentId === 'string' ? req.params.documentId : req.params.documentId?.[0] || '';
+
       await proxy.deleteDocument(documentId);
-      
+
       res.json({ success: true });
     } catch (error) {
       console.error('[KNOWLEDGE-PROXY] Delete document error:', error);
