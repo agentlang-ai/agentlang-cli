@@ -1,43 +1,57 @@
 import { Request, Response } from 'express';
-import { LocalKnowledgeService } from '../services/LocalKnowledgeService.js';
+import { KnowledgeServiceManager } from '../services/KnowledgeServiceManager.js';
 
 /**
- * Controller for local knowledge API endpoints.
- * Matches the knowledge-service API contract so Studio can use the same
- * endpoints whether talking to deployed knowledge-service or local CLI.
+ * Controller that proxies all knowledge API requests to knowledge-service.
+ * 
+ * This replaces the LocalKnowledgeService with a proxy pattern that forwards
+ * all requests to a local instance of knowledge-service running in LanceDB mode.
  */
 export class KnowledgeController {
-  private getService(appPath: string | null): LocalKnowledgeService {
-    if (!appPath) {
-      throw new Error('No app is currently loaded');
+  private manager: KnowledgeServiceManager | null = null;
+
+  private async getManager(): Promise<KnowledgeServiceManager> {
+    if (!this.manager) {
+      this.manager = new KnowledgeServiceManager({});
+      await this.manager.ensureAvailable();
     }
-    return new LocalKnowledgeService(appPath);
+    return this.manager;
   }
 
   // POST /api/knowledge/query
   query = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
 
-      const { query, queryText, containerTags, containerTagsJson, chunkLimit, entityLimit } = req.body;
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
+
+      const { 
+        query, 
+        queryText, 
+        containerTags, 
+        containerTagsJson, 
+        chunkLimit, 
+        entityLimit 
+      } = req.body;
 
       const resolvedQuery = query || queryText || '';
       const resolvedTags: string[] =
         (containerTags as string[] | undefined) ||
         (containerTagsJson ? (JSON.parse(containerTagsJson as string) as string[]) : []);
 
-      const result = await service.query({
-        queryText: resolvedQuery,
-        containerTags: resolvedTags,
-        chunkLimit,
-        entityLimit,
+      const result = await proxy.query(resolvedQuery, resolvedTags, {
+        chunkLimit: chunkLimit ? parseInt(chunkLimit, 10) : 5,
+        entityLimit: entityLimit ? parseInt(entityLimit, 10) : 10,
       });
 
-      await service.close();
       res.json(result);
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] Query error:', error);
+      console.error('[KNOWLEDGE-PROXY] Query error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Knowledge query failed',
       });
@@ -48,10 +62,17 @@ export class KnowledgeController {
   createTopic = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
+
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
 
       const { tenantId, appId, name, description, documentTitles } = req.body;
-      const topic = service.createTopic({
+      
+      const topic = await proxy.createTopic({
         tenantId,
         appId,
         name,
@@ -59,10 +80,9 @@ export class KnowledgeController {
         documentTitles,
       });
 
-      await service.close();
       res.json(topic);
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] Create topic error:', error);
+      console.error('[KNOWLEDGE-PROXY] Create topic error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to create topic',
       });
@@ -73,16 +93,22 @@ export class KnowledgeController {
   listTopics = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
 
-      const tenantId = (req.query.tenantId as string) || '';
-      const appId = (req.query.appId as string) || '';
-      const topics = service.listTopics(tenantId, appId);
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
 
-      await service.close();
+      const tenantId = (req.query.tenantId as string) || undefined;
+      const appId = (req.query.appId as string) || undefined;
+      
+      const topics = await proxy.listTopics(tenantId, appId);
+      
       res.json(topics);
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] List topics error:', error);
+      console.error('[KNOWLEDGE-PROXY] List topics error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to list topics',
       });
@@ -93,15 +119,23 @@ export class KnowledgeController {
   deleteTopic = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
 
-      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
-      await service.deleteTopic(topicId);
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
 
-      await service.close();
+      const topicId = typeof req.params.topicId === 'string' 
+        ? req.params.topicId 
+        : req.params.topicId?.[0] || '';
+      
+      await proxy.deleteTopic(topicId);
+      
       res.json({ success: true });
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] Delete topic error:', error);
+      console.error('[KNOWLEDGE-PROXY] Delete topic error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to delete topic',
       });
@@ -112,82 +146,88 @@ export class KnowledgeController {
   uploadDocument = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
 
-      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
-      const { tenantId, appId, topicName, containerTag, title, fileName, fileType, content, uploadedBy } = req.body;
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
 
-      const result = await service.uploadDocumentVersion({
+      const topicId = typeof req.params.topicId === 'string' 
+        ? req.params.topicId 
+        : req.params.topicId?.[0] || '';
+      
+      const { 
+        tenantId, 
+        appId, 
+        title, 
+        fileName, 
+        fileType, 
+        content, 
+        uploadedBy 
+      } = req.body;
+
+      if (!content) {
+        res.status(400).json({ error: 'Content is required' });
+        return;
+      }
+
+      // Decode base64 content
+      const fileBuffer = Buffer.from(content, 'base64');
+
+      const result = await proxy.uploadDocument(topicId, fileBuffer, fileName || title, fileType, {
         tenantId,
         appId,
-        topicId,
-        topicName,
-        containerTag,
-        title,
-        fileName,
-        fileType,
-        content,
         uploadedBy,
       });
 
-      await service.close();
       res.json(result);
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] Upload error:', error);
+      console.error('[KNOWLEDGE-PROXY] Upload error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to upload document',
       });
     }
   };
 
-  // POST /api/knowledge/upload (workflow-style endpoint matching knowledge-service)
+  // POST /api/knowledge/upload
   uploadDocumentVersion = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
-
-      const { tenantId, appId, topicId, topicName, containerTag, title, fileName, fileType, content, uploadedBy } =
-        req.body;
-
-      const result = await service.uploadDocumentVersion({
-        tenantId,
-        appId,
-        topicId,
-        topicName,
-        containerTag,
-        title,
-        fileName,
-        fileType,
-        content,
-        uploadedBy,
-      });
-
-      await service.close();
-      res.json(result);
-    } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] Upload version error:', error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : 'Failed to upload document version',
-      });
-    }
+    // Same as uploadDocument
+    return this.uploadDocument(req, res);
   };
 
   // GET /api/knowledge/topics/:topicId/documents
   listDocuments = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
 
-      const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
-      const limit = parseInt((req.query.limit as string) || '50', 10);
-      const offset = parseInt((req.query.offset as string) || '0', 10);
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
 
-      const documents = service.listDocuments(topicId, limit, offset);
+      const topicId = typeof req.params.topicId === 'string' 
+        ? req.params.topicId 
+        : req.params.topicId?.[0] || '';
+      
+      const tenantId = (req.query.tenantId as string) || undefined;
+      const appId = (req.query.appId as string) || undefined;
+      const page = parseInt((req.query.page as string) || '1', 10);
+      const pageSize = parseInt((req.query.pageSize as string) || '20', 10);
 
-      await service.close();
-      res.json(documents);
+      const result = await proxy.listDocuments(topicId, {
+        tenantId,
+        appId,
+        page,
+        pageSize,
+      });
+
+      res.json(result);
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] List documents error:', error);
+      console.error('[KNOWLEDGE-PROXY] List documents error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to list documents',
       });
@@ -198,16 +238,23 @@ export class KnowledgeController {
   deleteDocument = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
 
-      const documentId =
-        typeof req.params.documentId === 'string' ? req.params.documentId : req.params.documentId?.[0] || '';
-      await service.softDeleteDocument(documentId);
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
 
-      await service.close();
+      const documentId = typeof req.params.documentId === 'string' 
+        ? req.params.documentId 
+        : req.params.documentId?.[0] || '';
+      
+      await proxy.deleteDocument(documentId);
+      
       res.json({ success: true });
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] Delete document error:', error);
+      console.error('[KNOWLEDGE-PROXY] Delete document error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to delete document',
       });
@@ -218,15 +265,20 @@ export class KnowledgeController {
   listJobs = async (req: Request, res: Response): Promise<void> => {
     try {
       const appPath = req.headers['x-app-path'];
-      const service = this.getService(typeof appPath === 'string' ? appPath : null);
+      if (!appPath || typeof appPath !== 'string') {
+        res.status(400).json({ error: 'x-app-path header is required' });
+        return;
+      }
+
+      const manager = await this.getManager();
+      const proxy = manager.getProxy();
 
       const containerTag = (req.query.containerTag as string) || '';
-      const jobs = service.listIngestionJobs(containerTag);
+      const jobs = await proxy.listJobs(containerTag);
 
-      await service.close();
       res.json(jobs);
     } catch (error) {
-      console.error('[LOCAL-KNOWLEDGE] List jobs error:', error);
+      console.error('[KNOWLEDGE-PROXY] List jobs error:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to list jobs',
       });
