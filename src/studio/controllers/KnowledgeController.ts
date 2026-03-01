@@ -30,17 +30,33 @@ export class KnowledgeController {
       const manager = await this.getManager();
       const proxy = manager.getProxy();
 
-      const { query, queryText, containerTags, containerTagsJson, chunkLimit, entityLimit } = req.body;
+      const {
+        query,
+        queryText,
+        containerTags,
+        containerTagsJson,
+        chunkLimit,
+        entityLimit,
+      } = req.body as {
+        query?: string;
+        queryText?: string;
+        containerTags?: string[];
+        containerTagsJson?: string;
+        chunkLimit?: number;
+        entityLimit?: number;
+      };
 
       const resolvedQuery = query || queryText || '';
       const resolvedTags: string[] =
-        (containerTags as string[] | undefined) ||
-        (containerTagsJson ? (JSON.parse(containerTagsJson as string) as string[]) : []);
+        (containerTags) ||
+        (containerTagsJson ? (JSON.parse(containerTagsJson) as string[]) : []);
 
       const result = await proxy.query(resolvedQuery, resolvedTags, {
-        chunkLimit: chunkLimit ? parseInt(chunkLimit, 10) : 5,
-        entityLimit: entityLimit ? parseInt(entityLimit, 10) : 10,
+        chunkLimit: chunkLimit || 5,
+        entityLimit: entityLimit || 10,
       });
+
+      res.json(result);
 
       res.json(result);
     } catch (error) {
@@ -147,7 +163,23 @@ export class KnowledgeController {
 
       const topicId = typeof req.params.topicId === 'string' ? req.params.topicId : req.params.topicId?.[0] || '';
 
-      const { tenantId, appId, title, fileName, fileType, content, uploadedBy } = req.body;
+      const {
+        tenantId,
+        appId,
+        title,
+        fileName,
+        fileType: docFileType,
+        content,
+        uploadedBy,
+      } = req.body as {
+        tenantId?: string;
+        appId?: string;
+        title?: string;
+        fileName?: string;
+        fileType?: string;
+        content?: string;
+        uploadedBy?: string;
+      };
 
       if (!content) {
         res.status(400).json({ error: 'Content is required' });
@@ -157,11 +189,17 @@ export class KnowledgeController {
       // Decode base64 content
       const fileBuffer = Buffer.from(content, 'base64');
 
-      const result = await proxy.uploadDocument(topicId, fileBuffer, fileName || title, fileType, {
-        tenantId,
-        appId,
-        uploadedBy,
-      });
+      const result = await proxy.uploadDocument(
+        topicId,
+        fileBuffer,
+        (fileName || title || 'document'),
+        (docFileType || 'application/octet-stream'),
+        {
+          tenantId,
+          appId,
+          uploadedBy,
+        },
+      );
 
       res.json(result);
     } catch (error) {

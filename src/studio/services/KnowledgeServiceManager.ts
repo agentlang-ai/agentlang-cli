@@ -1,7 +1,12 @@
+import fetch from 'node-fetch';
 import { KnowledgeServiceProxy } from './KnowledgeServiceProxy.js';
 
 interface ManagerConfig {
   serviceUrl?: string;
+}
+
+interface HealthCheckResponse {
+  status?: string;
 }
 
 /**
@@ -40,7 +45,7 @@ export class KnowledgeServiceManager {
       });
 
       if (response.ok) {
-        const health = await response.json();
+        const health = (await response.json()) as HealthCheckResponse;
         if (health.status === 'healthy' || health.status === 'degraded') {
           return { ok: true };
         }
@@ -48,7 +53,7 @@ export class KnowledgeServiceManager {
       }
 
       return { ok: false, message: `HTTP ${response.status}` };
-    } catch (err) {
+    } catch {
       return {
         ok: false,
         message: `Cannot connect to ${this.serviceUrl}. Is knowledge-service running?`,

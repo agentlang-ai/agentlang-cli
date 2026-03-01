@@ -1,14 +1,18 @@
 import fetch from 'node-fetch';
+import type {
+  Topic,
+  DocumentListResult,
+  UploadResult,
+  IngestionJob,
+  QueryResult,
+  ApiTopicsResponse,
+  ApiDocumentsResponse,
+  ApiJobsResponse,
+} from './types.js';
 
 interface ProxyConfig {
   serviceUrl: string;
   timeout?: number;
-}
-
-interface ProxyResponse<T = unknown> {
-  data?: T;
-  error?: string;
-  status: number;
 }
 
 /**
@@ -45,7 +49,8 @@ export class KnowledgeServiceProxy {
         ...headers,
       },
       body: body ? JSON.stringify(body) : undefined,
-      timeout: this.config.timeout,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      timeout: this.config.timeout as any,
     });
 
     if (!response.ok) {
@@ -55,10 +60,12 @@ export class KnowledgeServiceProxy {
 
     const contentType = response.headers.get('content-type');
     if (contentType?.includes('application/json')) {
-      return response.json() as Promise<T>;
+      const data = (await response.json()) as T;
+      return data;
     }
 
-    return response.text() as Promise<T>;
+    const text = await response.text();
+    return text as T;
   }
 
   /**
@@ -73,29 +80,8 @@ export class KnowledgeServiceProxy {
       chunkLimit?: number;
       entityLimit?: number;
     },
-  ): Promise<{
-    chunks: {
-      id: string;
-      content: string;
-      similarity: number;
-      containerTag: string;
-    }[];
-    entities: {
-      id: string;
-      name: string;
-      entityType: string;
-      description: string;
-      confidence: number;
-    }[];
-    edges: {
-      sourceId: string;
-      targetId: string;
-      relType: string;
-      weight: number;
-    }[];
-    contextString: string;
-  }> {
-    return this.proxyRequest('POST', '/KnowledgeService.core/queryKnowledgeContext', {
+  ): Promise<QueryResult> {
+    return this.proxyRequest<QueryResult>('POST', '/KnowledgeService.core/queryKnowledgeContext', {
       queryText,
       containerTagsJson: JSON.stringify(containerTags),
       documentTitlesJson: JSON.stringify(options?.documentTitles || []),
@@ -115,46 +101,40 @@ export class KnowledgeServiceProxy {
     description?: string;
     documentTitles?: string[];
   }): Promise<{ id: string; containerTag: string }> {
-    return this.proxyRequest('POST', '/KnowledgeService.core/uploadDocumentVersion', {
-      tenantId: input.tenantId || 'local',
-      appId: input.appId,
-      topicName: input.name,
-      description: input.description || '',
-      documentTitles: input.documentTitles || [],
-    });
+    return this.proxyRequest<{ id: string; containerTag: string }>(
+      'POST',
+      '/KnowledgeService.core/uploadDocumentVersion',
+      {
+        tenantId: input.tenantId || 'local',
+        appId: input.appId,
+        topicName: input.name,
+        description: input.description || '',
+        documentTitles: input.documentTitles || [],
+      },
+    );
   }
 
   /**
    * List topics
    */
-  async listTopics(
-    tenantId?: string,
-    appId?: string,
-  ): Promise<
-    {
-      id: string;
-      name: string;
-      description: string;
-      containerTag: string;
-      documentCount: number;
-    }[]
-  > {
+  async listTopics(tenantId?: string, appId?: string): Promise<Topic[]> {
     const params = new URLSearchParams();
     if (tenantId) params.append('tenantId', tenantId);
     if (appId) params.append('appId', appId);
 
-    const result = await this.proxyRequest<{
-      topicsJson: string;
-    }>('GET', `/KnowledgeService.core/Topic?${params.toString()}`);
+    const result = await this.proxyRequest<ApiTopicsResponse>(
+      'GET',
+      `/KnowledgeService.core/Topic?${params.toString()}`,
+    );
 
-    return JSON.parse(result.topicsJson || '[]');
+    return JSON.parse(result.topicsJson || '[]') as Topic[];
   }
 
   /**
    * Delete a topic
    */
   async deleteTopic(topicId: string): Promise<void> {
-    await this.proxyRequest('DELETE', `/KnowledgeService.core/Topic/${topicId}`);
+    await this.proxyRequest<unknown>('DELETE', `/KnowledgeService.core/Topic/${topicId}`);
   }
 
   /**
@@ -170,11 +150,11 @@ export class KnowledgeServiceProxy {
       appId?: string;
       uploadedBy?: string;
     },
-  ): Promise<{ documentId: string; versionId: string }> {
+  ): Promise<UploadResult> {
     // Convert buffer to base64 for transport
     const base64Content = fileBuffer.toString('base64');
 
-    return this.proxyRequest('POST', '/KnowledgeService.core/uploadDocumentVersion', {
+    return this.proxyRequest<UploadResult>('POST', '/KnowledgeService.core/uploadDocumentVersion', {
       tenantId: options?.tenantId || 'local',
       appId: options?.appId,
       topicId,
@@ -196,32 +176,18 @@ export class KnowledgeServiceProxy {
       page?: number;
       pageSize?: number;
     },
-  ): Promise<{
-    documents: {
-      id: string;
-      title: string;
-      fileName: string;
-      fileType: string;
-      sizeBytes: number;
-      currentVersion: number;
-      createdAt: string;
-    }[];
-    total: number;
-    page: number;
-    pageSize: number;
-  }> {
-    const result = await this.proxyRequest<{
-      documentsJson: string;
-      total: number;
-      page: number;
-      pageSize: number;
-    }>('POST', '/KnowledgeService.core/listDocuments', {
-      tenantId: options?.tenantId || 'local',
-      appId: options?.appId,
-      topicId,
-      page: options?.page || 1,
-      pageSize: options?.pageSize || 20,
-    });
+  ): Promise<DocumentListResult> {
+    const result = await this.proxyRequest<ApiDocumentsResponse>(
+      'POST',
+      '/KnowledgeService.core/listDocuments',
+      {
+        tenantId: options?.tenantId || 'local',
+        appId: options?.appId,
+        topicId,
+        page: options?.page || 1,
+        pageSize: options?.pageSize || 20,
+      },
+    );
 
     return {
       documents: JSON.parse(result.documentsJson || '[]'),
@@ -235,7 +201,7 @@ export class KnowledgeServiceProxy {
    * Delete a document
    */
   async deleteDocument(documentId: string): Promise<void> {
-    await this.proxyRequest('POST', '/KnowledgeService.core/softDeleteDocument', {
+    await this.proxyRequest<unknown>('POST', '/KnowledgeService.core/softDeleteDocument', {
       documentId,
     });
   }
@@ -243,23 +209,15 @@ export class KnowledgeServiceProxy {
   /**
    * List ingestion jobs
    */
-  async listJobs(containerTag?: string): Promise<
-    {
-      id: string;
-      documentId: string;
-      status: string;
-      progress: number;
-      progressStage: string;
-      errorMessage?: string;
-    }[]
-  > {
+  async listJobs(containerTag?: string): Promise<IngestionJob[]> {
     const params = new URLSearchParams();
     if (containerTag) params.append('containerTag', containerTag);
 
-    const result = await this.proxyRequest<{
-      itemsJson: string;
-    }>('GET', `/KnowledgeService.core/VectorIngestionQueueItem?${params.toString()}`);
+    const result = await this.proxyRequest<ApiJobsResponse>(
+      'GET',
+      `/KnowledgeService.core/VectorIngestionQueueItem?${params.toString()}`,
+    );
 
-    return JSON.parse(result.itemsJson || '[]');
+    return JSON.parse(result.itemsJson || '[]') as IngestionJob[];
   }
 }

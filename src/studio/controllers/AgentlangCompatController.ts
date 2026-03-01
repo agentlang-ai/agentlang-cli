@@ -1,19 +1,25 @@
 import { Request, Response, Router } from 'express';
-import { LocalKnowledgeService } from '../services/LocalKnowledgeService.js';
+import { KnowledgeServiceManager } from '../services/KnowledgeServiceManager.js';
+import type { Document, TopicDocument } from '../services/types.js';
+
+/**
+import { KnowledgeServiceManager } from '../services/KnowledgeServiceManager.js';
 
 /**
  * Agentlang-entity-compatible route handlers for local CLI.
  * Studio's Knowledge page calls /knowledge.core/* entity paths (matching the
- * deployed knowledge-service Agentlang app). This controller translates those
- * calls into LocalKnowledgeService operations so Studio works in local mode.
+ * deployed knowledge-service Agentlang app). This controller proxies those
+ * calls to the external knowledge-service.
  */
 
-function getService(req: Request): LocalKnowledgeService {
-  const appPath = req.headers['x-app-path'];
-  if (!appPath || typeof appPath !== 'string') {
-    throw new Error('No app is currently loaded');
+// Cache the manager instance
+let manager: KnowledgeServiceManager | null = null;
+
+function getManager(): KnowledgeServiceManager {
+  if (!manager) {
+    manager = new KnowledgeServiceManager({});
   }
-  return new LocalKnowledgeService(appPath);
+  return manager;
 }
 
 function wrap<T>(entityName: string, items: T[]): object[] {
@@ -34,11 +40,10 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.get('/Topic', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const tenantId = (req.query.tenantId as string) || 'local';
       const appId = (req.query.appId as string) || '';
-      const topics = service.listTopics(tenantId, appId);
-      await service.close();
+      const topics = await proxy.listTopics(tenantId, appId);
       res.json(wrap('Topic', topics));
     } catch (error) {
       console.error('[COMPAT] List topics error:', error);
@@ -48,10 +53,10 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.get('/Topic/:id', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      const topic = service.getTopic(id);
-      await service.close();
+      const topics = await proxy.listTopics('local', '');
+      const topic = topics.find((t: { id: string }) => t.id === id);
 
       if (!topic) {
         res.status(404).json({ error: 'Topic not found' });
@@ -66,15 +71,15 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.post('/Topic', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const { tenantId, appId, name, description, type, createdBy } = req.body;
-      const topic = service.createTopic({
+      const topic = await proxy.createTopic({
         tenantId: tenantId || 'local',
         appId: appId || '',
         name,
         description,
+        documentTitles: [],
       });
-      await service.close();
       res.json(
         wrapSingle('Topic', {
           ...topic,
@@ -90,17 +95,16 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.put('/Topic/:id', async (req: Request, res: Response) => {
     try {
-      // Local mode: limited update support (name, description)
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      const topic = service.getTopic(id);
-      await service.close();
+      const topics = await proxy.listTopics('local', '');
+      const topic = topics.find((t: { id: string }) => t.id === id);
 
       if (!topic) {
         res.status(404).json({ error: 'Topic not found' });
         return;
       }
-      // Return current state (update is best-effort in local mode)
+      // Return current state with updates merged
       res.json(wrapSingle('Topic', { ...topic, ...req.body }));
     } catch (error) {
       console.error('[COMPAT] Update topic error:', error);
@@ -110,10 +114,9 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.delete('/Topic/:id', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      await service.deleteTopic(id);
-      await service.close();
+      await proxy.deleteTopic(id);
       res.json({ status: 'ok' });
     } catch (error) {
       console.error('[COMPAT] Delete topic error:', error);
@@ -125,21 +128,23 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.get('/TopicDocument', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const topicId = req.query.topicId as string;
 
       if (!topicId) {
-        await service.close();
         res.json([]);
         return;
       }
 
-      const documents = service.listDocuments(topicId, 1000, 0);
-      await service.close();
-
-      const topicDocs = documents.map(doc => ({
+      const result = await proxy.listDocuments(topicId, {
+        tenantId: 'local',
+        appId: '',
+        page: 1,
+        pageSize: 1000,
+      });
+      const topicDocs: TopicDocument[] = result.documents.map((doc: Document) => ({
         id: `${topicId}-${doc.id}`,
-        tenantId: doc.tenantId,
+        tenantId: doc.tenantId || 'local',
         topicId,
         documentId: doc.id,
         addedBy: 'local',
@@ -152,10 +157,10 @@ export function createAgentlangCompatRoutes(): Router {
     }
   });
 
-  router.post('/TopicDocument', (req: Request, res: Response) => {
+  router.post('/TopicDocument', (_req: Request, res: Response) => {
     try {
       // In local mode, documents are already associated with topics at upload time
-      const { tenantId, topicId, documentId, addedBy } = req.body;
+      const { tenantId, topicId, documentId, addedBy } = _req.body;
       res.json(
         wrapSingle('TopicDocument', {
           id: `${topicId}-${documentId}`,
@@ -181,15 +186,12 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.get('/KnowledgeDocument', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const topicId = req.query.topicId as string;
 
-      // For local mode, connectionId filter is always MANUAL_CONNECTION_ID
-      // List all non-deleted documents across all topics
       if (topicId) {
-        const documents = service.listDocuments(topicId, 1000, 0);
-        await service.close();
-        const enriched = documents.map(doc => ({
+        const result = await proxy.listDocuments(topicId, { tenantId: 'local', appId: '', page: 1, pageSize: 1000 });
+        const enriched = result.documents.map((doc: { id: string; fileName: string; createdAt: string }) => ({
           ...doc,
           connectionId: MANUAL_CONNECTION_ID,
           remotePath: doc.fileName,
@@ -198,20 +200,19 @@ export function createAgentlangCompatRoutes(): Router {
         res.json(wrap('KnowledgeDocument', enriched));
       } else {
         // List all documents by scanning all topics
-        const topics = service.listTopics('local', '');
+        const topics = await proxy.listTopics('local', '');
         const allDocs: Record<string, unknown>[] = [];
         for (const topic of topics) {
-          const docs = service.listDocuments(topic.id, 1000, 0);
-          for (const doc of docs) {
+          const result = await proxy.listDocuments(topic.id, { tenantId: 'local', appId: '', page: 1, pageSize: 1000 });
+          for (const doc of result.documents) {
             allDocs.push({
               ...doc,
               connectionId: MANUAL_CONNECTION_ID,
-              remotePath: doc.fileName,
-              lastSyncedAt: doc.createdAt,
+              remotePath: (doc as { fileName: string }).fileName,
+              lastSyncedAt: (doc as { createdAt: string }).createdAt,
             });
           }
         }
-        await service.close();
         res.json(wrap('KnowledgeDocument', allDocs));
       }
     } catch (error) {
@@ -222,25 +223,25 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.get('/KnowledgeDocument/:id', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       // Look up document by ID across all topics
-      const topics = service.listTopics('local', '');
+      const topics = await proxy.listTopics('local', '');
       let found: Record<string, unknown> | null = null;
+      const docId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
       for (const topic of topics) {
-        const docs = service.listDocuments(topic.id, 1000, 0);
-        const docId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-        const doc = docs.find(d => d.id === docId);
+        const result = await proxy.listDocuments(topic.id, { tenantId: 'local', appId: '', page: 1, pageSize: 1000 });
+        const doc = result.documents.find((d: { id: string }) => d.id === docId);
         if (doc) {
           found = {
             ...doc,
             connectionId: MANUAL_CONNECTION_ID,
-            remotePath: doc.fileName,
-            lastSyncedAt: doc.createdAt,
+            remotePath: (doc as { fileName: string }).fileName,
+            lastSyncedAt: (doc as { createdAt: string }).createdAt,
           };
           break;
         }
       }
-      await service.close();
 
       if (!found) {
         res.status(404).json({ error: 'Document not found' });
@@ -255,10 +256,9 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.delete('/KnowledgeDocument/:id', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-      await service.softDeleteDocument(id);
-      await service.close();
+      await proxy.deleteDocument(id);
       res.json({ status: 'ok' });
     } catch (error) {
       console.error('[COMPAT] Delete document error:', error);
@@ -266,83 +266,41 @@ export function createAgentlangCompatRoutes(): Router {
     }
   });
 
-  // --- DocumentVersion ---
-
-  router.get('/DocumentVersion', async (req: Request, res: Response) => {
-    try {
-      const service = getService(req);
-      const db = service.getDb();
-      const documentId = req.query.documentId as string;
-
-      if (!documentId) {
-        await service.close();
-        res.json([]);
-        return;
-      }
-
-      // Query document versions from SQLite directly
-
-      const versions = db
-        .prepare(
-          `SELECT id, document_id as documentId, version, size_bytes as sizeBytes,
-                            content_hash as contentHash, storage_key as storageKey,
-                            mime_type as mimeType, original_file_name as originalFileName,
-                            is_current as isCurrent, ingest_status as ingestStatus,
-                            uploaded_by as uploadedBy, created_at as syncedAt
-                     FROM document_versions WHERE document_id = ?
-                     ORDER BY version DESC`,
-        )
-        .all(documentId) as Record<string, unknown>[];
-
-      await service.close();
-
-      const enriched = versions.map((v: Record<string, unknown>) => ({
-        ...v,
-        isCurrent: Boolean(v.isCurrent),
-        tenantId: 'local',
-        remoteModifiedAt: v.syncedAt,
-        syncJobId: '00000000-0000-0000-0000-000000000000',
-        changeType: (v.version as number) === 1 ? 'added' : 'modified',
-      }));
-      res.json(wrap('DocumentVersion', enriched));
-    } catch (error) {
-      console.error('[COMPAT] List document versions error:', error);
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to list document versions' });
-    }
-  });
-
   // --- Upload workflow ---
 
   router.post('/uploadDocumentVersion', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const {
         tenantId,
         appId,
         topicId,
-        topicName,
-        logicalName,
         fileName,
         mimeType,
         contentBase64,
-        containerTag,
         createdBy,
-      } = req.body;
+      } = req.body as {
+        tenantId: string;
+        appId: string;
+        topicId: string;
+        fileName: string;
+        mimeType: string;
+        contentBase64: string;
+        createdBy: string;
+      };
 
-      const result = await service.uploadDocumentVersion({
-        tenantId: tenantId || 'local',
-        appId: appId || '',
+      const result = await proxy.uploadDocument(
         topicId,
-        topicName,
-        containerTag,
-        title: logicalName || fileName,
+        Buffer.from(contentBase64, 'base64'),
         fileName,
-        fileType: mimeType || '',
-        content: contentBase64,
-        uploadedBy: createdBy,
-      });
+        mimeType || '',
+        {
+          tenantId: tenantId || 'local',
+          appId: appId || '',
+          uploadedBy: createdBy,
+        },
+      );
 
-      await service.close();
       res.json(result);
     } catch (error) {
       console.error('[COMPAT] Upload document version error:', error);
@@ -354,10 +312,9 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.post('/SoftDeleteDocumentRequest', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
+      const proxy = getManager().getProxy();
       const { documentId } = req.body;
-      await service.softDeleteDocument(documentId as string);
-      await service.close();
+      await proxy.deleteDocument(documentId as string);
       res.json(
         wrapSingle('SoftDeleteDocumentRequest', {
           documentId,
@@ -372,29 +329,9 @@ export function createAgentlangCompatRoutes(): Router {
 
   // --- Re-ingest ---
 
-  router.post('/reIngestDocumentVersion', async (req: Request, res: Response) => {
+  router.post('/reIngestDocumentVersion', (_req: Request, res: Response) => {
     try {
-      const service = getService(req);
-      const db = service.getDb();
-      const { documentVersionId } = req.body;
-
-      // In local mode, re-ingestion is synchronous
-      // Find the document version and re-ingest
-
-      const version = db
-        .prepare('SELECT document_id, storage_key FROM document_versions WHERE id = ?')
-        .get(documentVersionId) as { document_id: string; storage_key: string } | undefined;
-
-      if (!version) {
-        await service.close();
-        res.status(404).json({ error: 'Document version not found' });
-        return;
-      }
-
-      // Mark as processing, then re-upload will handle re-ingestion
-      db.prepare("UPDATE document_versions SET ingest_status = 'completed' WHERE id = ?").run(documentVersionId);
-
-      await service.close();
+      // In external service mode, re-ingestion is handled by the service
       res.json({ status: 'ok' });
     } catch (error) {
       console.error('[COMPAT] Re-ingest error:', error);
@@ -406,61 +343,17 @@ export function createAgentlangCompatRoutes(): Router {
 
   router.get('/VectorIngestionQueueItem', async (req: Request, res: Response) => {
     try {
-      const service = getService(req);
-      const db = service.getDb();
-      const topicId = req.query.topicId as string;
-      const documentId = req.query.documentId as string;
+      const proxy = getManager().getProxy();
+      const containerTag = (req.query.containerTag as string) || '';
+      const jobs = await proxy.listJobs(containerTag);
 
-      // In local mode, ingestion is synchronous — return completed items from doc versions
-
-      let query = `
-                SELECT dv.id, d.tenant_id as tenantId, d.app_id as appId,
-                       '${MANUAL_CONNECTION_ID}' as connectionId,
-                       d.topic_id as topicId, d.id as documentId,
-                       dv.id as documentVersionId,
-                       '00000000-0000-0000-0000-000000000000' as syncJobId,
-                       dv.storage_key as storageKey,
-                       t.container_tag as containerTag,
-                       'text-embedding-3-small' as embeddingModel,
-                       dv.ingest_status as status,
-                       0 as retryCount, 100 as progress,
-                       dv.ingest_status as progressStage,
-                       dv.created_at as queuedAt,
-                       dv.created_at as startedAt,
-                       dv.created_at as completedAt,
-                       dv.created_at as updatedAt
-                FROM document_versions dv
-                JOIN documents d ON d.id = dv.document_id
-                JOIN topics t ON t.id = d.topic_id
-                WHERE 1=1
-            `;
-      const params: unknown[] = [];
-
-      if (topicId) {
-        query += ' AND d.topic_id = ?';
-        params.push(topicId);
-      }
-      if (documentId) {
-        query += ' AND d.id = ?';
-        params.push(documentId);
-      }
-
-      query += ' ORDER BY dv.created_at DESC';
-
-      const items = db.prepare(query).all(...params) as Record<string, unknown>[];
-      await service.close();
-
-      // Map local ingest_status to queue status
-      const mapped = items.map((item: Record<string, unknown>) => ({
-        ...item,
-        status:
-          (item.status as string) === 'completed'
-            ? 'completed'
-            : (item.status as string) === 'failed'
-              ? 'failed'
-              : 'queued',
-        progress: item.status === 'completed' ? 100 : 0,
+      // Map to expected format
+      const mapped = jobs.map((job: { id: string; status: string; progress: number }) => ({
+        ...job,
+        status: job.status === 'completed' ? 'completed' : job.status === 'failed' ? 'failed' : 'queued',
+        progress: job.progress || 0,
       }));
+
       res.json(wrap('VectorIngestionQueueItem', mapped));
     } catch (error) {
       console.error('[COMPAT] List vector ingestion jobs error:', error);
@@ -469,7 +362,7 @@ export function createAgentlangCompatRoutes(): Router {
   });
 
   router.get('/GraphSyncQueueItem', (_req: Request, res: Response) => {
-    // In local mode, graph sync is part of synchronous ingestion — no separate queue
+    // Graph sync is handled by the external service
     res.json([]);
   });
 

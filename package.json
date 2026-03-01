@@ -88,6 +88,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/multer": "^2.0.0",
     "@types/node": "^25.0.10",
+    "@types/node-fetch": "^2.6.13",
     "@types/openapi-to-postmanv2": "^5.0.0",
     "@types/tmp": "^0.2.6",
     "eslint": "^9.39.2",
