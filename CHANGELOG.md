@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.12.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.1...0.12.2) (2026-03-09)
+
+### Changes
+
+- chore: release 0.12.1
+  ([68c3dd2](https://github.com/agentlang-ai/agentlang-cli/commit/68c3dd28a03ab5191217b612b7b09f65d0fb2793)) -
+  @HamzaFractl
+
+---
+
 ## [0.12.1](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.0...0.12.1) (2026-02-28)
 
 ### Changes
