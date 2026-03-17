@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.3](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.2...0.12.3) (2026-03-17)
+
+### Changes
+
+- Update agentlang (#100)
+  ([c893466](https://github.com/agentlang-ai/agentlang-cli/commit/c893466521912a3ed250c5a677f433859efd367e)) -
+  @pratik
+- update agenlang version
+  ([d323fc0](https://github.com/agentlang-ai/agentlang-cli/commit/d323fc095b4b11c663871e94fdef90d352cd6ca7)) -
+  @vijay
+
+---
+
 ## [0.12.2](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.1...0.12.2) (2026-03-09)
 
 ### Changes
