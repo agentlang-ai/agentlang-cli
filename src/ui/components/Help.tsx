@@ -147,6 +147,35 @@ export default function Help({ version }: HelpProps) {
             <Option flag="-c, --config" arg="<file>" desc="Configuration file path" />
           </SubOptions>
 
+          <Command name="initSchema" args="[file]" description="Initialize database schema" />
+          <SubOptions>
+            <Option flag="-c, --config" arg="<file>" desc="Configuration file path" />
+          </SubOptions>
+
+          <Command name="runMigrations" args="[file]" description="Run pending schema migrations" />
+          <SubOptions>
+            <Option flag="-c, --config" arg="<file>" desc="Configuration file path" />
+          </SubOptions>
+
+          <Command
+            name="applyMigration"
+            args="[file]"
+            description="Apply pending migrations (alias for runMigrations)"
+          />
+          <SubOptions>
+            <Option flag="-c, --config" arg="<file>" desc="Configuration file path" />
+          </SubOptions>
+
+          <Command name="undoLastMigration" args="[file]" description="Undo the last schema migration" />
+          <SubOptions>
+            <Option flag="-c, --config" arg="<file>" desc="Configuration file path" />
+          </SubOptions>
+
+          <Command name="generateMigration" args="[file]" description="Generate migration script from schema changes" />
+          <SubOptions>
+            <Option flag="-c, --config" arg="<file>" desc="Configuration file path" />
+          </SubOptions>
+
           <Command name="repl" args="[directory]" description="Start interactive REPL environment" />
           <SubOptions>
             <Option flag="-w, --watch" desc="Watch files and reload automatically" />
