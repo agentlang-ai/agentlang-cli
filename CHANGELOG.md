@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.12.6](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.5...0.12.6) (2026-03-31)
+
+### Changes
+
+- fix applyMigration and improve help messages (#106)
+  ([c0ef158](https://github.com/agentlang-ai/agentlang-cli/commit/c0ef158b4e687a4b82bb534430ecef9a693c6af6)) -
+  @muazzam0x48
+
+---
+
 ## [0.12.5](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.4...0.12.5) (2026-03-31)
 
 ### Changes
