@@ -80,6 +80,7 @@ const {
   setRuntimeMode_migration,
   setRuntimeMode_undo_migration,
   setRuntimeMode_generate_migration,
+  setRuntimeMode_apply_migration,
 } = modDefs;
 const modRuntime: typeof import('agentlang/out/utils/runtime.js') = await import(`${agPath}/out/utils/runtime.js`);
 const { isNodeEnv } = modRuntime;
@@ -319,18 +320,21 @@ ${ui.format.boldWhite('EXAMPLES')}
     .command('initSchema')
     .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
     .option('-c, --config <config>', 'Path to configuration file')
-    .description('Initialize database schema')
-    .addHelpText('after', migrationHelp('initSchema', 'Initializes the database schema from your Agentlang module.'))
+    .description('Initialize the database schema from your Agentlang module.')
+    .addHelpText('after', migrationHelp('initSchema', 'Initialize the database schema from your Agentlang module.'))
     .action(initSchemaCommand);
 
   program
     .command('runMigrations')
     .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
     .option('-c, --config <config>', 'Path to configuration file')
-    .description('Run pending schema migrations')
+    .description('Generate and run simulation of pending migrations to bring the database schema up to date.')
     .addHelpText(
       'after',
-      migrationHelp('runMigrations', 'Applies pending migrations to bring the database schema up to date.'),
+      migrationHelp(
+        'runMigrations',
+        'Generate and run simulation of pending migrations to bring the database schema up to date.',
+      ),
     )
     .action(runMigrationsCommand);
 
@@ -338,10 +342,10 @@ ${ui.format.boldWhite('EXAMPLES')}
     .command('applyMigration')
     .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
     .option('-c, --config <config>', 'Path to configuration file')
-    .description('Apply pending migrations (alias for runMigrations)')
+    .description('Apply the migrations generated via runMigrations command to the database.')
     .addHelpText(
       'after',
-      migrationHelp('applyMigration', 'Same behavior as runMigrations: applies pending schema migrations.'),
+      migrationHelp('applyMigration', 'Apply the migrations generated via runMigrations command to the database.'),
     )
     .action(applyMigrationCommand);
 
@@ -349,18 +353,21 @@ ${ui.format.boldWhite('EXAMPLES')}
     .command('undoLastMigration')
     .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
     .option('-c, --config <config>', 'Path to configuration file')
-    .description('Undo the last schema migration')
-    .addHelpText('after', migrationHelp('undoLastMigration', 'Reverts the most recently applied migration.'))
+    .description('Revert the most recently applied migration.')
+    .addHelpText('after', migrationHelp('undoLastMigration', 'Revert the most recently applied migration.'))
     .action(undoLastMigrationCommand);
 
   program
     .command('generateMigration')
     .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
     .option('-c, --config <config>', 'Path to configuration file')
-    .description('Generate migration script from schema changes')
+    .description('Generate and store (in migration entity) the migration script for pending schema changes.')
     .addHelpText(
       'after',
-      migrationHelp('generateMigration', 'Generates a migration script for pending schema changes.'),
+      migrationHelp(
+        'generateMigration',
+        'Generate and store (in migration entity) the migration script for pending schema changes.',
+      ),
     )
     .action(generateMigrationCommand);
 
@@ -690,7 +697,10 @@ export const runMigrationsCommand = async (fileName: string, options?: { config?
   await runModule(fileName, { ...options, releaseDb: true });
 };
 
-export const applyMigrationCommand = runMigrationsCommand;
+export const applyMigrationCommand = async (fileName: string, options?: { config?: string }): Promise<void> => {
+  setRuntimeMode_apply_migration();
+  await runModule(fileName, { ...options, releaseDb: true });
+};
 
 export const undoLastMigrationCommand = async (fileName: string, options?: { config?: string }): Promise<void> => {
   setRuntimeMode_undo_migration();
