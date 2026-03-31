@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.12.5](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.4...0.12.5) (2026-03-31)
+
+### Changes
+
+- add migration commands (#104)
+  ([cbc74a3](https://github.com/agentlang-ai/agentlang-cli/commit/cbc74a3a57ae2783c77e52fde7bf0be19a5905be)) -
+  @muazzam0x48
+
+---
+
 ## [0.12.4](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.3...0.12.4) (2026-03-24)
 
 ### Changes
