@@ -52,15 +52,35 @@ const modCreateAgentlangServices: typeof import('agentlang/out/language/agentlan
 );
 const { createAgentlangServices } = modCreateAgentlangServices;
 const modLoader: typeof import('agentlang/out/runtime/loader.js') = await import(`${agPath}/out/runtime/loader.js`);
-const { internModule, load, loadAppConfig, extractDocument } = modLoader;
+const { internModule, load, loadAppConfig, loadRawConfig, extractDocument } = modLoader;
 import type { ApplicationSpec } from 'agentlang/out/runtime/loader.js';
 const modLogger: typeof import('agentlang/out/runtime/logger.js') = await import(`${agPath}/out/runtime/logger.js`);
-const { logger } = modLogger;
+const { logger, updateLoggerFromConfig } = modLogger;
+const modState: typeof import('agentlang/out/runtime/state.js') = await import(`${agPath}/out/runtime/state.js`);
+const { setAppConfig } = modState;
 import type { Config } from 'agentlang/out/runtime/state.js';
 const modIntegrations: typeof import('agentlang/out/runtime/integrations.js') = await import(
   `${agPath}/out/runtime/integrations.js`
 );
 const { prepareIntegrations } = modIntegrations;
+const modIntegrationClient: typeof import('agentlang/out/runtime/integration-client.js') = await import(
+  `${agPath}/out/runtime/integration-client.js`
+);
+const { configureIntegrationClient } = modIntegrationClient;
+const modDatabase: typeof import('agentlang/out/runtime/resolvers/sqldb/database.js') = await import(
+  `${agPath}/out/runtime/resolvers/sqldb/database.js`
+);
+const { resetDefaultDatabase } = modDatabase;
+const modDefs: typeof import('agentlang/out/runtime/defs.js') = await import(`${agPath}/out/runtime/defs.js`);
+const {
+  isRuntimeMode_dev,
+  setRuntimeMode_prod,
+  setRuntimeMode_test,
+  setRuntimeMode_init_schema,
+  setRuntimeMode_migration,
+  setRuntimeMode_undo_migration,
+  setRuntimeMode_generate_migration,
+} = modDefs;
 const modRuntime: typeof import('agentlang/out/utils/runtime.js') = await import(`${agPath}/out/utils/runtime.js`);
 const { isNodeEnv } = modRuntime;
 const modOpenApi: typeof import('agentlang/out/runtime/openapi.js') = await import(`${agPath}/out/runtime/openapi.js`);
@@ -284,6 +304,65 @@ ${ui.format.boldWhite('EXAMPLES')}
 `,
     )
     .action(runModule);
+
+  const migrationHelp = (cmd: string, oneLiner: string) => `
+${ui.format.boldWhite('DESCRIPTION')}
+  ${oneLiner}
+
+${ui.format.boldWhite('EXAMPLES')}
+  ${ui.format.dim('$')} ${ui.format.cyan(`agent ${cmd}`)}
+  ${ui.format.dim('$')} ${ui.format.cyan(`agent ${cmd} ./src/core.al`)}
+  ${ui.format.dim('$')} ${ui.format.cyan(`agent ${cmd} . -c app.config.json`)}
+`;
+
+  program
+    .command('initSchema')
+    .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
+    .option('-c, --config <config>', 'Path to configuration file')
+    .description('Initialize database schema')
+    .addHelpText('after', migrationHelp('initSchema', 'Initializes the database schema from your Agentlang module.'))
+    .action(initSchemaCommand);
+
+  program
+    .command('runMigrations')
+    .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
+    .option('-c, --config <config>', 'Path to configuration file')
+    .description('Run pending schema migrations')
+    .addHelpText(
+      'after',
+      migrationHelp('runMigrations', 'Applies pending migrations to bring the database schema up to date.'),
+    )
+    .action(runMigrationsCommand);
+
+  program
+    .command('applyMigration')
+    .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
+    .option('-c, --config <config>', 'Path to configuration file')
+    .description('Apply pending migrations (alias for runMigrations)')
+    .addHelpText(
+      'after',
+      migrationHelp('applyMigration', 'Same behavior as runMigrations: applies pending schema migrations.'),
+    )
+    .action(applyMigrationCommand);
+
+  program
+    .command('undoLastMigration')
+    .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
+    .option('-c, --config <config>', 'Path to configuration file')
+    .description('Undo the last schema migration')
+    .addHelpText('after', migrationHelp('undoLastMigration', 'Reverts the most recently applied migration.'))
+    .action(undoLastMigrationCommand);
+
+  program
+    .command('generateMigration')
+    .argument('[file]', `Agentlang source file (${fileExtensions})`, '.')
+    .option('-c, --config <config>', 'Path to configuration file')
+    .description('Generate migration script from schema changes')
+    .addHelpText(
+      'after',
+      migrationHelp('generateMigration', 'Generates a migration script for pending schema changes.'),
+    )
+    .action(generateMigrationCommand);
 
   program
     .command('repl')
@@ -544,13 +623,33 @@ export const parseAndValidate = async (fileName: string): Promise<void> => {
   }
 };
 
-export const runModule = async (fileName: string): Promise<void> => {
+async function resolveAppConfig(fileName: string, configPath?: string): Promise<Config> {
+  if (configPath) {
+    const abs = path.resolve(process.cwd(), configPath);
+    const raw = await loadRawConfig(abs);
+    return setAppConfig(raw as Config);
+  }
+  const configDir = path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
+  return loadAppConfig(configDir);
+}
+
+export const runModule = async (
+  fileName: string,
+  options?: { config?: string; releaseDb?: boolean },
+): Promise<void> => {
+  if (isRuntimeMode_dev()) {
+    if (process.env.NODE_ENV === 'production') {
+      setRuntimeMode_prod();
+    } else if (process.env.NODE_ENV === 'test') {
+      setRuntimeMode_test();
+    }
+  }
   const r: boolean = await runPreInitTasks();
   if (!r) {
     throw new Error('Failed to initialize runtime');
   }
-  const configDir = path.dirname(fileName) === '.' ? process.cwd() : path.resolve(process.cwd(), fileName);
-  const config: Config = await loadAppConfig(configDir);
+  const config: Config = await resolveAppConfig(fileName, options?.config);
+  updateLoggerFromConfig();
   if (config.integrations) {
     await prepareIntegrations(
       config.integrations.host,
@@ -558,6 +657,7 @@ export const runModule = async (fileName: string): Promise<void> => {
       config.integrations.password,
       config.integrations.connections,
     );
+    configureIntegrationClient(config.integrations.host);
   }
   if (config.openapi) {
     await loadOpenApiSpec(config.openapi);
@@ -573,7 +673,33 @@ export const runModule = async (fileName: string): Promise<void> => {
       // eslint-disable-next-line no-console
       console.error(String(err));
     }
+  } finally {
+    if (options?.releaseDb) {
+      await resetDefaultDatabase();
+    }
   }
+};
+
+export const initSchemaCommand = async (fileName: string, options?: { config?: string }): Promise<void> => {
+  setRuntimeMode_init_schema();
+  await runModule(fileName, { ...options, releaseDb: true });
+};
+
+export const runMigrationsCommand = async (fileName: string, options?: { config?: string }): Promise<void> => {
+  setRuntimeMode_migration();
+  await runModule(fileName, { ...options, releaseDb: true });
+};
+
+export const applyMigrationCommand = runMigrationsCommand;
+
+export const undoLastMigrationCommand = async (fileName: string, options?: { config?: string }): Promise<void> => {
+  setRuntimeMode_undo_migration();
+  await runModule(fileName, { ...options, releaseDb: true });
+};
+
+export const generateMigrationCommand = async (fileName: string, options?: { config?: string }): Promise<void> => {
+  setRuntimeMode_generate_migration();
+  await runModule(fileName, { ...options, releaseDb: true });
 };
 
 export const generateDoc = async (
