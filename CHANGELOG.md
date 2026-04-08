@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.12.8](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.7...0.12.8) (2026-04-08)
+
+### Changes
+
+- bump agentlang version to 0.10.9 (#110)
+  ([7fe1880](https://github.com/agentlang-ai/agentlang-cli/commit/7fe18805547eff44e703136d55721732850dac37)) -
+  @muazzam0x48
+
+---
+
 ## [0.12.7](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.6...0.12.7) (2026-04-07)
 
 ### Changes
