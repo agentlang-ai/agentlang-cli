@@ -27,8 +27,8 @@ importers:
         specifier: ^2.15.0
         version: 2.16.0(@opentelemetry/api@1.9.0)(core-js@3.48.0)
       agentlang:
-        specifier: ^0.10.9
-        version: 0.10.9(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(ws@8.19.0)(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))(ws@8.19.0)
+        specifier: ^0.11.0
+        version: 0.11.0(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(ws@8.19.0)(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))(ws@8.19.0)
       better-sqlite3:
         specifier: ^12.6.2
         version: 12.6.2
@@ -1455,8 +1455,8 @@ packages:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
 
-  agentlang@0.10.9:
-    resolution: {integrity: sha512-JFo5Z6YSyutNNuiCRD5nk3pfzfiFWxYMzAF5XVsBt46GUVpUZL9Ik0kppO+4YqvHqolAMXodlXx4qdTLg4/Jkw==}
+  agentlang@0.11.0:
+    resolution: {integrity: sha512-hbdGZ87ebLxPCrPNRxTpGNNXqn5p0XsNl/+m/rvb/TzvBbVUFsQKfUPCdhOCreH4P1g9flggTVMShoNCMJ/cuw==}
     engines: {node: '>=20.0.0', vscode: ^1.67.0}
     hasBin: true
 
@@ -3710,6 +3710,7 @@ packages:
 
   uuid@10.0.0:
     resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@11.1.0:
@@ -5869,7 +5870,7 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  agentlang@0.10.9(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(ws@8.19.0)(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))(ws@8.19.0):
+  agentlang@0.11.0(@cfworker/json-schema@4.1.1)(@opentelemetry/api@1.9.0)(@opentelemetry/sdk-trace-base@2.0.1(@opentelemetry/api@1.9.0))(axios@1.13.4)(js-yaml@4.1.1)(openai@6.18.0(ws@8.19.0)(zod@4.3.6))(ts-node@10.9.2(@types/node@25.2.1)(typescript@5.9.3))(ws@8.19.0):
     dependencies:
       '@aws-sdk/client-cognito-identity': 3.984.0
       '@aws-sdk/client-cognito-identity-provider': 3.984.0
