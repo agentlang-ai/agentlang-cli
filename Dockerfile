@@ -6,7 +6,7 @@ RUN npm install -g pnpm
 
 ENV PNPM_HOME=/usr/local/bin
 
-RUN pnpm install -g agentlangcli
+RUN pnpm install -g @agentlang/cli@0.12.10
 
 COPY run.sh .
 
