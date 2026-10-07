@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.10](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.8...0.12.10) (2026-10-07)
+
+### Changes
+
+- doc: include @meta documentation in generated OpenAPI, use flat event request
+  body (#113)
+  ([3508efd](https://github.com/agentlang-ai/agentlang-cli/commit/3508efd212dd7d7e37a8f200acb3e3f5289784ce)) -
+  @muazzam0x48
+- bump agentlang version to 0.11.0 (#112)
+  ([6e26883](https://github.com/agentlang-ai/agentlang-cli/commit/6e2688354cb1cb86ac858a3b916f156cb32b9ab4)) -
+  @muazzam0x48
+
+---
+
 ## [0.12.8](https://github.com/agentlang-ai/agentlang-cli/compare/0.12.7...0.12.8) (2026-04-08)
 
 ### Changes
