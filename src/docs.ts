@@ -90,6 +90,11 @@ interface PropertyValue {
   default?: unknown;
 }
 
+function getDocumentation(record: Entity | Event): string | undefined {
+  const doc: unknown = record.getMeta('documentation');
+  return typeof doc === 'string' && doc.trim() ? doc.trim() : undefined;
+}
+
 function getOneOfValues(properties: Map<string, unknown>): string[] {
   const oneOf = properties.get('one-of') || new Set<string>();
   return Array.from(oneOf as Set<string>);
@@ -159,11 +164,13 @@ function registerEntityEndpoint(
   tags: string[],
   filterPaths: string[],
   entitySchema: z.ZodTypeAny,
+  description?: string,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const endpointConfig: any = {
     method,
     path,
+    description,
     security: [{ [bearerAuth.name]: [] }],
     tags,
     responses: {
@@ -228,12 +235,15 @@ function generateEntitiesEntries() {
 
       const relatinotionshipPaths = findRelationshipPaths(moduleName, entity.name);
 
-      const entitySchema = createZodSchemaFromEntitySchema(entity.schema).openapi(`${entity.name}Schema`);
+      const description = getDocumentation(entity);
+      const entitySchema = createZodSchemaFromEntitySchema(entity.schema).openapi(`${entity.name}Schema`, {
+        description,
+      });
 
-      registerEntityEndpoint('post', `/${entityPath}`, [entity.name], [], entitySchema);
-      registerEntityEndpoint('get', `/${entityPath}`, [entity.name], [], entitySchema);
-      registerEntityEndpoint('put', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema);
-      registerEntityEndpoint('delete', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema);
+      registerEntityEndpoint('post', `/${entityPath}`, [entity.name], [], entitySchema, description);
+      registerEntityEndpoint('get', `/${entityPath}`, [entity.name], [], entitySchema, description);
+      registerEntityEndpoint('put', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema, description);
+      registerEntityEndpoint('delete', `/${entityPath}/{id}`, [entity.name], ['id'], entitySchema, description);
 
       if (relatinotionshipPaths.length > 1) {
         relatinotionshipPaths.forEach(path => {
@@ -247,6 +257,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths,
             entitySchema,
+            description,
           );
           registerEntityEndpoint(
             'get',
@@ -254,6 +265,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths,
             entitySchema,
+            description,
           );
           registerEntityEndpoint(
             'put',
@@ -261,6 +273,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths.concat(['id']),
             entitySchema,
+            description,
           );
           registerEntityEndpoint(
             'delete',
@@ -268,6 +281,7 @@ function generateEntitiesEntries() {
             [`${entity.name} (${path[path.length - 2]})`],
             filterPaths.concat(['id']),
             entitySchema,
+            description,
           );
         });
       }
@@ -283,22 +297,23 @@ function generateEventsEntries() {
     return events.map((event: Event) => {
       const eventPath = `${moduleName}/${event.name}`;
 
-      const eventSchema = createZodSchemaFromEntitySchema(event.schema).openapi(`${event.name}Schema`);
-
-      const sc = z.object({
-        [eventPath]: eventSchema,
+      const description = getDocumentation(event);
+      const eventSchema = createZodSchemaFromEntitySchema(event.schema).openapi(`${event.name}Schema`, {
+        description,
       });
 
       registry.registerPath({
         method: 'post',
         path: `/${eventPath}`,
+        summary: description?.split(/(?<=\.)\s/)[0],
+        description,
         security: [{ [bearerAuth.name]: [] }],
         tags: ['Events'],
         request: {
           body: {
             content: {
               'application/json': {
-                schema: sc,
+                schema: eventSchema,
               },
             },
           },
